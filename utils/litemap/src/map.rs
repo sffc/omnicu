@@ -13,6 +13,10 @@ use std::{borrow::Borrow, iter::FromIterator};
 /// The API is roughly similar to that of [`std::collections::HashMap`], though it
 /// requires `Ord` instead of `Hash`.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct LiteMap<K, V> {
     values: Vec<(K, V)>,
 }
