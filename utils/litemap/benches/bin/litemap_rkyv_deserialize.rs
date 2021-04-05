@@ -6,6 +6,7 @@
 // HashMap. This example demonstrates how it works with rkyv.
 
 #![no_main] // https://github.com/unicode-org/icu4x/issues/395
+#![feature(test)]
 
 icu_benchmark_macros::static_setup!();
 

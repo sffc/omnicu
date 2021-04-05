@@ -18,7 +18,7 @@ use std::{borrow::Borrow, iter::FromIterator};
     derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
 )]
 pub struct LiteMap<K, V> {
-    values: Vec<(K, V)>,
+    pub values: Vec<(K, V)>,
 }
 
 impl<K, V> LiteMap<K, V> {
