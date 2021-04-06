@@ -56,7 +56,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     // Uncomment the following line to re-generate the binary data.
     // generate();
 
-    let archived = unsafe { archived_root::<LiteMapOfStrings>(&RKYV.0) };
+    // let archived = unsafe { archived_root::<LiteMapOfStrings>(&RKYV.0) };
+    let archived = rkyv::check_archived_root::<LiteMapOfStrings>(&RKYV.0);
     let s = archived.values[0].1.as_str();
     assert_eq!(s, "Arabic");
 
