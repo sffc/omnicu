@@ -6,18 +6,15 @@
 // HashMap. This example demonstrates how it works with rkyv.
 
 #![no_main] // https://github.com/unicode-org/icu4x/issues/395
-#![feature(test)]
 
 icu_benchmark_macros::static_setup!();
 
 use litemap::LiteMap;
 use rkyv::{
     archived_root,
-    de::deserializers::AllocDeserializer,
     ser::{Serializer, serializers::WriteSerializer},
     Aligned,
     AlignedVec,
-    Deserialize,
 };
 
 const DATA: [(&'static str, &'static str); 11] = [
@@ -61,8 +58,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 
     let archived = unsafe { archived_root::<LiteMapOfStrings>(&RKYV.0) };
     let s = archived.values[0].1.as_str();
-    std::hint::black_box(s);
-    debug_assert_eq!(s, "Arabic");
+    assert_eq!(s, "Arabic");
 
     0
 }

@@ -47,7 +47,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     // generate();
 
     let map: LiteMap<&str, &str> = postcard::from_bytes(&POSTCARD).unwrap();
-    debug_assert_eq!(map.get("tr"), Some(&"Turkish"));
+    assert_eq!(map.get("tr"), Some(&"Turkish"));
 
     0
 }

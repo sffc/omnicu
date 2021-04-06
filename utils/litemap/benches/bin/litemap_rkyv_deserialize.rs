@@ -6,7 +6,6 @@
 // HashMap. This example demonstrates how it works with rkyv.
 
 #![no_main] // https://github.com/unicode-org/icu4x/issues/395
-#![feature(test)]
 
 icu_benchmark_macros::static_setup!();
 
@@ -61,7 +60,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 
     let archived = unsafe { archived_root::<LiteMapOfStrings>(&RKYV.0) };
     let deserialized = archived.deserialize(&mut AllocDeserializer).unwrap();
-    debug_assert_eq!(deserialized.get("tr"), Some(&"Turkish".to_string()));
+    assert_eq!(deserialized.get("tr"), Some(&"Turkish".to_string()));
 
     0
 }
