@@ -7,6 +7,8 @@
 members = [
     "experimental/bies",
     "experimental/segmenter_lstm",
+    "experimental/serde_unaligned",
+    "experimental/sffc",
     "components/datetime",
     "components/decimal",
     "components/ecma402",

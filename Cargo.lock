@@ -549,6 +549,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "experimental_sffc"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "bytecheck",
+ "fixed_decimal",
+ "icu_benchmark_macros",
+ "icu_locid",
+ "icu_locid_macros",
+ "pod",
+ "postcard",
+ "rkyv",
+ "serde",
+ "serde_json",
+ "tinystr",
+ "writeable",
+]
+
+[[package]]
 name = "fixed_decimal"
 version = "0.1.0"
 dependencies = [
@@ -1554,6 +1573,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "packed"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41218181af10bee963afd8645b68e050b2feb64635c3639a263c42dba8295334"
+
+[[package]]
 name = "partial-min-max"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1642,6 +1667,17 @@ dependencies = [
  "num-traits",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "pod"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08b1c1c9af3b1adb5c22ae60040a78db0ce356760007efe187c37da4ab6318b7"
+dependencies = [
+ "packed",
+ "read_exact",
+ "uninitialized",
 ]
 
 [[package]]
@@ -1986,6 +2022,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "read_exact"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22bc22a81e0dda32ddd56276b166b548b0ab76281af15f0ba6c22b4bd43c8cd4"
+
+[[package]]
 name = "redox_syscall"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2293,6 +2335,13 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_unaligned"
+version = "0.1.0"
+dependencies = [
+ "icu_benchmark_macros",
 ]
 
 [[package]]
@@ -2671,6 +2720,12 @@ name = "unicode-xid"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
+
+[[package]]
+name = "uninitialized"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74c1aa4511c38276c548406f0b1f5f8b793f000cfb51e18f278a102abd057e81"
 
 [[package]]
 name = "unzip"

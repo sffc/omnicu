@@ -46,9 +46,7 @@ required-features = ["serde"]
 [[example]]
 name = "litemap_rkyv_archive"
 path = "benches/bin/litemap_rkyv_archive.rs"
-required-features = ["rkyv"]
 
 [[example]]
 name = "litemap_rkyv_deserialize"
 path = "benches/bin/litemap_rkyv_deserialize.rs"
-required-features = ["rkyv"]

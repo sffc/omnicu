@@ -109,6 +109,7 @@ command = "mkdir"
 args = ["-p", "wasmpkg"]
 
 [tasks.wasm-wasm]
+# Note: This could copy stale artifacts
 description = "Copy the WASM files from target into wasmpkg"
 category = "ICU4X WASM"
 command = "cp"
