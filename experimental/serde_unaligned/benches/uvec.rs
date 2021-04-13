@@ -114,6 +114,8 @@ fn binary_search_benches(c: &mut Criterion) {
         let uvec = UVec::from(black_box(haystack.as_slice()));
         assert_eq!(uvec, haystack.as_slice());
         b.iter(|| {
+            let uvec = black_box(&uvec);
+            let needles = black_box(&needles);
             needles
                 .iter()
                 .map(|needle| uvec.binary_search(&needle))
@@ -127,6 +129,8 @@ fn binary_search_benches(c: &mut Criterion) {
         let uvec = vec_to_unaligned_uvec(&haystack, &mut buffer);
         assert_eq!(uvec, haystack.as_slice());
         b.iter(|| {
+            let uvec = black_box(&uvec);
+            let needles = black_box(&needles);
             needles
                 .iter()
                 .map(|needle| uvec.binary_search(&needle))
