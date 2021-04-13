@@ -2,7 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
 use rand::SeedableRng;
 use rand_distr::{Distribution, LogNormal};
 use rand_pcg::Lcg64Xsh32;
@@ -110,9 +110,10 @@ fn binary_search_benches(c: &mut Criterion) {
         .map(|f| f as u32)
         .collect();
 
-    c.bench_function("binary_search/uvec/log_normal/aligned", |b| {
-        let uvec = UVec::from(black_box(haystack.as_slice()));
-        assert_eq!(uvec, haystack.as_slice());
+    let uvec = UVec::from(black_box(haystack.as_slice()));
+    assert_eq!(uvec, haystack.as_slice());
+
+    c.bench_with_input(BenchmarkId::new("binary_search/uvec/log_normal/aligned", haystack.len()), &(&uvec, &needles), |b, &(uvec, needles)| {
         b.iter(|| {
             let uvec = black_box(&uvec);
             let needles = black_box(&needles);
@@ -124,10 +125,11 @@ fn binary_search_benches(c: &mut Criterion) {
         });
     });
 
-    c.bench_function("binary_search/uvec/log_normal/unaligned", |b| {
-        let mut buffer = AlignedBuffer::default();
-        let uvec = vec_to_unaligned_uvec(&haystack, &mut buffer);
-        assert_eq!(uvec, haystack.as_slice());
+    let mut buffer = AlignedBuffer::default();
+    let uvec = vec_to_unaligned_uvec(&haystack, &mut buffer);
+    assert_eq!(uvec, haystack.as_slice());
+
+    c.bench_with_input(BenchmarkId::new("binary_search/uvec/log_normal/unaligned", haystack.len()), &(&uvec, &needles), |b, &(uvec, needles)| {
         b.iter(|| {
             let uvec = black_box(&uvec);
             let needles = black_box(&needles);
