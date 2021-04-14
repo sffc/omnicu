@@ -74,21 +74,6 @@ fn sum_benches(c: &mut Criterion) {
 
 #[cfg(feature = "bench")]
 fn binary_search_benches(c: &mut Criterion) {
-    c.bench_function("binary_search/uvec/test_slice", |b| {
-        let uvec = UVec::from(black_box(TEST_SLICE));
-        b.iter(|| uvec.binary_search(&0x0c0d0c));
-    });
-
-    c.bench_function("binary_search/uvec/test_buffer_le", |b| {
-        let uvec = UVec::<u32>::from_unaligned_le_bytes(black_box(&TEST_BUFFER_LE)).unwrap();
-        b.iter(|| uvec.binary_search(&0x0c0d0c));
-    });
-
-    c.bench_function("binary_search/vec/test_slice", |b| {
-        let vec = Vec::from(black_box(TEST_SLICE));
-        b.iter(|| vec.binary_search(&0x0c0d0c));
-    });
-
     // Generate a large list of u32s for stress testing.
     // Lcg64Xsh32 is a PRNG with a fixed seed for reproducible benchmarks.
     // LogNormal(10, 1) generates numbers with mean 36315 and mode 8103, a distribution that, in
@@ -110,18 +95,48 @@ fn binary_search_benches(c: &mut Criterion) {
         .map(|f| f as u32)
         .collect();
 
+    let uvec = haystack.clone();
+    c.bench_with_input(BenchmarkId::new("binary_search/uvec/log_normal/vec_of_aligned", haystack.len()), &(&uvec, &needles), |b, &(uvec, needles)| {
+        b.iter(|| {
+            for needle in needles.iter() {
+                black_box(uvec.binary_search(&needle));
+            }
+        });
+    });
+
+    let uvec: Vec<_> = haystack.iter().map(|u| u.as_unaligned()).collect();
+    c.bench_with_input(BenchmarkId::new("binary_search/uvec/log_normal/aligned_vec_of_unaligned", haystack.len()), &(&uvec, &needles), |b, &(uvec, needles)| {
+        b.iter(|| {
+            for needle in needles.iter() {
+                black_box(uvec.binary_search_by(|probe| u32::from_unaligned(probe).cmp(&needle)));
+            }
+        });
+    });
+    let mut uvec = vec![1u8];
+    for hay in &haystack {
+        uvec.extend(&hay.to_le_bytes());
+    }
+    let uvec: &[<u32 as AsULE>::ULE] = unsafe { ::std::mem::transmute(&uvec[1..]) };
+    c.bench_with_input(BenchmarkId::new("binary_search/uvec/log_normal/unaligned_vec_of_unaligned", haystack.len()), &(&uvec, &needles), |b, &(uvec, needles)| {
+        b.iter(|| {
+            for needle in needles.iter() {
+                black_box(uvec.binary_search_by(|probe| u32::from_unaligned(probe).cmp(&needle)));
+            }
+        });
+    });
+
     let uvec = UVec::from(black_box(haystack.as_slice()));
     assert_eq!(uvec, haystack.as_slice());
 
+
+    println!("{:p} {:p}", &needles[0], uvec.get_ptr());
+
+
     c.bench_with_input(BenchmarkId::new("binary_search/uvec/log_normal/aligned", haystack.len()), &(&uvec, &needles), |b, &(uvec, needles)| {
         b.iter(|| {
-            let uvec = black_box(&uvec);
-            let needles = black_box(&needles);
-            needles
-                .iter()
-                .map(|needle| uvec.binary_search(&needle))
-                .filter(|r| r.is_ok())
-                .count()
+            for needle in needles.iter() {
+                black_box(uvec.binary_search(&needle));
+            }
         });
     });
 
@@ -129,28 +144,17 @@ fn binary_search_benches(c: &mut Criterion) {
     let uvec = vec_to_unaligned_uvec(&haystack, &mut buffer);
     assert_eq!(uvec, haystack.as_slice());
 
+    println!("{:p} {:p}", &needles[0], uvec.get_ptr());
+
+
     c.bench_with_input(BenchmarkId::new("binary_search/uvec/log_normal/unaligned", haystack.len()), &(&uvec, &needles), |b, &(uvec, needles)| {
         b.iter(|| {
-            let uvec = black_box(&uvec);
-            let needles = black_box(&needles);
-            needles
-                .iter()
-                .map(|needle| uvec.binary_search(&needle))
-                .filter(|r| r.is_ok())
-                .count()
+            for needle in needles.iter() {
+                black_box(uvec.binary_search(&needle));
+            }
         });
     });
 
-    c.bench_function("binary_search/vec/log_normal", |b| {
-        let slice = black_box(haystack.as_slice());
-        b.iter(|| {
-            needles
-                .iter()
-                .map(|needle| slice.binary_search(&needle))
-                .filter(|r| r.is_ok())
-                .count()
-        });
-    });
 }
 
 criterion_group!(benches, overview_bench,);

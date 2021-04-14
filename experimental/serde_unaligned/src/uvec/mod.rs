@@ -166,6 +166,14 @@ impl<'a, T> UVec<'a, T>
 where
     T: AsULE + Ord,
 {
+    pub fn get_ptr(&self) -> *const () {
+        use UVecInner::*;
+        match &self.inner {
+            Owned(vec) => &vec[0] as *const _ as _,
+            Aligned(slice) => &slice[0] as *const _ as _,
+            UnalignedLE(slice) => &slice[0] as *const _ as _,
+        }
+    }
     pub fn binary_search(&self, x: &T) -> Result<usize, usize> {
         use UVecInner::*;
         match &self.inner {
