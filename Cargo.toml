@@ -19,6 +19,7 @@ members = [
     "experimental/provider_ppucd",
     "experimental/segmenter",
     "experimental/segmenter_lstm",
+    "experimental/string_builder",
     "ffi/capi",
     "ffi/ecma402",
     "provider/blob",
