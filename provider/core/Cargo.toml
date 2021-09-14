@@ -36,6 +36,9 @@ std = ["icu_locid/std"]
 provider_serde = ["serde", "erased-serde"]
 macros = ["icu_provider_macros"]
 
+# The "expressive_keys" feature enables type checking of resource keys.
+expressive_keys = []
+
 [dependencies]
 icu_locid = { version = "0.3", path = "../../components/locid" }
 tinystr = { version = "0.4.10", features = ["alloc"], default-features = false }

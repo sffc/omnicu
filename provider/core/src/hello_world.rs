@@ -18,8 +18,8 @@ use icu_locid::LanguageIdentifier;
 use litemap::LiteMap;
 
 pub mod key {
-    use crate::resource::ResourceKey;
-    pub const HELLO_WORLD_V1: ResourceKey = resource_key!(Core, "helloworld", 1);
+    use super::*;
+    pub const HELLO_WORLD_V1: ResourceKey = resource_key!(Core, HelloWorldV1, "helloworld", 1);
 }
 
 /// A struct containing "Hello World" in the requested language.

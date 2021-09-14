@@ -79,6 +79,8 @@ pub struct ResourceKey {
     pub category: ResourceCategory,
     pub sub_category: TinyStr16,
     pub version: u16,
+    #[cfg(feature = "expressive_keys")]
+    pub type_id: core::any::TypeId,
 }
 
 /// Shortcut to construct a const resource identifier.
@@ -104,21 +106,29 @@ pub struct ResourceKey {
 /// ```
 #[macro_export]
 macro_rules! resource_key {
-    ($category:ident, $sub_category:literal, $version:tt) => {
-        $crate::resource_key!($crate::ResourceCategory::$category, $sub_category, $version)
-    };
-    (x, $pu:literal, $sub_category:literal, $version:tt) => {
+    ($category:ident, $struct_type:ty, $sub_category:literal, $version:tt) => {
         $crate::resource_key!(
-            $crate::ResourceCategory::PrivateUse($crate::internal::tinystr4!($pu)),
+            $crate::ResourceCategory::$category,
+            $struct_type,
             $sub_category,
             $version
         )
     };
-    ($category:expr, $sub_category:literal, $version:tt) => {
+    (x, $pu:literal, $struct_type:ty, $sub_category:literal, $version:tt) => {
+        $crate::resource_key!(
+            $crate::ResourceCategory::PrivateUse($crate::internal::tinystr4!($pu)),
+            $struct_type,
+            $sub_category,
+            $version
+        )
+    };
+    ($category:path, $struct_type:ty, $sub_category:literal, $version:tt) => {
         $crate::ResourceKey {
             category: $category,
             sub_category: $crate::internal::tinystr16!($sub_category),
             version: $version,
+            #[cfg(feature = "expressive_keys")]
+            type_id: core::any::TypeId::of::<$struct_type>(),
         }
     };
 }
@@ -410,7 +420,7 @@ mod tests {
     fn get_key_test_cases() -> [KeyTestCase; 4] {
         [
             KeyTestCase {
-                resc_key: resource_key!(Core, "cardinal", 1),
+                resc_key: resource_key!(Core, (), "cardinal", 1),
                 expected: "core/cardinal@1",
             },
             KeyTestCase {
@@ -418,15 +428,16 @@ mod tests {
                     category: ResourceCategory::PrivateUse(tinystr4!("priv")),
                     sub_category: tinystr::tinystr16!("cardinal"),
                     version: 1,
+                    type_id: core::any::TypeId::of::<()>(),
                 },
                 expected: "x-priv/cardinal@1",
             },
             KeyTestCase {
-                resc_key: resource_key!(Core, "maxlengthsubcatg", 1),
+                resc_key: resource_key!(Core, (), "maxlengthsubcatg", 1),
                 expected: "core/maxlengthsubcatg@1",
             },
             KeyTestCase {
-                resc_key: resource_key!(Core, "cardinal", 65535),
+                resc_key: resource_key!(Core, (),"cardinal", 65535),
                 expected: "core/cardinal@65535",
             },
         ]
