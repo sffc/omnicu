@@ -15,6 +15,7 @@ members = [
     "components/locid/macros",
     "components/plurals",
     "components/uniset",
+    "experimental/abstract_fs",
     "experimental/bies",
     "experimental/codepointtrie",
     "experimental/segmenter",
