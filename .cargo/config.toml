@@ -23,3 +23,14 @@ rustflags = [
   # 20 KiB heap size, to fit in 2 pages.
   "-C", "link-args=-z stack-size=20480"
 ]
+
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source."https://github.com/rust-diplomat/diplomat"]
+git = "https://github.com/rust-diplomat/diplomat"
+rev = "6e01ea8f2ff053486a43e8a23628cbd00e98dfd7"
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"

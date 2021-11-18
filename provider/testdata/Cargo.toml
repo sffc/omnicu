@@ -140,7 +140,6 @@ denylist = ["bench"]
 [dependencies]
 icu_provider = { version = "0.4", path = "../../provider/core" }
 icu_provider_blob = { version = "0.4", path = "../../provider/blob", optional = true }
-icu_provider_fs = { version = "0.4", path = "../../provider/fs", optional = true }
 icu_locid = { version = "0.4", path = "../../components/locid" }
 
 # Dependencies for the "metadata" feature
@@ -150,12 +149,15 @@ serde_json = { version = "1.0", optional = true, default-features = false, featu
 displaydoc = { version = "0.2.3", default-features = false, optional = true }
 writeable = { version = "0.2.1", path = "../../utils/writeable", optional = true }
 
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "none")))'.dependencies]
+icu_provider_fs = { version = "0.4", path = "../../provider/fs", features = ["deserialize_json"], optional = true }
+
 [dev-dependencies]
 icu_locid_macros = { version = "0.4", path = "../../components/locid/macros" }
 icu_plurals = { version = "0.4", path = "../../components/plurals" }
 
 [features]
-default = ["fs", "std"]
+default = ["std"]
 # Enables programmatic access to this Cargo.toml file
 metadata = [
     "cargo_metadata",

@@ -27,6 +27,44 @@ include = [
 [package.metadata.docs.rs]
 all-features = true
 
+[gn.package.atomic-polyfill."0.1.2"]
+rustflags = []
+
+# NOTE: Manually generated
+[gn.package.bare-metal."0.2.5"]
+rustflags = []
+
+[gn.package.camino."1.0.4"]
+rustflags = ["--cfg=path_buf_capacity"]
+
+[gn.package.cortex-m."0.7.3"]
+rustflags = []
+
+[gn.package.heapless."0.7.3"]
+rustflags = ["--cfg=has_cas", "--cfg=has_atomics"]
+
+[gn.package.log."0.4.14"]
+rustflags = ["--cfg=atomic_cas", "--cfg=has_atomics"]
+
+[gn.package.proc-macro2."1.0.27"]
+rustflags = ["--cfg=lexerror_display", "--cfg=hygiene", "--cfg=use_proc_macro", "--cfg=wrap_proc_macro"]
+
+[gn.package.ryu."1.0.5"]
+rustflags = ["--cfg=integer128", "--cfg=maybe_uninit"]
+
+[gn.package.serde."1.0.128"]
+rustflags = ["--cfg=ops_bound", "--cfg=core_reverse", "--cfg=de_boxed_c_str", "--cfg=de_boxed_path", "--cfg=de_rc_dst", "--cfg=core_duration", "--cfg=integer128", "--cfg=range_inclusive", "--cfg=num_nonzero", "--cfg=serde_derive", "--cfg=core_try_from", "--cfg=num_nonzero_signed", "--cfg=systemtime_checked_add", "--cfg=std_atomic64", "--cfg=std_atomic"]
+
+[gn.package.serde_derive."1.0.128"]
+rustflags = ["--cfg=underscore_consts"]
+
+# NOTE: Manually generated
+[gn.package.serde_json."1.0.64"]
+rustflags = []
+
+[gn.package.syn."1.0.73"]
+rustflags = ["--cfg=syn_disable_nightly_tests"]
+
 [package.metadata.cargo-all-features]
 # Omit most optional dependency features from permutation testing
 skip_optional_dependencies = true
@@ -36,14 +74,14 @@ skip_optional_dependencies = true
 denylist = ["bench", "wearos", "freertos", "x86tiny", "smaller_static"]
 
 [lib]
-crate-type = ["staticlib", "rlib"]
+crate-type = ["rlib"]
 path = "src/lib.rs"
 
 [features]
-default = ["provider_fs", "provider_static"]
+default = ["provider_static"]
 wearos = ["smaller_static", "freertos"]
 
-provider_fs = ["icu_provider_fs", "icu_provider_fs/deserialize_json"]
+# provider_fs = ["icu_provider_fs", "icu_provider_fs/deserialize_json"]
 provider_static = ["icu_testdata"]
 smaller_static = ["provider_static"]
 
