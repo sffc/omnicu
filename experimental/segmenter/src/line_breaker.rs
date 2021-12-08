@@ -4,6 +4,8 @@
 
 extern crate unicode_width;
 
+use alloc::vec::Vec;
+
 use crate::indices::*;
 use crate::language::*;
 use crate::lb_define::*;

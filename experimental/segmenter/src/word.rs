@@ -1,4 +1,6 @@
 use core::str::CharIndices;
+use alloc::vec::Vec;
+use alloc::string::String;
 
 use crate::break_iterator_impl;
 use crate::indices::{Latin1Indices, Utf16Indices};

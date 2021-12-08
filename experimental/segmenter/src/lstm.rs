@@ -3,12 +3,15 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::language::*;
+use alloc::vec::Vec;
+use alloc::string::String;
+use alloc::string::ToString;
 
 use icu_provider::DataPayload;
 use icu_segmenter_lstm::lstm::Lstm;
 use icu_segmenter_lstm::structs;
-use std::char::decode_utf16;
-use std::str::Chars;
+use core::char::decode_utf16;
+use core::str::Chars;
 
 // TODO:
 // json file is big, So I should use anoher binary format like npy.
@@ -198,8 +201,7 @@ pub fn get_line_break_utf16(input: &[u16]) -> Option<Vec<usize>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::lstm::get_line_break_utf16;
-    use crate::lstm::get_line_break_utf8;
+    use super::*;
 
     #[test]
     fn thai_word_break() {

@@ -74,6 +74,11 @@
 //! - <https://www.unicode.org/Public/UCD/latest/ucd/LineBreak.txt>
 //! - <https://www.unicode.org/Public/UCD/latest/ucd/EastAsianWidth.txt>
 
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+
 mod indices;
 mod language;
 mod lb_define;
