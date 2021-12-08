@@ -87,6 +87,7 @@ mod lstm;
 mod properties_defines;
 mod properties_other;
 mod property_table;
+pub mod provider;
 mod rule_segmenter;
 mod rule_table;
 
