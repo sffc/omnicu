@@ -6,11 +6,12 @@ extern crate unicode_width;
 
 use alloc::vec::Vec;
 
+use icu_provider::prelude::*;
+use crate::provider::*;
 use crate::indices::*;
 use crate::language::*;
 use crate::uax14_data::lb_define::*;
 use crate::lstm::*;
-use crate::uax14_data::UAX14_RULE_TABLE;
 use crate::uax14_data::UAX14_PROPERTY_TABLE;
 
 use core::char;
@@ -192,24 +193,6 @@ fn is_break_utf32_by_loose(
 }
 
 #[inline]
-fn is_break_from_table(rule_table: &[i8], property_count: usize, left: u8, right: u8) -> bool {
-    let rule = get_break_state_from_table(rule_table, property_count, left, right);
-    if rule == KEEP_RULE {
-        return false;
-    }
-    if rule >= 0 {
-        // need additional next characters to get break rule.
-        return false;
-    }
-    true
-}
-
-#[inline]
-fn is_break(left: u8, right: u8) -> bool {
-    is_break_from_table(&UAX14_RULE_TABLE, PROP_COUNT, left, right)
-}
-
-#[inline]
 fn is_non_break_by_keepall(left: u8, right: u8) -> bool {
     //  typographic letter units shouldn't be break
     (left == AI
@@ -234,16 +217,6 @@ fn is_non_break_by_keepall(left: u8, right: u8) -> bool {
             || right == JV
             || right == JT
             || right == CJ)
-}
-
-#[inline]
-fn get_break_state_from_table(rule_table: &[i8], property_count: usize, left: u8, right: u8) -> i8 {
-    rule_table[((left as usize) - 1) * property_count + (right as usize) - 1]
-}
-
-#[inline]
-fn get_break_state(left: u8, right: u8) -> i8 {
-    get_break_state_from_table(&UAX14_RULE_TABLE, PROP_COUNT, left, right)
 }
 
 #[inline]
@@ -283,6 +256,7 @@ macro_rules! break_iterator_impl {
             line_break_rule: LineBreakRule,
             word_break_rule: WordBreakRule,
             ja_zh: bool,
+            data: DataPayload<LineBreakDataV1Marker>
         }
 
         impl<'a> Iterator for $name<'a> {
@@ -380,7 +354,7 @@ macro_rules! break_iterator_impl {
                     }
 
                     // If break_state is equals or grater than 0, it is alias of property.
-                    let mut break_state = get_break_state(left_prop, right_prop);
+                    let mut break_state = self.data.get().rule_table.get_break_state(left_prop, right_prop);
                     if break_state >= 0 as i8 {
                         let mut previous_iter = self.iter.clone();
                         let mut previous_pos_data = self.current_pos_data;
@@ -389,7 +363,7 @@ macro_rules! break_iterator_impl {
                             self.current_pos_data = self.iter.next();
                             if self.current_pos_data.is_none() {
                                 // Reached EOF. But we are analyzing multiple characters now, so next break may be previous point.
-                                let break_state = get_break_state(break_state as u8, EOT);
+                                let break_state = self.data.get().rule_table.get_break_state(break_state as u8, EOT);
                                 if break_state == PREVIOUS_BREAK_RULE {
                                     self.iter = previous_iter;
                                     self.current_pos_data = previous_pos_data;
@@ -400,7 +374,7 @@ macro_rules! break_iterator_impl {
                             }
 
                             let prop = self.get_linebreak_property();
-                            break_state = get_break_state(break_state as u8, prop);
+                            break_state = self.data.get().rule_table.get_break_state(break_state as u8, prop);
                             if break_state < 0 {
                                 break;
                             }
@@ -419,7 +393,7 @@ macro_rules! break_iterator_impl {
                         return Some(self.current_pos_data.unwrap().0);
                     }
 
-                    if is_break(left_prop, right_prop) {
+                    if self.data.get().rule_table.is_break(left_prop, right_prop) {
                         return Some(self.current_pos_data.unwrap().0);
                     }
                 }
@@ -492,6 +466,7 @@ impl<'a> LineBreakIterator<'a> {
             line_break_rule: LineBreakRule::Strict,
             word_break_rule: WordBreakRule::Normal,
             ja_zh: false,
+            data: todo!(),
         }
     }
 
@@ -515,6 +490,7 @@ impl<'a> LineBreakIterator<'a> {
             line_break_rule,
             word_break_rule,
             ja_zh,
+            data: todo!(),
         }
     }
 
@@ -579,6 +555,7 @@ impl<'a> LineBreakIteratorLatin1<'a> {
             line_break_rule: LineBreakRule::Strict,
             word_break_rule: WordBreakRule::Normal,
             ja_zh: false,
+            data: todo!(),
         }
     }
 
@@ -597,6 +574,7 @@ impl<'a> LineBreakIteratorLatin1<'a> {
             line_break_rule,
             word_break_rule,
             ja_zh: false,
+            data: todo!(),
         }
     }
 
@@ -638,6 +616,7 @@ impl<'a> LineBreakIteratorUtf16<'a> {
             line_break_rule: LineBreakRule::Strict,
             word_break_rule: WordBreakRule::Normal,
             ja_zh: false,
+            data: todo!(),
         }
     }
 
@@ -661,6 +640,7 @@ impl<'a> LineBreakIteratorUtf16<'a> {
             line_break_rule,
             word_break_rule,
             ja_zh,
+            data: todo!(),
         }
     }
 

@@ -3,17 +3,35 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use zerovec::ZeroVec;
+use icu_provider::yoke::{self, *};
 
 /// UAX 14 line break rule table.
+#[derive(Debug, PartialEq, Clone)]
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct LineBreakRuleTable<'data>(
+#[derive(Yokeable, ZeroCopyFrom)]
+pub struct LineBreakRuleTable<'data> {
     #[serde(borrow)]
-    ZeroVec<'data, i8>
-);
+    table: ZeroVec<'data, i8>,
+    property_count: u32,
+    keep_rule: i8,
+}
 
 impl LineBreakRuleTable<'_> {
     #[inline]
-    fn get_break_state_from_table(&self, property_count: usize, left: u8, right: u8) -> i8 {
-        self.0.get(((left as usize) - 1) * property_count + (right as usize) - 1).unwrap_or_default()
+    pub fn get_break_state(&self, left: u8, right: u8) -> i8 {
+        self.table.get(((left as usize) - 1) * (self.property_count as usize) + (right as usize) - 1).unwrap_or_default()
+    }
+
+    #[inline]
+    pub fn is_break(&self, left: u8, right: u8) -> bool {
+        let rule = self.get_break_state(left, right);
+        if rule == self.keep_rule {
+            return false;
+        }
+        if rule >= 0 {
+            // need additional next characters to get break rule.
+            return false;
+        }
+        true
     }
 }

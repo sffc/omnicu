@@ -4,6 +4,8 @@
 
 //! Data provider definitions for Segmenter.
 
+use icu_provider::yoke::{self, *};
+
 mod property_table;
 mod rule_table;
 
@@ -11,6 +13,8 @@ pub use property_table::LineBreakPropertyTable;
 pub use rule_table::LineBreakRuleTable;
 
 /// Data struct for UAX 14 line segmentation.
+#[icu_provider::data_struct]
+#[derive(Debug, PartialEq, Clone)]
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct LineBreakDataV1<'data> {
     #[serde(borrow)]
