@@ -692,7 +692,7 @@ impl<'a> LineBreakIteratorUtf16<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::lb_define::*;
+    use crate::uax14_data::lb_define::*;
     use crate::line_breaker::get_linebreak_property_with_rule;
     use crate::line_breaker::is_break;
     use crate::LineBreakIterator;

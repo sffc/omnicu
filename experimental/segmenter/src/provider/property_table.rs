@@ -4,21 +4,22 @@
 
 use zerovec::ZeroVec;
 
+/// UAX 14 line break property table.
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct LineBreakPropertyTable<'data>(
     #[serde(borrow)]
-    #[serde(deserialize_with = "deserialize_line_break_property_table")]
+    #[serde(deserialize_with = "deserialize_property_table")]
     ZeroVec<'data, u8>
 );
 
-fn deserialize_line_break_property_table<'de, 'a, D>(deserializer: D) -> Result<ZeroVec<'a, u8>, D::Error>
+fn deserialize_property_table<'de, 'a, D>(deserializer: D) -> Result<ZeroVec<'a, u8>, D::Error>
 where
     D: serde::Deserializer<'de>,
     'de: 'a
 {
     let zv: ZeroVec<u8> = serde::Deserialize::deserialize(deserializer)?;
     if zv.len() != 1024 * 128 {
-        todo!()
+        return Err(serde::de::Error::invalid_length(zv.len(), &"expected length 1024*128"));
     }
     Ok(zv)
 }
@@ -27,12 +28,6 @@ impl LineBreakPropertyTable<'_> {
     #[inline]
     pub fn get_prop_for_code_point(&self, codepoint: u32) -> u8 {
         let index = (codepoint / 1024 * 128) + (codepoint & 0x3ff);
-        self.0.get(index as usize).unwrap_or(0)
+        self.0.get(index as usize).unwrap_or_default()
     }
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct LineBreakDataV1<'data> {
-    #[serde(borrow)]
-    table: LineBreakPropertyTable<'data>,
 }
