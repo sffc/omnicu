@@ -8,10 +8,10 @@ use alloc::vec::Vec;
 
 use crate::indices::*;
 use crate::language::*;
-use crate::lb_define::*;
+use crate::uax14_data::lb_define::*;
 use crate::lstm::*;
-use crate::property_table::*;
-use crate::rule_table::*;
+use crate::uax14_data::UAX14_RULE_TABLE;
+use crate::uax14_data::UAX14_PROPERTY_TABLE;
 
 use core::char;
 use core::str::CharIndices;

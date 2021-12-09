@@ -81,15 +81,11 @@ extern crate alloc;
 
 mod indices;
 mod language;
-mod lb_define;
 mod line_breaker;
 mod lstm;
-mod properties_defines;
-mod properties_other;
-mod property_table;
 pub mod provider;
 mod rule_segmenter;
-mod rule_table;
+mod uax14_data;
 
 mod word;
 
