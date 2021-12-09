@@ -4,9 +4,24 @@
 
 use zerovec::ZeroVec;
 
-// TODO: Custom deserialize impl that checks that the length equals 1024*128
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct LineBreakPropertyTable<'data>(#[serde(borrow)] ZeroVec<'data, u8>);
+pub struct LineBreakPropertyTable<'data>(
+    #[serde(borrow)]
+    #[serde(deserialize_with = "deserialize_line_break_property_table")]
+    ZeroVec<'data, u8>
+);
+
+fn deserialize_line_break_property_table<'de, 'a, D>(deserializer: D) -> Result<ZeroVec<'a, u8>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    'de: 'a
+{
+    let zv: ZeroVec<u8> = serde::Deserialize::deserialize(deserializer)?;
+    if zv.len() != 1024 * 128 {
+        todo!()
+    }
+    Ok(zv)
+}
 
 impl LineBreakPropertyTable<'_> {
     #[inline]
