@@ -117,17 +117,14 @@ unsafe impl ULE for u8 {
     fn validate_byte_slice(_bytes: &[u8]) -> Result<(), Self::Error> {
         Ok(())
     }
+}
+
+// Safety: same as above for u8
+unsafe impl ULE for i8 {
+    type Error = core::convert::Infallible;
     #[inline]
-    fn parse_byte_slice(bytes: &[u8]) -> Result<&[Self], Self::Error> {
-        Ok(bytes)
-    }
-    #[inline]
-    unsafe fn from_byte_slice_unchecked(bytes: &[u8]) -> &[Self] {
-        bytes
-    }
-    #[inline]
-    fn as_byte_slice(slice: &[Self]) -> &[u8] {
-        slice
+    fn validate_byte_slice(_bytes: &[u8]) -> Result<(), Self::Error> {
+        Ok(())
     }
 }
 
@@ -143,5 +140,20 @@ impl AsULE for u8 {
     }
 }
 
+impl AsULE for i8 {
+    type ULE = Self;
+    #[inline]
+    fn as_unaligned(self) -> Self::ULE {
+        self
+    }
+    #[inline]
+    fn from_unaligned(unaligned: Self::ULE) -> Self {
+        unaligned
+    }
+}
+
 // EqULE is true because u8 is its own ULE.
 unsafe impl EqULE for u8 {}
+
+// EqULE is true because i8 is its own ULE.
+unsafe impl EqULE for i8 {}
