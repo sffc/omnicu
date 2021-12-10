@@ -7,7 +7,7 @@ extern crate unicode_width;
 use alloc::vec::Vec;
 
 use icu_provider::prelude::*;
-use crate::provider::*;
+use crate::provider::{self, *};
 use crate::indices::*;
 use crate::language::*;
 use crate::uax14_data::lb_define::*;
@@ -457,7 +457,26 @@ break_iterator_impl!(LineBreakIterator, CharIndices<'a>, char);
 
 impl<'a> LineBreakIterator<'a> {
     /// Create a line break iterator for an `str` (a UTF-8 string).
-    pub fn new(input: &str) -> LineBreakIterator {
+    pub fn new<D>(input: &'a str, provider: &D) -> Result<LineBreakIterator<'a>, DataError>
+    where
+        D: DataProvider<LineBreakDataV1Marker>
+    {
+        let data = provider.load_payload(&DataRequest {
+            resource_path: ResourcePath {
+                key: provider::key::LINE_BREAK_V1,
+                options: ResourceOptions {
+                    variant: None,
+                    langid: None,
+                },
+            },
+        })?
+        .take_payload()?;
+        Ok(Self::new_with_data(input, data))
+    }
+
+    /// Create a line break iterator for an `str` (a UTF-8 string).
+    pub fn new_with_data(input: &str, data: DataPayload<LineBreakDataV1Marker>) -> LineBreakIterator
+    {
         LineBreakIterator {
             iter: input.char_indices(),
             len: input.len(),
@@ -466,7 +485,7 @@ impl<'a> LineBreakIterator<'a> {
             line_break_rule: LineBreakRule::Strict,
             word_break_rule: WordBreakRule::Normal,
             ja_zh: false,
-            data: todo!(),
+            data,
         }
     }
 

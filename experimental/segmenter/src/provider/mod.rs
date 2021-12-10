@@ -12,6 +12,14 @@ mod rule_table;
 pub use property_table::LineBreakPropertyTable;
 pub use rule_table::LineBreakRuleTable;
 
+pub mod key {
+    //! Resource keys for [`icu_decimal`](crate).
+    use icu_provider::{resource_key, ResourceKey};
+
+    /// Resource key: symbols used for basic decimal formatting.
+    pub const LINE_BREAK_V1: ResourceKey = resource_key!(Segmenter, "line_break", 1);
+}
+
 /// Data struct for UAX 14 line segmentation.
 #[icu_provider::data_struct]
 #[derive(Debug, PartialEq, Clone)]
