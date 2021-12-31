@@ -27,42 +27,51 @@ include = [
 [package.metadata.docs.rs]
 all-features = true
 
-[gn.package.atomic-polyfill."0.1.2"]
+[gn.package.atomic-polyfill."0.1.5"]
 rustflags = []
 
 # NOTE: Manually generated
 [gn.package.bare-metal."0.2.5"]
 rustflags = []
 
-[gn.package.camino."1.0.4"]
+[gn.package.camino."1.0.5"]
 rustflags = ["--cfg=path_buf_capacity"]
 
 [gn.package.cortex-m."0.7.3"]
 rustflags = []
 
-[gn.package.heapless."0.7.3"]
+[gn.package.critical-section."0.2.5"]
+rustflags = []
+
+[gn.package.erased-serde."0.3.16"]
+rustflags = []
+
+[gn.package.heapless."0.7.7"]
 rustflags = ["--cfg=has_cas", "--cfg=has_atomics"]
 
 [gn.package.log."0.4.14"]
 rustflags = ["--cfg=atomic_cas", "--cfg=has_atomics"]
 
-[gn.package.proc-macro2."1.0.27"]
-rustflags = ["--cfg=lexerror_display", "--cfg=hygiene", "--cfg=use_proc_macro", "--cfg=wrap_proc_macro"]
+[gn.package.proc-macro2."1.0.32"]
+rustflags = ["--cfg=lexerror_display", "--cfg=hygiene", "--cfg=literal_from_str", "--cfg=use_proc_macro", "--cfg=wrap_proc_macro"]
+
+[gn.package.riscv."0.7.0"]
+rustflags = []
 
 [gn.package.ryu."1.0.5"]
 rustflags = ["--cfg=integer128", "--cfg=maybe_uninit"]
 
-[gn.package.serde."1.0.128"]
-rustflags = ["--cfg=ops_bound", "--cfg=core_reverse", "--cfg=de_boxed_c_str", "--cfg=de_boxed_path", "--cfg=de_rc_dst", "--cfg=core_duration", "--cfg=integer128", "--cfg=range_inclusive", "--cfg=num_nonzero", "--cfg=serde_derive", "--cfg=core_try_from", "--cfg=num_nonzero_signed", "--cfg=systemtime_checked_add", "--cfg=std_atomic64", "--cfg=std_atomic"]
+[gn.package.serde."1.0.130"]
+rustflags = ["--cfg=ops_bound", "--cfg=core_reverse", "--cfg=de_boxed_c_str", "--cfg=de_boxed_path", "--cfg=de_rc_dst", "--cfg=core_duration", "--cfg=integer128", "--cfg=range_inclusive", "--cfg=iterator_try_fold", "--cfg=num_nonzero", "--cfg=serde_derive", "--cfg=core_try_from", "--cfg=num_nonzero_signed", "--cfg=systemtime_checked_add", "--cfg=std_atomic64", "--cfg=std_atomic"]
 
-[gn.package.serde_derive."1.0.128"]
-rustflags = ["--cfg=underscore_consts"]
+[gn.package.serde_derive."1.0.130"]
+rustflags = ["--cfg=underscore_consts", "--cfg=ptr_addr_of"]
 
-# NOTE: Manually generated
-[gn.package.serde_json."1.0.64"]
+# # NOTE: Manually generated
+[gn.package.serde_json."1.0.69"]
 rustflags = []
 
-[gn.package.syn."1.0.73"]
+[gn.package.syn."1.0.81"]
 rustflags = ["--cfg=syn_disable_nightly_tests"]
 
 [package.metadata.cargo-all-features]

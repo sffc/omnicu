@@ -29,7 +29,7 @@ replace-with = "vendored-sources"
 
 [source."https://github.com/rust-diplomat/diplomat"]
 git = "https://github.com/rust-diplomat/diplomat"
-rev = "6e01ea8f2ff053486a43e8a23628cbd00e98dfd7"
+rev = "b448e1e272b70eae1cb2e6b7d0a2f0c68905d49a"
 replace-with = "vendored-sources"
 
 [source.vendored-sources]
