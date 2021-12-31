@@ -45,6 +45,10 @@ simple_logger = "1.12"
 tokio = { version = "1.5", features = ["rt-multi-thread", "macros", "fs"] }
 writeable = { version = "0.2.1", path = "../../utils/writeable" }
 
+[lib]
+name = "utils"
+path = "src/utils/mod.rs"
+
 [[bin]]
 name = "icu4x-datagen"
 path = "src/bin/datagen.rs"
