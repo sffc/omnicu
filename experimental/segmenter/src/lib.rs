@@ -95,11 +95,11 @@ mod line_breaker;
 mod properties_defines;
 mod properties_other;
 mod property_table;
-mod rule_segmenter;
+// mod rule_segmenter;
 mod rule_table;
 
-mod grapheme;
-mod word;
+// mod grapheme;
+// mod word;
 
 #[cfg(feature = "lstm")]
 #[macro_use]
@@ -121,8 +121,8 @@ mod lstm {
     }
 }
 
-pub use crate::grapheme::{
-    GraphemeBreakIterator, GraphemeBreakIteratorLatin1, GraphemeBreakIteratorUtf16,
-};
+// pub use crate::grapheme::{
+//     GraphemeBreakIterator, GraphemeBreakIteratorLatin1, GraphemeBreakIteratorUtf16,
+// };
 pub use crate::line_breaker::*;
-pub use crate::word::{WordBreakIterator, WordBreakIteratorLatin1, WordBreakIteratorUtf16};
+// pub use crate::word::{WordBreakIterator, WordBreakIteratorLatin1, WordBreakIteratorUtf16};
