@@ -31,7 +31,7 @@ fn usizeify(x: RawBytesULE<INDEX_WIDTH>) -> usize {
 /// See [`VarZeroVecComponents::parse_byte_slice()`] for information on the internal invariants involved
 pub struct VarZeroVecComponents<'a, T: ?Sized> {
     /// The list of indices into the `things` slice
-    indices: &'a [u8],
+    indices: &'a FlexZeroSlice,
     /// The contiguous list of `T::VarULE`s
     things: &'a [u8],
     /// The original slice this was constructed from
@@ -64,7 +64,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     #[inline]
     pub fn new() -> Self {
         Self {
-            indices: &[],
+            indices: FlexZeroSlice::new_empty(),
             things: &[],
             entire_slice: &[],
             marker: PhantomData,
@@ -83,7 +83,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     pub fn parse_byte_slice(slice: &'a [u8]) -> Result<Self, ZeroVecError> {
         if slice.is_empty() {
             return Ok(VarZeroVecComponents {
-                indices: &[],
+                indices: FlexZeroSlice::new_empty(),
                 things: &[],
                 entire_slice: slice,
                 marker: PhantomData,
@@ -97,12 +97,14 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
         let indices_bytes = slice
             .get(4..INDEX_WIDTH * len + 5)
             .ok_or(ZeroVecError::VarZeroVecFormatError)?;
+        let indices = FlexZeroSlice::parse_byte_slice(indices_bytes)
+            .map_err(|_| ZeroVecError::VarZeroVecFormatError)?;
         let things = slice
             .get(INDEX_WIDTH * len + 5..)
             .ok_or(ZeroVecError::VarZeroVecFormatError)?;
 
         let borrowed = VarZeroVecComponents {
-            indices: indices_bytes,
+            indices,
             things,
             entire_slice: slice,
             marker: PhantomData,
@@ -126,7 +128,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     pub unsafe fn from_bytes_unchecked(slice: &'a [u8]) -> Self {
         if slice.is_empty() {
             return VarZeroVecComponents {
-                indices: &[],
+                indices: FlexZeroSlice::new_empty(),
                 things: &[],
                 entire_slice: slice,
                 marker: PhantomData,
@@ -137,10 +139,11 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
 
         let len = len_ule.get_unchecked(0).as_unsigned_int() as usize;
         let indices_bytes = slice.get_unchecked(4..INDEX_WIDTH * len + 5);
+        let indices = FlexZeroSlice::from_byte_slice_unchecked(indices_bytes);
         let things = slice.get_unchecked(INDEX_WIDTH * len + 5..);
 
         VarZeroVecComponents {
-            indices: indices_bytes,
+            indices,
             things,
             entire_slice: slice,
             marker: PhantomData,
@@ -290,7 +293,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
 
     #[inline]
     fn indices_slice(&self) -> &'a [RawBytesULE<INDEX_WIDTH>] {
-        unsafe { FlexZeroSlice::from_byte_slice_unchecked(self.indices).as_ule_slice_unchecked() }
+        unsafe { self.indices.as_ule_slice_unchecked() }
     }
 
     // Dump a debuggable representation of this type
