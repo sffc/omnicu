@@ -94,12 +94,12 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
 
         let len = len_ule.get(0).ok_or(ZeroVecError::VarZeroVecFormatError)?.as_unsigned_int() as usize;
         let indices_bytes = slice
-            .get(4..INDEX_WIDTH * len + 4)
+            .get(5..INDEX_WIDTH * len + 5)
             .ok_or(ZeroVecError::VarZeroVecFormatError)?;
         let indices = RawBytesULE::<INDEX_WIDTH>::parse_byte_slice(indices_bytes)
             .map_err(|_| ZeroVecError::VarZeroVecFormatError)?;
         let things = slice
-            .get(INDEX_WIDTH * len + 4..)
+            .get(INDEX_WIDTH * len + 5..)
             .ok_or(ZeroVecError::VarZeroVecFormatError)?;
 
         let borrowed = VarZeroVecComponents {
@@ -137,9 +137,9 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
         let len_ule = RawBytesULE::<4>::from_byte_slice_unchecked(len_bytes);
 
         let len = len_ule.get_unchecked(0).as_unsigned_int() as usize;
-        let indices_bytes = slice.get_unchecked(4..INDEX_WIDTH * len + 4);
+        let indices_bytes = slice.get_unchecked(5..INDEX_WIDTH * len + 5);
         let indices = RawBytesULE::<INDEX_WIDTH>::from_byte_slice_unchecked(indices_bytes);
-        let things = slice.get_unchecked(INDEX_WIDTH * len + 4..);
+        let things = slice.get_unchecked(INDEX_WIDTH * len + 5..);
 
         VarZeroVecComponents {
             indices,
@@ -417,10 +417,12 @@ where
     #[allow(clippy::indexing_slicing)] // TODO(#1668) Clippy exceptions need docs or fixing.
     output[0..4].copy_from_slice(&num_elements.to_unaligned().0);
 
+    output[4] = INDEX_WIDTH as u8; // padding
+
     // idx_offset = offset from the start of the buffer for the next index
-    let mut idx_offset: usize = 4;
+    let mut idx_offset: usize = 5;
     // first_dat_offset = offset from the start of the buffer of the first data block
-    let first_dat_offset: usize = 4 + elements.len() * INDEX_WIDTH;
+    let first_dat_offset: usize = 5 + elements.len() * INDEX_WIDTH;
     // dat_offset = offset from the start of the buffer of the next data block
     let mut dat_offset: usize = first_dat_offset;
 
@@ -444,7 +446,7 @@ where
         dat_offset = dat_limit;
     }
 
-    debug_assert_eq!(idx_offset, 4 + INDEX_WIDTH * elements.len());
+    debug_assert_eq!(idx_offset, 5 + INDEX_WIDTH * elements.len());
     assert_eq!(dat_offset, output.len());
 }
 
@@ -457,7 +459,7 @@ where
     let idx_len: u32 = u32::try_from(elements.len())
         .ok()?
         .checked_mul(INDEX_WIDTH as u32)?
-        .checked_add(4)?;
+        .checked_add(5)?;
     let data_len: u32 = elements
         .iter()
         .map(|v| u32::try_from(v.encode_var_ule_len()).ok())
