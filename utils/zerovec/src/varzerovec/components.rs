@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::flexzerovec::FlexZeroSlice;
 use crate::ule::*;
 use alloc::boxed::Box;
 use alloc::format;
@@ -30,7 +31,7 @@ fn usizeify(x: RawBytesULE<INDEX_WIDTH>) -> usize {
 /// See [`VarZeroVecComponents::parse_byte_slice()`] for information on the internal invariants involved
 pub struct VarZeroVecComponents<'a, T: ?Sized> {
     /// The list of indices into the `things` slice
-    indices: &'a [RawBytesULE<INDEX_WIDTH>],
+    indices: &'a FlexZeroSlice,
     /// The contiguous list of `T::VarULE`s
     things: &'a [u8],
     /// The original slice this was constructed from
@@ -63,7 +64,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     #[inline]
     pub fn new() -> Self {
         Self {
-            indices: &[],
+            indices: FlexZeroSlice::new_empty(),
             things: &[],
             entire_slice: &[],
             marker: PhantomData,
@@ -82,7 +83,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     pub fn parse_byte_slice(slice: &'a [u8]) -> Result<Self, ZeroVecError> {
         if slice.is_empty() {
             return Ok(VarZeroVecComponents {
-                indices: &[],
+                indices: FlexZeroSlice::new_empty(),
                 things: &[],
                 entire_slice: slice,
                 marker: PhantomData,
@@ -94,9 +95,9 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
 
         let len = len_ule.get(0).ok_or(ZeroVecError::VarZeroVecFormatError)?.as_unsigned_int() as usize;
         let indices_bytes = slice
-            .get(5..INDEX_WIDTH * len + 5)
+            .get(4..INDEX_WIDTH * len + 5)
             .ok_or(ZeroVecError::VarZeroVecFormatError)?;
-        let indices = RawBytesULE::<INDEX_WIDTH>::parse_byte_slice(indices_bytes)
+        let indices = FlexZeroSlice::parse_byte_slice(indices_bytes)
             .map_err(|_| ZeroVecError::VarZeroVecFormatError)?;
         let things = slice
             .get(INDEX_WIDTH * len + 5..)
@@ -127,7 +128,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     pub unsafe fn from_bytes_unchecked(slice: &'a [u8]) -> Self {
         if slice.is_empty() {
             return VarZeroVecComponents {
-                indices: &[],
+                indices: FlexZeroSlice::new_empty(),
                 things: &[],
                 entire_slice: slice,
                 marker: PhantomData,
@@ -137,8 +138,8 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
         let len_ule = RawBytesULE::<4>::from_byte_slice_unchecked(len_bytes);
 
         let len = len_ule.get_unchecked(0).as_unsigned_int() as usize;
-        let indices_bytes = slice.get_unchecked(5..INDEX_WIDTH * len + 5);
-        let indices = RawBytesULE::<INDEX_WIDTH>::from_byte_slice_unchecked(indices_bytes);
+        let indices_bytes = slice.get_unchecked(4..INDEX_WIDTH * len + 5);
+        let indices = FlexZeroSlice::from_byte_slice_unchecked(indices_bytes);
         let things = slice.get_unchecked(INDEX_WIDTH * len + 5..);
 
         VarZeroVecComponents {
@@ -187,11 +188,11 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     /// - `idx` must be in bounds (`idx < self.len()`)
     #[inline]
     unsafe fn get_things_range(self, idx: usize) -> Range<usize> {
-        let start = usizeify(*self.indices.get_unchecked(idx));
+        let start = usizeify(*self.indices.as_ule_slice_unchecked().get_unchecked(idx));
         let end = if idx + 1 == self.len() {
             self.things.len()
         } else {
-            usizeify(*self.indices.get_unchecked(idx + 1))
+            usizeify(*self.indices.as_ule_slice_unchecked().get_unchecked(idx + 1))
         };
         debug_assert!(start <= end);
         start..end
@@ -226,7 +227,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
             if !self.is_empty() {
                 #[allow(clippy::indexing_slicing)]
                 // TODO(#1668) Clippy exceptions need docs or fixing.
-                let start = usizeify(self.indices[self.len() - 1]);
+                let start = usizeify(self.indices.as_ule_slice_unchecked()[self.len() - 1]);
                 let end = self.things.len();
                 Some(
                     self.things
@@ -239,6 +240,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
         })
         .take(1);
         self.indices
+            .as_ule_slice_unchecked()
             .windows(2)
             .map(move |win| {
                 #[allow(clippy::indexing_slicing)]
@@ -263,7 +265,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
             if !self.is_empty() {
                 #[allow(clippy::indexing_slicing)]
                 // TODO(#1668) Clippy exceptions need docs or fixing.
-                let start = usizeify(self.indices[self.len() - 1]);
+                let start = usizeify(self.indices.as_ule_slice_unchecked()[self.len() - 1]);
                 let end = self.things.len();
                 Some(unsafe { self.things.get_unchecked(start..end) })
             } else {
@@ -272,6 +274,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
         })
         .take(1);
         self.indices
+            .as_ule_slice_unchecked()
             .windows(2)
             .map(move |win| {
                 #[allow(clippy::indexing_slicing)]
@@ -295,6 +298,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     pub(crate) fn dump(&self) -> String {
         let indices = self
             .indices
+            .as_ule_slice_unchecked::<INDEX_WIDTH>()
             .iter()
             .map(|i| i.as_unsigned_int())
             .collect::<Vec<_>>();
@@ -311,7 +315,7 @@ where
     /// Binary searches a sorted `VarZeroVecComponents<T>` for the given element. For more information, see
     /// the primitive function [`binary_search`](slice::binary_search).
     pub fn binary_search(&self, needle: &T) -> Result<usize, usize> {
-        self.binary_search_impl(|probe| probe.cmp(needle), self.indices)
+        self.binary_search_impl(|probe| probe.cmp(needle), self.indices.as_ule_slice_unchecked())
     }
 
     pub fn binary_search_in_range(
@@ -319,7 +323,7 @@ where
         needle: &T,
         range: Range<usize>,
     ) -> Option<Result<usize, usize>> {
-        let indices_slice = self.indices.get(range)?;
+        let indices_slice = self.indices.as_ule_slice_unchecked().get(range)?;
         Some(self.binary_search_impl(|probe| probe.cmp(needle), indices_slice))
     }
 }
@@ -332,7 +336,7 @@ where
     /// Binary searches a sorted `VarZeroVecComponents<T>` for the given predicate. For more information, see
     /// the primitive function [`binary_search_by`](slice::binary_search_by).
     pub fn binary_search_by(&self, predicate: impl FnMut(&T) -> Ordering) -> Result<usize, usize> {
-        self.binary_search_impl(predicate, self.indices)
+        self.binary_search_impl(predicate, self.indices.as_ule_slice_unchecked())
     }
 
     pub fn binary_search_in_range_by(
@@ -340,7 +344,7 @@ where
         predicate: impl FnMut(&T) -> Ordering,
         range: Range<usize>,
     ) -> Option<Result<usize, usize>> {
-        let indices_slice = self.indices.get(range)?;
+        let indices_slice = self.indices.as_ule_slice_unchecked().get(range)?;
         Some(self.binary_search_impl(predicate, indices_slice))
     }
 
@@ -375,7 +379,7 @@ where
 
         // Note: We always use zero_index relative to the whole indices array, even if we are
         // only searching a subslice of it.
-        let zero_index = self.indices.as_ptr() as *const _ as usize;
+        let zero_index = self.indices.as_ule_slice_unchecked::<INDEX_WIDTH>().as_ptr() as *const _ as usize;
         indices_slice.binary_search_by(|probe: &_| {
             // `self.indices` is a vec of unaligned INDEX_WIDTH values, so we divide by INDEX_WIDTH
             // to get the actual index
