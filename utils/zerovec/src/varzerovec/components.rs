@@ -153,13 +153,13 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     /// Get the number of elements in this vector
     #[inline]
     pub fn len(self) -> usize {
-        self.indices_slice().len()
+        self.indices.len()
     }
 
     /// Returns `true` if the vector contains no elements.
     #[inline]
     pub fn is_empty(self) -> bool {
-        self.indices_slice().is_empty()
+        self.indices.is_empty()
     }
 
     /// Get the idx'th element out of this slice. Returns `None` if out of bounds.
