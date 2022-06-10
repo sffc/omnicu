@@ -9,6 +9,8 @@ use core::cmp::Ordering;
 use core::fmt;
 use core::mem;
 use core::ops::Range;
+use crate::ule::{ULE, RawBytesULE};
+
 
 const USIZE_WIDTH: usize = mem::size_of::<usize>();
 
@@ -162,6 +164,11 @@ impl FlexZeroSlice {
     #[inline]
     pub fn as_flexzerovec(&self) -> FlexZeroVec {
         FlexZeroVec::Borrowed(self)
+    }
+
+    #[inline]
+    pub(crate) unsafe fn as_ule_slice_unchecked<const N: usize>(&self) -> &[RawBytesULE<N>] where RawBytesULE<N>: ULE {
+        RawBytesULE::<N>::from_byte_slice_unchecked(&self.data)
     }
 
     /// Returns the number of elements in the `FlexZeroSlice`.

@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::flexzerovec::FlexZeroSlice;
 use crate::ule::*;
 use alloc::boxed::Box;
 use alloc::format;
@@ -289,7 +290,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
 
     #[inline]
     fn indices_slice(&self) -> &'a [RawBytesULE<INDEX_WIDTH>] {
-        unsafe { RawBytesULE::<INDEX_WIDTH>::from_byte_slice_unchecked(self.indices.get_unchecked(1..)) }
+        unsafe { FlexZeroSlice::from_byte_slice_unchecked(self.indices).as_ule_slice_unchecked() }
     }
 
     // Dump a debuggable representation of this type
