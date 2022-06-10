@@ -4,7 +4,6 @@
 
 use super::FlexZeroVec;
 use crate::ZeroVecError;
-use crate::ule::RawBytesULE;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::fmt;
@@ -239,13 +238,6 @@ impl FlexZeroSlice {
                 .get(l - w..l)
                 .map(|chunk| chunk_to_usize(chunk, w))
         }
-    }
-
-    /// FIXME: unsafe
-    #[inline]
-    pub fn as_ule_slice_unchecked<const N: usize>(&self) -> &[RawBytesULE<N>] where RawBytesULE<N>: crate::ule::ULE {
-        use crate::ule::ULE;
-        unsafe { RawBytesULE::<N>::from_byte_slice_unchecked(&self.data) }
     }
 
     /// Gets an iterator over the elements of the slice as `usize`.
