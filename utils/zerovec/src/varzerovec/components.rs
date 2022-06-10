@@ -94,7 +94,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
 
         let len = len_ule.get(0).ok_or(ZeroVecError::VarZeroVecFormatError)?.as_unsigned_int() as usize;
         let indices_bytes = slice
-            .get(5..INDEX_WIDTH * len + 5)
+            .get(4..INDEX_WIDTH * len + 5)
             .ok_or(ZeroVecError::VarZeroVecFormatError)?;
         let things = slice
             .get(INDEX_WIDTH * len + 5..)
@@ -135,7 +135,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
         let len_ule = RawBytesULE::<4>::from_byte_slice_unchecked(len_bytes);
 
         let len = len_ule.get_unchecked(0).as_unsigned_int() as usize;
-        let indices_bytes = slice.get_unchecked(5..INDEX_WIDTH * len + 5);
+        let indices_bytes = slice.get_unchecked(4..INDEX_WIDTH * len + 5);
         let things = slice.get_unchecked(INDEX_WIDTH * len + 5..);
 
         VarZeroVecComponents {
@@ -289,7 +289,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
 
     #[inline]
     fn indices_slice(&self) -> &'a [RawBytesULE<INDEX_WIDTH>] {
-        unsafe { RawBytesULE::<INDEX_WIDTH>::from_byte_slice_unchecked(self.indices) }
+        unsafe { RawBytesULE::<INDEX_WIDTH>::from_byte_slice_unchecked(self.indices.get_unchecked(1..)) }
     }
 
     // Dump a debuggable representation of this type
@@ -376,7 +376,7 @@ where
 
         // Note: We always use zero_index relative to the whole indices array, even if we are
         // only searching a subslice of it.
-        let zero_index = self.indices.as_ptr() as *const _ as usize;
+        let zero_index = self.indices_slice().as_ptr() as *const _ as usize;
         indices_slice.binary_search_by(|probe: &_| {
             // `self.indices` is a vec of unaligned INDEX_WIDTH values, so we divide by INDEX_WIDTH
             // to get the actual index
