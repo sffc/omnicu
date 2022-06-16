@@ -4,6 +4,7 @@
 
 use crate::manifest::Manifest;
 use icu_provider::prelude::*;
+use icu_provider::supported::SupportedLocales;
 use std::fmt::Debug;
 use std::fs;
 use std::path::PathBuf;
@@ -69,6 +70,19 @@ impl BufferProvider for FsDataProvider {
             metadata,
             payload: Some(DataPayload::from_rc_buffer(buffer.into())),
         })
+    }
+}
+
+impl SupportedLocales for FsDataProvider {
+    fn supported_locales(&self, joiner: SupportedLocalesJoiner) -> Vec<Locale> {
+        self.manifest.supported_locales.clone()
+    }
+
+    fn supported_locales_for_key(&self, key: ResourceKey, mode: SupportedLocalesMode) -> Result<Vec<Locale>, DataError> {
+        let directory = self.root.join(&*key.write_to_string());
+        if !path_buf.exists() {
+            return Err(DataErrorKind::MissingResourceKey.with_req(key, req));
+        }
     }
 }
 

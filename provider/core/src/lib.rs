@@ -151,6 +151,7 @@ pub mod marker;
 mod resource;
 #[cfg(feature = "serde")]
 pub mod serde;
+pub mod supported;
 
 #[cfg(feature = "macros")]
 pub use icu_provider_macros::data_struct;

@@ -13,18 +13,21 @@ pub struct Manifest {
     pub buffer_format: BufferFormat,
     /// The file extension associated with the given buffer format in the manifest.
     pub file_extension: &'static str,
+    /// The locales that are supported as fully-resolved in this provider.
+    pub supported_locales: Vec<Locale>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct JsonManifest {
     #[serde(rename = "syntax")]
     pub buffer_format: BufferFormat,
+    pub supported_locales: Vec<Locale>,
 }
 
 impl Manifest {
     const NAME: &'static str = "manifest.json";
 
-    pub(crate) fn for_format(buffer_format: BufferFormat) -> Result<Self, DataError> {
+    pub(crate) fn try_new(buffer_format: BufferFormat, supported_locales: Vec<Locale>) -> Result<Self, DataError> {
         buffer_format.check_available()?;
         Ok(Self {
             buffer_format,
@@ -40,6 +43,7 @@ impl Manifest {
                         .with_str_context("Format not supported by FsDataProvider"))
                 }
             },
+            supported_locales,
         })
     }
 
@@ -54,7 +58,7 @@ impl Manifest {
                 .with_display_context(&e)
         })?
         .0;
-        Self::for_format(result.buffer_format)
+        Self::try_new(result.buffer_format, result.supported_locales)
     }
 
     #[cfg(feature = "export")]
@@ -66,6 +70,7 @@ impl Manifest {
         serde::Serialize::serialize(
             &JsonManifest {
                 buffer_format: self.buffer_format,
+                supported_locales: self.supported_locales.clone(),
             },
             &mut serde_json::Serializer::pretty(&mut file),
         )
