@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::flexzerovec::FlexZeroSlice;
 use crate::ule::*;
 use alloc::boxed::Box;
 use alloc::format;
@@ -19,10 +20,6 @@ pub(super) const INDEX_WIDTH: usize = 4;
 pub(super) const MAX_LENGTH: usize = u32::MAX as usize;
 pub(super) const MAX_INDEX: usize = u32::MAX as usize;
 
-fn usizeify(x: RawBytesULE<INDEX_WIDTH>) -> usize {
-    x.as_unsigned_int() as usize
-}
-
 /// A more parsed version of `VarZeroSlice`. This type is where most of the VarZeroVec
 /// internal representation code lies.
 ///
@@ -35,8 +32,8 @@ fn usizeify(x: RawBytesULE<INDEX_WIDTH>) -> usize {
 pub struct VarZeroVecComponents<'a, T: ?Sized> {
     /// The number of elements
     len: u32,
-    /// The list of indices into the `things` slice
-    indices: &'a [u8],
+    /// The list of indices into the `things` slice, with the flexzerovec meta byte
+    indices_with_meta: &'a [u8],
     /// The contiguous list of `T::VarULE`s
     things: &'a [u8],
     /// The original slice this was constructed from
@@ -51,7 +48,7 @@ impl<'a, T: ?Sized> Clone for VarZeroVecComponents<'a, T> {
     fn clone(&self) -> Self {
         VarZeroVecComponents {
             len: self.len,
-            indices: self.indices,
+            indices_with_meta: self.indices_with_meta,
             things: self.things,
             entire_slice: self.entire_slice,
             marker: PhantomData,
@@ -71,7 +68,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     pub fn new() -> Self {
         Self {
             len: 0,
-            indices: &[],
+            indices_with_meta: &[1],
             things: &[],
             entire_slice: &[],
             marker: PhantomData,
@@ -91,7 +88,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
         if slice.is_empty() {
             return Ok(VarZeroVecComponents {
                 len: 0,
-                indices: &[],
+                indices_with_meta: &[1],
                 things: &[],
                 entire_slice: slice,
                 marker: PhantomData,
@@ -112,10 +109,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
             return Err(ZeroVecError::VarZeroVecFormatError);
         }
         let indices_bytes = slice
-            .get(
-                LENGTH_WIDTH + METADATA_WIDTH
-                    ..LENGTH_WIDTH + METADATA_WIDTH + INDEX_WIDTH * (len as usize),
-            )
+            .get(LENGTH_WIDTH..LENGTH_WIDTH + METADATA_WIDTH + INDEX_WIDTH * (len as usize))
             .ok_or(ZeroVecError::VarZeroVecFormatError)?;
         let things = slice
             .get(INDEX_WIDTH * (len as usize) + LENGTH_WIDTH + METADATA_WIDTH..)
@@ -123,7 +117,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
 
         let borrowed = VarZeroVecComponents {
             len,
-            indices: indices_bytes,
+            indices_with_meta: indices_bytes,
             things,
             entire_slice: slice,
             marker: PhantomData,
@@ -148,7 +142,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
         if slice.is_empty() {
             return VarZeroVecComponents {
                 len: 0,
-                indices: &[],
+                indices_with_meta: &[1],
                 things: &[],
                 entire_slice: slice,
                 marker: PhantomData,
@@ -159,15 +153,14 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
 
         let len = len_ule.get_unchecked(0).as_unsigned_int();
         let indices_bytes = slice.get_unchecked(
-            LENGTH_WIDTH + METADATA_WIDTH
-                ..LENGTH_WIDTH + METADATA_WIDTH + INDEX_WIDTH * (len as usize),
+            LENGTH_WIDTH..LENGTH_WIDTH + METADATA_WIDTH + INDEX_WIDTH * (len as usize),
         );
         let things =
             slice.get_unchecked(LENGTH_WIDTH + METADATA_WIDTH + INDEX_WIDTH * (len as usize)..);
 
         VarZeroVecComponents {
             len,
-            indices: indices_bytes,
+            indices_with_meta: indices_bytes,
             things,
             entire_slice: slice,
             marker: PhantomData,
@@ -183,7 +176,7 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     /// Returns `true` if the vector contains no elements.
     #[inline]
     pub fn is_empty(self) -> bool {
-        self.indices.is_empty()
+        self.len == 0
     }
 
     /// Get the idx'th element out of this slice. Returns `None` if out of bounds.
@@ -212,11 +205,11 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     /// - `idx` must be in bounds (`idx < self.len()`)
     #[inline]
     unsafe fn get_things_range(self, idx: usize) -> Range<usize> {
-        let start = usizeify(*self.indices_slice().get_unchecked(idx));
+        let start = self.indices_slice().get_unchecked(idx);
         let end = if idx + 1 == self.len() {
             self.things.len()
         } else {
-            usizeify(*self.indices_slice().get_unchecked(idx + 1))
+            self.indices_slice().get_unchecked(idx + 1)
         };
         debug_assert!(start <= end);
         start..end
@@ -248,38 +241,34 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     #[inline]
     fn iter_checked(self) -> impl Iterator<Item = Result<&'a T, ZeroVecError>> {
         self.indices_slice()
-            .iter()
-            .map(|i| i.as_unsigned_int() as usize)
-            .zip(
-                self.indices_slice()
-                    .iter()
-                    .map(|i| i.as_unsigned_int() as usize)
-                    .skip(1)
-                    .chain(core::iter::once(self.things.len())),
-            )
-            .map(move |(start, end)| {
+            .iter_pairs()
+            .map(move |(start, maybe_end)| {
+                let end = match maybe_end {
+                    Some(x) => x,
+                    None => self.things.len(),
+                };
+                // the .get() here automatically verifies that end>=start
                 self.things
                     .get(start..end)
                     .ok_or(ZeroVecError::VarZeroVecFormatError)
             })
-            .map(|bytes_result| bytes_result.and_then(|bytes| T::parse_byte_slice(bytes)))
+            .map(|s| s.and_then(|s| T::parse_byte_slice(s)))
     }
 
     /// Create an iterator over the Ts contained in VarZeroVecComponents
     #[inline]
     pub fn iter(self) -> impl Iterator<Item = &'a T> {
         self.indices_slice()
-            .iter()
-            .map(|i| i.as_unsigned_int() as usize)
-            .zip(
-                self.indices_slice()
-                    .iter()
-                    .map(|i| i.as_unsigned_int() as usize)
-                    .skip(1)
-                    .chain(core::iter::once(self.things.len())),
-            )
-            .map(move |(start, end)| unsafe { self.things.get_unchecked(start..end) })
-            .map(|bytes| unsafe { T::from_byte_slice_unchecked(bytes) })
+            .iter_pairs()
+            .map(move |(start, maybe_end)| {
+                let end = match maybe_end {
+                    Some(x) => x,
+                    None => self.things.len(),
+                };
+                // Safety: invariants on the indices array
+                unsafe { self.things.get_unchecked(start..end) }
+            })
+            .map(|s| unsafe { T::from_byte_slice_unchecked(s) })
     }
 
     pub fn to_vec(self) -> Vec<Box<T>> {
@@ -287,18 +276,14 @@ impl<'a, T: VarULE + ?Sized> VarZeroVecComponents<'a, T> {
     }
 
     #[inline]
-    fn indices_slice(&self) -> &'a [RawBytesULE<INDEX_WIDTH>] {
-        unsafe { RawBytesULE::<INDEX_WIDTH>::from_byte_slice_unchecked(self.indices) }
+    fn indices_slice(&self) -> &'a FlexZeroSlice {
+        unsafe { FlexZeroSlice::from_byte_slice_unchecked(self.indices_with_meta) }
     }
 
     // Dump a debuggable representation of this type
     #[allow(unused)] // useful for debugging
     pub(crate) fn dump(&self) -> String {
-        let indices = self
-            .indices_slice()
-            .iter()
-            .map(|i| i.as_unsigned_int())
-            .collect::<Vec<_>>();
+        let indices = self.indices_slice().iter().collect::<Vec<_>>();
         format!("VarZeroVecComponents {{ indices: {:?} }}", indices)
     }
 }
@@ -309,19 +294,24 @@ where
     T: ?Sized,
     T: Ord,
 {
-    /// Binary searches a sorted `VarZeroVecComponents<T>` for the given element. For more information, see
-    /// the primitive function [`binary_search`](slice::binary_search).
+    /// Binary searches a sorted `VarZeroVecComponents<T>` for the given element.
+    ///
+    /// For more information, see the std function [`binary_search_by`](slice::binary_search_by).
+    #[inline]
     pub fn binary_search(&self, needle: &T) -> Result<usize, usize> {
-        self.binary_search_impl(|probe| probe.cmp(needle), self.indices_slice())
+        self.binary_search_by(|probe| probe.cmp(needle))
     }
 
+    /// Binary searches a sorted range of a `VarZeroVecComponents<T>` for the given element.
+    ///
+    /// For more information, see the std function [`binary_search_by`](slice::binary_search_by).
+    #[inline]
     pub fn binary_search_in_range(
         &self,
         needle: &T,
         range: Range<usize>,
     ) -> Option<Result<usize, usize>> {
-        let indices_slice = self.indices_slice().get(range)?;
-        Some(self.binary_search_impl(|probe| probe.cmp(needle), indices_slice))
+        self.binary_search_in_range_by(|probe| probe.cmp(needle), range)
     }
 }
 
@@ -330,61 +320,52 @@ where
     T: VarULE,
     T: ?Sized,
 {
-    /// Binary searches a sorted `VarZeroVecComponents<T>` for the given predicate. For more information, see
-    /// the primitive function [`binary_search_by`](slice::binary_search_by).
-    pub fn binary_search_by(&self, predicate: impl FnMut(&T) -> Ordering) -> Result<usize, usize> {
-        self.binary_search_impl(predicate, self.indices_slice())
-    }
-
-    pub fn binary_search_in_range_by(
-        &self,
-        predicate: impl FnMut(&T) -> Ordering,
-        range: Range<usize>,
-    ) -> Option<Result<usize, usize>> {
-        let indices_slice = self.indices_slice().get(range)?;
-        Some(self.binary_search_impl(predicate, indices_slice))
-    }
-
-    /// Binary searches a sorted `VarZeroVecComponents<T>` with the given predicate. For more information, see
-    /// the primitive function [`binary_search`](slice::binary_search).
-    fn binary_search_impl(
+    /// Binary searches a sorted `VarZeroVecComponents<T>` for the given predicate.
+    ///
+    /// For more information, see the std function [`binary_search_by`](slice::binary_search_by).
+    pub fn binary_search_by(
         &self,
         mut predicate: impl FnMut(&T) -> Ordering,
-        indices_slice: &[RawBytesULE<INDEX_WIDTH>],
     ) -> Result<usize, usize> {
-        // This code is an absolute atrocity. This code is not a place of honor. This
-        // code is known to the State of California to cause cancer.
-        //
-        // Unfortunately, the stdlib's `binary_search*` functions can only operate on slices.
-        // We do not have a slice. We have something we can .get() and index on, but that is not
-        // a slice.
-        //
-        // The `binary_search*` functions also do not have a variant where they give you the element's
-        // index, which we could otherwise use to directly index `self`.
-        // We do have `self.indices`, but these are indices into a byte buffer, which cannot in
-        // isolation be used to recoup the logical index of the element they refer to.
-        //
-        // However, `binary_search_by()` provides references to the elements of the slice being iterated.
-        // Since the layout of Rust slices is well-defined, we can do pointer arithmetic on these references
-        // to obtain the index being used by the search.
-        //
-        // It's worth noting that the slice we choose to search is irrelevant, as long as it has the appropriate
-        // length. `self.indices` is defined to have length `self.len()`, so it is convenient to use
-        // here and does not require additional allocations.
-        //
-        // The alternative to doing this is to implement our own binary search. This is significantly less fun.
-
-        // Note: We always use zero_index relative to the whole indices array, even if we are
-        // only searching a subslice of it.
-        let zero_index = self.indices.as_ptr() as *const _ as usize;
-        indices_slice.binary_search_by(|probe: &_| {
-            // `self.indices` is a vec of unaligned INDEX_WIDTH values, so we divide by INDEX_WIDTH
-            // to get the actual index
-            let index = (probe as *const _ as usize - zero_index) / INDEX_WIDTH;
-            // safety: we know this is in bounds
-            let actual_probe = unsafe { self.get_unchecked(index) };
-            predicate(actual_probe)
+        self.indices_slice().binary_search_with_index(|index| {
+            // Safety: `index` is in-range by contract
+            let start = unsafe { self.indices_slice().get_unchecked(index) };
+            let end = if index < self.indices_slice().len() {
+                unsafe { self.indices_slice().get_unchecked(index + 1) }
+            } else {
+                self.things.len()
+            };
+            // Safety: invariants on the indices array
+            predicate(unsafe {
+                T::from_byte_slice_unchecked(self.things.get_unchecked(start..end))
+            })
         })
+    }
+
+    /// Binary searches a sorted range of a `VarZeroVecComponents<T>` for the given predicate.
+    ///
+    /// For more information, see the std function [`binary_search_by`](slice::binary_search_by).
+    pub fn binary_search_in_range_by(
+        &self,
+        mut predicate: impl FnMut(&T) -> Ordering,
+        range: Range<usize>,
+    ) -> Option<Result<usize, usize>> {
+        self.indices_slice().binary_search_in_range_with_index(
+            |index| {
+                // Safety: `index` is in-range by contract
+                let start = unsafe { self.indices_slice().get_unchecked(index) };
+                let end = if index < self.indices_slice().len() {
+                    unsafe { self.indices_slice().get_unchecked(index + 1) }
+                } else {
+                    self.things.len()
+                };
+                // Safety: invariants on the indices array
+                predicate(unsafe {
+                    T::from_byte_slice_unchecked(self.things.get_unchecked(start..end))
+                })
+            },
+            range,
+        )
     }
 }
 
