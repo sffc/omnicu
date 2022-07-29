@@ -328,9 +328,11 @@ where
         mut predicate: impl FnMut(&T) -> Ordering,
     ) -> Result<usize, usize> {
         self.indices_slice().binary_search_with_index(|index| {
+            debug_assert!(!self.indices_slice().is_empty());
+            debug_assert!(index < self.indices_slice().len());
             // Safety: `index` is in-range by contract
             let start = unsafe { self.indices_slice().get_unchecked(index) };
-            let end = if index < self.indices_slice().len() {
+            let end = if index < self.indices_slice().len() - 1 {
                 unsafe { self.indices_slice().get_unchecked(index + 1) }
             } else {
                 self.things.len()
@@ -352,9 +354,11 @@ where
     ) -> Option<Result<usize, usize>> {
         self.indices_slice().binary_search_in_range_with_index(
             |index| {
+                debug_assert!(!self.indices_slice().is_empty());
+                debug_assert!(index < self.indices_slice().len());
                 // Safety: `index` is in-range by contract
                 let start = unsafe { self.indices_slice().get_unchecked(index) };
-                let end = if index < self.indices_slice().len() {
+                let end = if index < self.indices_slice().len() - 1 {
                     unsafe { self.indices_slice().get_unchecked(index + 1) }
                 } else {
                     self.things.len()
