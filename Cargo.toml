@@ -19,6 +19,7 @@ members = [
     "components/plurals",
     "components/properties",
     "components/timezone",
+    "experimental/asciitrie",
     "experimental/bies",
     "experimental/casemapping",
     "experimental/tutorials",
