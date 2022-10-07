@@ -27,9 +27,21 @@ fn maybe_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
     }
 }
 
+impl<'a> AsciiTrie<'a> {
+    pub fn from_bytes(trie: &'a [u8]) -> Self {
+        Self {
+            data: ZeroVec::new_borrowed(trie),
+        }
+    }
+}
+
 impl AsciiTrie<'_> {
     pub fn get(&self, ascii: &[u8]) -> Option<usize> {
         get(self.data.as_ule_slice(), ascii)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
     }
 }
 
