@@ -98,7 +98,7 @@ pub(crate) struct AsciiTrieBuilder {
 impl AsciiTrieBuilder {
     pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
         let slice = self.data.make_contiguous();
-        AsciiTrie::from_bytes(slice)
+        AsciiTrie(slice)
     }
 
     pub fn to_bytes(&mut self) -> &[u8] {
@@ -239,7 +239,7 @@ impl AsciiTrieBuilder {
 impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<Vec<u8>> {
     fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
         let items = LiteMap::<&AsciiStr, usize>::from_iter(iter);
-        AsciiTrieBuilder::from_litemap(items).to_ascii_trie().as_borrowed().to_owned()
+        AsciiTrieBuilder::from_litemap(items).to_ascii_trie().to_owned()
     }
 }
 
@@ -252,7 +252,7 @@ impl AsciiTrie<Vec<u8>> {
     pub fn from_item_iter<'a, T: IntoIterator<Item = (&'a [u8], usize)>>(iter: T) -> Result<Self, AsciiTrieBuilderError> {
         let iter = iter.into_iter().map(parse_tuple);
         let items: Result<LiteMap<&AsciiStr, usize>, _> = iter.collect();
-        Ok(AsciiTrieBuilder::from_litemap(items?).to_ascii_trie().as_borrowed().to_owned())
+        Ok(AsciiTrieBuilder::from_litemap(items?).to_ascii_trie().to_owned())
     }
 }
 

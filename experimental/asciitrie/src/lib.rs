@@ -11,7 +11,7 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "alloc")]
+#[cfg(feature = "builder")]
 mod builder;
 mod trie;
 mod varint;

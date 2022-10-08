@@ -4,14 +4,8 @@
 
 use crate::varint::read_varint; 
 
-pub trait AsciiTrieStore {
-}
-
 #[repr(transparent)]
-pub struct AsciiTrie<S: ?Sized> {
-    #[doc(hidden)]
-    pub data: S,
-}
+pub struct AsciiTrie<S: ?Sized>(pub S);
 
 /// Like slice::split_at but returns an Option instead of panicking
 #[inline]
@@ -31,47 +25,64 @@ fn maybe_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
 }
 
 impl AsciiTrie<[u8]> {
-    pub fn from_bytes_2(trie: &[u8]) -> &Self {
+    pub fn from_bytes(trie: &[u8]) -> &Self {
         // Safety: repr(transparent)
         unsafe { core::mem::transmute(trie) }
     }
 }
 
-impl<'a> AsciiTrie<&'a [u8]> {
-    pub fn from_bytes(trie: &'a [u8]) -> Self {
-        Self {
-            data: trie,
-        }
-    }
-}
-
 impl<S> AsciiTrie<S> where S: AsRef<[u8]> + ?Sized {
     pub fn get(&self, ascii: &[u8]) -> Option<usize> {
-        get(self.data.as_ref(), ascii)
+        get(self.0.as_ref(), ascii)
     }
 
     pub fn is_empty(&self) -> bool {
-        self.data.as_ref().is_empty()
+        self.0.as_ref().is_empty()
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        self.data.as_ref()
+        self.0.as_ref()
     }
 
     pub fn as_borrowed(&self) -> &AsciiTrie<[u8]> {
-        AsciiTrie::from_bytes_2(self.data.as_ref())
+        AsciiTrie::from_bytes(self.0.as_ref())
     }
 }
 
-// impl<S> alloc::borrow::ToOwned for AsciiTrie<S> where S: alloc::borrow::ToOwned {
-//     type Owned = 
-// }
-
 #[cfg(feature = "alloc")]
-impl<S> AsciiTrie<S> where S: alloc::borrow::ToOwned + ?Sized {
-    pub fn to_owned(&self) -> AsciiTrie<S::Owned> {
-        AsciiTrie {
-            data: self.data.to_owned()
+mod alloc_impls {
+    use super::*;
+    use core::borrow::Borrow;
+    use alloc::borrow::ToOwned;
+    use alloc::vec::Vec;
+
+    // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
+    impl Borrow<AsciiTrie<[u8]>> for AsciiTrie<Vec<u8>> {
+        fn borrow(&self) -> &AsciiTrie<[u8]> {
+            self.as_borrowed()
+        }
+    }
+
+    impl Borrow<AsciiTrie<[u8]>> for AsciiTrie<&[u8]> {
+        fn borrow(&self) -> &AsciiTrie<[u8]> {
+            self.as_borrowed()
+        }
+    }
+
+    impl ToOwned for AsciiTrie<[u8]> {
+        type Owned = AsciiTrie<Vec<u8>>;
+        fn to_owned(&self) -> Self::Owned {
+            AsciiTrie {
+                0: Vec::from(self.0.as_ref())
+            }
+        }
+    }
+
+    impl<S> AsciiTrie<S> where S: AsRef<[u8]> + ?Sized {
+        pub fn to_owned(&self) -> AsciiTrie<Vec<u8>> {
+            AsciiTrie {
+                0: Vec::from(self.0.as_ref())
+            }
         }
     }
 }

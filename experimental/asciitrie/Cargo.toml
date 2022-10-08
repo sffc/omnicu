@@ -26,8 +26,8 @@ include = [
 all-features = true
 
 [dependencies]
-zerovec = { path = "../../utils/zerovec" }
-litemap = { path = "../../utils/litemap", default-features = false }
+zerovec = { path = "../../utils/zerovec", optional = true }
+litemap = { path = "../../utils/litemap", default-features = false, optional = true }
 
 [dev-dependencies]
 postcard = { version = "1.0", default-features = false, features = ["alloc"] }
@@ -43,7 +43,8 @@ path = "src/lib.rs"
 [features]
 default = []
 bench = []
-alloc = []
+alloc = ["litemap?/alloc"]
+builder = ["alloc", "litemap"]
 
 [[bench]]
 name = "overview"
@@ -51,4 +52,4 @@ harness = false
 
 [[test]]
 name = "builder_test"
-required-features = ["alloc"]
+required-features = ["builder"]
