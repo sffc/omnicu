@@ -43,6 +43,16 @@ impl AsciiTrie<'_> {
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.data.as_bytes()
+    }
+
+    pub fn into_owned(self) -> AsciiTrie<'static> {
+        AsciiTrie {
+            data: self.data.into_owned()
+        }
+    }
 }
 
 pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {

@@ -48,3 +48,7 @@ alloc = []
 [[bench]]
 name = "overview"
 harness = false
+
+[[test]]
+name = "builder_test"
+required-features = ["alloc"]
