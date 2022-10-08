@@ -3,7 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use super::AsciiTrie;
-use alloc::collections::BTreeMap;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use litemap::LiteMap;
@@ -97,7 +96,7 @@ pub(crate) struct AsciiTrieBuilder {
 }
 
 impl AsciiTrieBuilder {
-    pub fn to_ascii_trie(&mut self) -> AsciiTrie {
+    pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
         let slice = self.data.make_contiguous();
         AsciiTrie::from_bytes(slice)
     }
@@ -237,10 +236,10 @@ impl AsciiTrieBuilder {
     }
 }
 
-impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<'_> {
+impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<Vec<u8>> {
     fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
         let items = LiteMap::<&AsciiStr, usize>::from_iter(iter);
-        AsciiTrieBuilder::from_litemap(items).to_ascii_trie().into_owned()
+        AsciiTrieBuilder::from_litemap(items).to_ascii_trie().as_borrowed().to_owned()
     }
 }
 
@@ -249,11 +248,11 @@ fn parse_tuple(tup: (&[u8], usize)) -> Result<(&AsciiStr, usize), AsciiTrieBuild
     Ok((s, tup.1))
 }
 
-impl<'a> AsciiTrie<'a> {
-    pub fn from_item_iter<T: IntoIterator<Item = (&'a [u8], usize)>>(iter: T) -> Result<Self, AsciiTrieBuilderError> {
+impl AsciiTrie<Vec<u8>> {
+    pub fn from_item_iter<'a, T: IntoIterator<Item = (&'a [u8], usize)>>(iter: T) -> Result<Self, AsciiTrieBuilderError> {
         let iter = iter.into_iter().map(parse_tuple);
         let items: Result<LiteMap<&AsciiStr, usize>, _> = iter.collect();
-        Ok(AsciiTrieBuilder::from_litemap(items?).to_ascii_trie().into_owned())
+        Ok(AsciiTrieBuilder::from_litemap(items?).to_ascii_trie().as_borrowed().to_owned())
     }
 }
 
@@ -261,7 +260,7 @@ impl<'a> AsciiTrie<'a> {
 mod tests {
     use super::*;
 
-    fn check_ascii_trie(items: &LiteMap<&AsciiStr, usize>, trie: &AsciiTrie) {
+    fn check_ascii_trie<S>(items: &LiteMap<&AsciiStr, usize>, trie: &AsciiTrie<S>) where S: AsRef<[u8]> {
         for (k, v) in items.iter() {
             assert_eq!(trie.get(k.as_bytes()), Some(*v));
         }

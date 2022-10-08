@@ -2,12 +2,15 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::varint::read_varint;
-use zerovec::ZeroVec;
+use crate::varint::read_varint; 
 
-pub struct AsciiTrie<'a> {
+pub trait AsciiTrieStore {
+}
+
+#[repr(transparent)]
+pub struct AsciiTrie<S: ?Sized> {
     #[doc(hidden)]
-    pub data: ZeroVec<'a, u8>,
+    pub data: S,
 }
 
 /// Like slice::split_at but returns an Option instead of panicking
@@ -27,30 +30,48 @@ fn maybe_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
     }
 }
 
-impl<'a> AsciiTrie<'a> {
+impl AsciiTrie<[u8]> {
+    pub fn from_bytes_2(trie: &[u8]) -> &Self {
+        // Safety: repr(transparent)
+        unsafe { core::mem::transmute(trie) }
+    }
+}
+
+impl<'a> AsciiTrie<&'a [u8]> {
     pub fn from_bytes(trie: &'a [u8]) -> Self {
         Self {
-            data: ZeroVec::new_borrowed(trie),
+            data: trie,
         }
     }
 }
 
-impl AsciiTrie<'_> {
+impl<S> AsciiTrie<S> where S: AsRef<[u8]> + ?Sized {
     pub fn get(&self, ascii: &[u8]) -> Option<usize> {
-        get(self.data.as_ule_slice(), ascii)
+        get(self.data.as_ref(), ascii)
     }
 
     pub fn is_empty(&self) -> bool {
-        self.data.is_empty()
+        self.data.as_ref().is_empty()
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        self.data.as_bytes()
+        self.data.as_ref()
     }
 
-    pub fn into_owned(self) -> AsciiTrie<'static> {
+    pub fn as_borrowed(&self) -> &AsciiTrie<[u8]> {
+        AsciiTrie::from_bytes_2(self.data.as_ref())
+    }
+}
+
+// impl<S> alloc::borrow::ToOwned for AsciiTrie<S> where S: alloc::borrow::ToOwned {
+//     type Owned = 
+// }
+
+#[cfg(feature = "alloc")]
+impl<S> AsciiTrie<S> where S: alloc::borrow::ToOwned + ?Sized {
+    pub fn to_owned(&self) -> AsciiTrie<S::Owned> {
         AsciiTrie {
-            data: self.data.into_owned()
+            data: self.data.to_owned()
         }
     }
 }
