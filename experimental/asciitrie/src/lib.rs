@@ -16,5 +16,7 @@ mod builder;
 mod trie;
 mod varint;
 
+pub use builder::AsciiStr;
+pub use builder::NonAsciiError;
 pub use trie::get;
 pub use trie::AsciiTrie;

@@ -2,16 +2,36 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+//! ```
+//! use asciitrie::AsciiStr;
+//! use asciitrie::AsciiTrie;
+//!
+//! let trie: AsciiTrie<Vec<u8>> = [
+//!     ("foo", 1),
+//!     ("bar", 2),
+//!     ("bazzoo", 3),
+//!     ("internationalization", 18),
+//! ]
+//! .into_iter()
+//! .map(AsciiStr::try_from_str_with_value)
+//! .collect::<Result<_, _>>()
+//! .unwrap();
+//!
+//! assert_eq!(trie.get(b"foo"), Some(1));
+//! assert_eq!(trie.get(b"bar"), Some(2));
+//! assert_eq!(trie.get(b"bazzoo"), Some(3));
+//! assert_eq!(trie.get(b"internationalization"), Some(18));
+//! assert_eq!(trie.get(b"unknown"), None);
+//! ```
+
 use super::AsciiTrie;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use litemap::LiteMap;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-#[non_exhaustive]
-pub enum AsciiTrieBuilderError {
-    NonAscii,
-}
+#[allow(clippy::exhaustive_structs)] // marker type
+pub struct NonAsciiError;
 
 /// A byte that is always ASCII.
 /// TODO: Consider making this the same as tinystr AsciiByte?
@@ -20,9 +40,9 @@ pub enum AsciiTrieBuilderError {
 pub(crate) struct AsciiByte(u8);
 
 impl AsciiByte {
-    pub const fn try_from_u8(byte: u8) -> Result<Self, AsciiTrieBuilderError> {
+    pub const fn try_from_u8(byte: u8) -> Result<Self, NonAsciiError> {
         if byte >= 0b10000000 {
-            return Err(AsciiTrieBuilderError::NonAscii);
+            return Err(NonAsciiError);
         }
         Ok(Self(byte))
     }
@@ -37,11 +57,11 @@ impl AsciiByte {
 pub struct AsciiStr([AsciiByte]);
 
 impl AsciiStr {
-    pub const fn try_from_bytes(bytes: &[u8]) -> Result<&Self, AsciiTrieBuilderError> {
+    pub const fn try_from_bytes(bytes: &[u8]) -> Result<&Self, NonAsciiError> {
         let mut i = 0;
         while i < bytes.len() {
             match AsciiByte::try_from_u8(bytes[i]) {
-                Ok(b) => (),
+                Ok(_) => (),
                 Err(e) => return Err(e),
             };
             i += 1;
@@ -53,13 +73,18 @@ impl AsciiStr {
         unsafe { core::mem::transmute(bytes) }
     }
 
-    pub const fn try_from_str(s: &str) -> Result<&Self, AsciiTrieBuilderError> {
+    pub const fn try_from_str(s: &str) -> Result<&Self, NonAsciiError> {
         Self::try_from_bytes(s.as_bytes())
     }
 
-    pub(crate) const fn from_slice(slice: &[AsciiByte]) -> &Self {
-        // Safety: AsciiStr is transparent over [AsciiByte]
-        unsafe { core::mem::transmute(slice) }
+    pub fn try_from_bytes_with_value<T>(tuple: (&[u8], T)) -> Result<(&Self, T), NonAsciiError> {
+        let s = AsciiStr::try_from_bytes(tuple.0)?;
+        Ok((s, tuple.1))
+    }
+
+    pub fn try_from_str_with_value<T>(tuple: (&str, T)) -> Result<(&Self, T), NonAsciiError> {
+        let s = AsciiStr::try_from_str(tuple.0)?;
+        Ok((s, tuple.1))
     }
 
     pub const fn len(&self) -> usize {
@@ -81,13 +106,6 @@ impl AsciiStr {
         // - Therefore, AsciiStr is transparent over [u8]
         unsafe { core::mem::transmute(self) }
     }
-
-    pub(crate) const fn split_first(&self) -> Option<(AsciiByte, &AsciiStr)> {
-        match self.0.split_first() {
-            Some((b, remainder)) => Some((*b, Self::from_slice(remainder))),
-            None => None,
-        }
-    }
 }
 
 /// A low-level builder for AsciiTrie.
@@ -101,11 +119,6 @@ impl AsciiTrieBuilder {
         AsciiTrie(slice)
     }
 
-    pub fn to_bytes(&mut self) -> &[u8] {
-        let slice = self.data.make_contiguous();
-        slice
-    }
-
     pub fn new() -> Self {
         Self {
             data: VecDeque::new(),
@@ -114,12 +127,6 @@ impl AsciiTrieBuilder {
 
     pub fn byte_len(&self) -> usize {
         self.data.len()
-    }
-
-    pub fn new_with_value(value: usize) -> Self {
-        let mut result = Self::new();
-        result.prepend_value(value);
-        result
     }
 
     pub fn prepend_ascii(&mut self, ascii: AsciiByte) {
@@ -164,7 +171,7 @@ impl AsciiTrieBuilder {
         Self { data }
     }
 
-    pub fn from_litemap<'a, S>(mut items: LiteMap<&'a AsciiStr, usize, S>) -> Self
+    pub fn from_litemap<'a, S>(items: LiteMap<&'a AsciiStr, usize, S>) -> Self
     where
         S: litemap::store::StoreSlice<&'a AsciiStr, usize>,
         for<'l> &'l S::Slice: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = S::Slice>,
@@ -239,20 +246,35 @@ impl AsciiTrieBuilder {
 impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<Vec<u8>> {
     fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
         let items = LiteMap::<&AsciiStr, usize>::from_iter(iter);
-        AsciiTrieBuilder::from_litemap(items).to_ascii_trie().to_owned()
+        Self::from_litemap(&items)
     }
 }
 
-fn parse_tuple(tup: (&[u8], usize)) -> Result<(&AsciiStr, usize), AsciiTrieBuilderError> {
-    let s = AsciiStr::try_from_bytes(tup.0)?;
-    Ok((s, tup.1))
-}
-
 impl AsciiTrie<Vec<u8>> {
-    pub fn from_item_iter<'a, T: IntoIterator<Item = (&'a [u8], usize)>>(iter: T) -> Result<Self, AsciiTrieBuilderError> {
-        let iter = iter.into_iter().map(parse_tuple);
-        let items: Result<LiteMap<&AsciiStr, usize>, _> = iter.collect();
-        Ok(AsciiTrieBuilder::from_litemap(items?).to_ascii_trie().to_owned())
+    /// ```
+    /// use asciitrie::{AsciiTrie, AsciiStr};
+    /// use litemap::LiteMap;
+    ///
+    /// let mut map = LiteMap::new_vec();
+    /// map.insert(AsciiStr::try_from_str("foo")?, 1);
+    /// map.insert(AsciiStr::try_from_str("bar")?, 2);
+    /// map.insert(AsciiStr::try_from_str("bazzoo")?, 3);
+    ///
+    /// let trie = AsciiTrie::from_litemap(&map);
+    ///
+    /// assert_eq!(trie.get(b"foo"), Some(1));
+    /// assert_eq!(trie.get(b"bar"), Some(2));
+    /// assert_eq!(trie.get(b"bazzoo"), Some(3));
+    /// assert_eq!(trie.get(b"unknown"), None);
+    ///
+    /// # Ok::<_, asciitrie::NonAsciiError>(())
+    /// ```
+    pub fn from_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Self
+    where
+        S: litemap::store::StoreSlice<&'a AsciiStr, usize>,
+        for<'l> &'l S::Slice: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = S::Slice>,
+    {
+        AsciiTrieBuilder::from_litemap(items.as_sliced()).to_ascii_trie().to_owned()
     }
 }
 
@@ -260,7 +282,10 @@ impl AsciiTrie<Vec<u8>> {
 mod tests {
     use super::*;
 
-    fn check_ascii_trie<S>(items: &LiteMap<&AsciiStr, usize>, trie: &AsciiTrie<S>) where S: AsRef<[u8]> {
+    fn check_ascii_trie<S>(items: &LiteMap<&AsciiStr, usize>, trie: &AsciiTrie<S>)
+    where
+        S: AsRef<[u8]>,
+    {
         for (k, v) in items.iter() {
             assert_eq!(trie.get(k.as_bytes()), Some(*v));
         }
@@ -272,7 +297,7 @@ mod tests {
         assert_eq!(builder.byte_len(), 0);
         assert!(builder.to_ascii_trie().is_empty());
         assert_eq!(builder.to_ascii_trie().get(b""), None);
-        assert_eq!(builder.to_bytes(), &[]);
+        assert_eq!(builder.to_ascii_trie().as_bytes(), &[]);
     }
 
     #[test]
@@ -286,7 +311,7 @@ mod tests {
         assert_eq!(builder.byte_len(), 1);
         assert_eq!(builder.to_ascii_trie().get(b""), Some(10));
         assert_eq!(builder.to_ascii_trie().get(b"x"), None);
-        assert_eq!(builder.to_bytes(), &[0b10001010]);
+        assert_eq!(builder.to_ascii_trie().as_bytes(), &[0b10001010]);
     }
 
     #[test]
@@ -301,7 +326,7 @@ mod tests {
         assert_eq!(builder.to_ascii_trie().get(b""), None);
         assert_eq!(builder.to_ascii_trie().get(b"xy"), None);
         check_ascii_trie(&litemap, &builder.to_ascii_trie());
-        assert_eq!(builder.to_bytes(), &[b'x', 0b10001010]);
+        assert_eq!(builder.to_ascii_trie().as_bytes(), &[b'x', 0b10001010]);
     }
 
     #[test]
@@ -318,7 +343,7 @@ mod tests {
         assert_eq!(builder.to_ascii_trie().get(b"xy"), None);
         assert_eq!(builder.to_ascii_trie().get(b"xyzz"), None);
         check_ascii_trie(&litemap, &builder.to_ascii_trie());
-        assert_eq!(builder.to_bytes(), &[b'x', b'y', b'z', 0b10001010]);
+        assert_eq!(builder.to_ascii_trie().as_bytes(), &[b'x', b'y', b'z', 0b10001010]);
     }
 
     #[test]
@@ -334,10 +359,7 @@ mod tests {
         assert_eq!(builder.to_ascii_trie().get(b""), None);
         assert_eq!(builder.to_ascii_trie().get(b"xyz"), None);
         check_ascii_trie(&litemap, &builder.to_ascii_trie());
-        assert_eq!(
-            builder.to_bytes(),
-            &[b'x', 0b10000000, b'y', 0b10000001]
-        );
+        assert_eq!(builder.to_ascii_trie().as_bytes(), &[b'x', 0b10000000, b'y', 0b10000001]);
     }
 
     #[test]
@@ -354,7 +376,7 @@ mod tests {
         assert_eq!(builder.to_ascii_trie().get(b"xy"), None);
         check_ascii_trie(&litemap, &builder.to_ascii_trie());
         assert_eq!(
-            builder.to_bytes(),
+            builder.to_ascii_trie().as_bytes(),
             &[0b11000010, b'x', b'y', 0, 1, 0b10000000, 0b10000001]
         );
     }
@@ -375,7 +397,7 @@ mod tests {
         assert_eq!(builder.to_ascii_trie().get(b"ay"), None);
         check_ascii_trie(&litemap, &builder.to_ascii_trie());
         assert_eq!(
-            builder.to_bytes(),
+            builder.to_ascii_trie().as_bytes(),
             &[b'a', 0b11000010, b'x', b'y', 0, 2, b'b', 0b10000000, b'c', 0b10000001]
         );
     }
@@ -403,46 +425,21 @@ mod tests {
         assert_eq!(builder.to_ascii_trie().get(b"ay"), None);
         check_ascii_trie(&litemap, &builder.to_ascii_trie());
         assert_eq!(
-            builder.to_bytes(),
+            builder.to_ascii_trie().as_bytes(),
             &[
                 0b10000000, // value 0
                 0b11000010, // branch of 2
-                b'a',
-                b'b',
-                0,
-                13,
-                0b11000011, // branch of 3
-                b'x',
-                b'y',
-                b'z',
-                0,
-                2,
-                4,
-                b'b',
-                0b10000001, // value 1
-                b'c',
-                0b10000010, // value 2
-                b'd',
-                0b10000011, // value 3
-                b'x',
-                b'e',
-                0b10000100, // value 4
+                b'a', b'b', 0, 13, 0b11000011, // branch of 3
+                b'x', b'y', b'z', 0, 2, 4, b'b', 0b10000001, // value 1
+                b'c', 0b10000010, // value 2
+                b'd', 0b10000011, // value 3
+                b'x', b'e', 0b10000100, // value 4
                 0b11000010, // branch of 2
-                b'f',
-                b'i',
-                0,
-                7,
-                0b11000010, // branch of 2
-                b'g',
-                b'h',
-                0,
-                1,
-                0b10000101, // value 5
+                b'f', b'i', 0, 7, 0b11000010, // branch of 2
+                b'g', b'h', 0, 1, 0b10000101, // value 5
                 0b10000110, // value 6
                 0b10000111, // value 7
-                b'k',
-                b'l',
-                0b10001000, // value 8
+                b'k', b'l', 0b10001000, // value 8
             ]
         );
     }

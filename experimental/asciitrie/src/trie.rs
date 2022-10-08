@@ -2,9 +2,10 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::varint::read_varint; 
+use crate::varint::read_varint;
 
 #[repr(transparent)]
+#[derive(Debug, Default)]
 pub struct AsciiTrie<S: ?Sized>(pub S);
 
 /// Like slice::split_at but returns an Option instead of panicking
@@ -31,13 +32,20 @@ impl AsciiTrie<[u8]> {
     }
 }
 
-impl<S> AsciiTrie<S> where S: AsRef<[u8]> + ?Sized {
+impl<S> AsciiTrie<S>
+where
+    S: AsRef<[u8]> + ?Sized,
+{
     pub fn get(&self, ascii: &[u8]) -> Option<usize> {
         get(self.0.as_ref(), ascii)
     }
 
     pub fn is_empty(&self) -> bool {
         self.0.as_ref().is_empty()
+    }
+
+    pub fn byte_len(&self) -> usize {
+        self.0.as_ref().len()
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -52,9 +60,9 @@ impl<S> AsciiTrie<S> where S: AsRef<[u8]> + ?Sized {
 #[cfg(feature = "alloc")]
 mod alloc_impls {
     use super::*;
-    use core::borrow::Borrow;
     use alloc::borrow::ToOwned;
     use alloc::vec::Vec;
+    use core::borrow::Borrow;
 
     // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
     impl Borrow<AsciiTrie<[u8]>> for AsciiTrie<Vec<u8>> {
@@ -73,15 +81,18 @@ mod alloc_impls {
         type Owned = AsciiTrie<Vec<u8>>;
         fn to_owned(&self) -> Self::Owned {
             AsciiTrie {
-                0: Vec::from(self.0.as_ref())
+                0: Vec::from(self.0.as_ref()),
             }
         }
     }
 
-    impl<S> AsciiTrie<S> where S: AsRef<[u8]> + ?Sized {
+    impl<S> AsciiTrie<S>
+    where
+        S: AsRef<[u8]> + ?Sized,
+    {
         pub fn to_owned(&self) -> AsciiTrie<Vec<u8>> {
             AsciiTrie {
-                0: Vec::from(self.0.as_ref())
+                0: Vec::from(self.0.as_ref()),
             }
         }
     }

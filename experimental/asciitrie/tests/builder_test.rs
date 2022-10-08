@@ -2,12 +2,12 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use asciitrie::AsciiStr;
 use asciitrie::AsciiTrie;
 
 mod testdata {
     include!("data.rs");
 }
-
 
 #[test]
 fn test_basic() {
@@ -15,6 +15,11 @@ fn test_basic() {
     let data = testdata::basic::DATA;
 
     // Check that the builder works
-    let built_trie = AsciiTrie::from_item_iter(data.iter().copied()).unwrap();
+    let built_trie: AsciiTrie<Vec<u8>> = data
+        .iter()
+        .copied()
+        .map(AsciiStr::try_from_bytes_with_value)
+        .collect::<Result<_, _>>()
+        .unwrap();
     assert_eq!(built_trie.as_bytes(), trie);
 }
