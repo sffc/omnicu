@@ -37,6 +37,7 @@ use builder::AsciiTrieBuilder;
 use litemap::LiteMap;
 
 impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<Vec<u8>> {
+    /// **Enable this impl with the `"builder"` feature.**
     fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
         let items = LiteMap::<&AsciiStr, usize>::from_iter(iter);
         Self::from_litemap(&items)

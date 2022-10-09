@@ -44,7 +44,7 @@ path = "src/lib.rs"
 default = []
 bench = []
 alloc = ["litemap?/alloc"]
-builder = ["alloc", "litemap"]
+builder = ["alloc", "litemap", "zerovec/derive"]
 
 [[bench]]
 name = "overview"

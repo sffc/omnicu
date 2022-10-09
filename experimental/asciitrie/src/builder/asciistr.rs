@@ -10,6 +10,7 @@ pub struct NonAsciiError;
 /// TODO: Consider making this the same as tinystr AsciiByte?
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(zerovec::ule::ULE)]
 pub(crate) struct AsciiByte(u8);
 
 impl AsciiByte {
@@ -27,6 +28,7 @@ impl AsciiByte {
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(zerovec::ule::VarULE)]
 pub struct AsciiStr([AsciiByte]);
 
 impl AsciiStr {
