@@ -3,6 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use super::store::AsciiTrieBuilderStore;
+use super::store::ChildrenStore;
 use super::AsciiByte;
 use super::AsciiStr;
 use crate::AsciiTrie;
@@ -72,18 +73,19 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
             return Self::new();
         }
         let mut result = Self::new();
-        let total_size = result.create_recursive(items.as_sliced(), 0);
+        let total_size = result.create_recursive::<_, Vec<(AsciiByte, usize)>>(items.as_sliced(), 0);
         debug_assert_eq!(total_size, result.data.atbs_len());
         result
     }
 
     #[must_use]
-    fn create_recursive<'a, 'b, S: ?Sized>(
+    fn create_recursive<'a, 'b, S: ?Sized, C>(
         &mut self,
         items: LiteMap<&'a AsciiStr, usize, &'b S>,
         prefix_len: usize,
     ) -> usize
     where
+        C: ChildrenStore,
         for<'l> &'l S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = S>,
         'a: 'b,
     {
@@ -103,7 +105,7 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
             let mut i = items.len() - 1;
             let mut j = items.len();
             let mut current_ascii = items.last().unwrap().0.ascii_at(prefix_len).unwrap();
-            let mut children = Vec::new();
+            let mut children = C::cs_new_empty();
             while i > 0 {
                 let c = items
                     .get_indexed(i - 1)
@@ -113,24 +115,24 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
                     .unwrap();
                 if c != current_ascii {
                     let inner = self
-                        .create_recursive(items.get_indexed_range(i..j).unwrap(), prefix_len + 1);
+                        .create_recursive::<S, C>(items.get_indexed_range(i..j).unwrap(), prefix_len + 1);
                     total_size += inner;
-                    children.push((current_ascii, inner));
+                    children.cs_push(current_ascii, inner);
                     current_ascii = c;
                     j = i;
                 }
                 i -= 1;
             }
             let last_child =
-                self.create_recursive(items.get_indexed_range(i..j).unwrap(), prefix_len + 1);
+                self.create_recursive::<S, C>(items.get_indexed_range(i..j).unwrap(), prefix_len + 1);
             total_size += last_child;
-            if children.is_empty() {
+            if children.cs_len() == 0 {
                 // All strings start with same byte
                 total_size += self.prepend_ascii(current_ascii);
             } else {
                 // Need to make a branch node
-                children.push((current_ascii, last_child));
-                total_size += self.prepend_branch(&children);
+                children.cs_push(current_ascii, last_child);
+                total_size += self.prepend_branch(children.cs_as_slice());
             }
         }
         if let Some(value) = initial_value {

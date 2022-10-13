@@ -3,6 +3,8 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use alloc::collections::VecDeque;
+use alloc::vec::Vec;
+use super::AsciiByte;
 
 pub(crate) trait AsciiTrieBuilderStore {
     fn atbs_new_empty() -> Self;
@@ -29,5 +31,29 @@ impl AsciiTrieBuilderStore for VecDeque<u8> {
     }
     fn atbs_push_front(&mut self, byte: u8) {
         self.push_front(byte)
+    }
+}
+
+pub(crate) trait ChildrenStore {
+    fn cs_new_empty() -> Self;
+    fn cs_len(&self) -> usize;
+
+    fn cs_push(&mut self, ascii: AsciiByte, size: usize);
+    fn cs_as_slice(&self) -> &[(AsciiByte, usize)];
+}
+
+impl ChildrenStore for Vec<(AsciiByte, usize)> {
+    fn cs_new_empty() -> Self {
+        Self::new()
+    }
+    fn cs_len(&self) -> usize {
+        self.len()
+    }
+
+    fn cs_push(&mut self, ascii: AsciiByte, size: usize) {
+        self.push((ascii, size))
+    }
+    fn cs_as_slice(&self) -> &[(AsciiByte, usize)] {
+        self.as_slice()
     }
 }
