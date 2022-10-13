@@ -26,11 +26,13 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
         }
     }
 
+    #[must_use]
     fn prepend_ascii(&mut self, ascii: AsciiByte) -> usize {
         self.data.atbs_push_front(ascii.get());
         1
     }
 
+    #[must_use]
     fn prepend_value(&mut self, value: usize) -> usize {
         if value > 0b00011111 {
             todo!()
@@ -39,6 +41,7 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
         1
     }
 
+    #[must_use]
     fn prepend_branch(&mut self, targets_rev: &[(AsciiByte, usize)]) -> usize {
         let n = targets_rev.len();
         if n > 0b00011111 {
@@ -65,11 +68,16 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
         S: litemap::store::StoreSlice<&'a AsciiStr, usize>,
         for<'l> &'l S::Slice: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = S::Slice>,
     {
+        if items.is_empty() {
+            return Self::new();
+        }
         let mut result = Self::new();
-        result.create_recursive(items.as_sliced(), 0);
+        let total_size = result.create_recursive(items.as_sliced(), 0);
+        debug_assert_eq!(total_size, result.data.atbs_len());
         result
     }
 
+    #[must_use]
     fn create_recursive<'a, 'b, S: ?Sized>(
         &mut self,
         items: LiteMap<&'a AsciiStr, usize, &'b S>,
@@ -81,7 +89,7 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
     {
         let first: (&'a AsciiStr, usize) = match items.first() {
             Some((k, v)) => (*k, *v),
-            None => return 0,
+            None => unreachable!(),
         };
         let mut initial_value = None;
         let mut total_size = 0;

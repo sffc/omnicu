@@ -11,8 +11,6 @@ pub(crate) trait AsciiTrieBuilderStore {
 
     fn atbs_make_contiguous(&mut self) -> &mut [u8];
     fn atbs_push_front(&mut self, byte: u8);
-    fn atbs_push_back(&mut self, byte: u8);
-    fn atbs_extend(&mut self, other: &Self);
 }
 
 impl AsciiTrieBuilderStore for VecDeque<u8> {
@@ -31,11 +29,5 @@ impl AsciiTrieBuilderStore for VecDeque<u8> {
     }
     fn atbs_push_front(&mut self, byte: u8) {
         self.push_front(byte)
-    }
-    fn atbs_push_back(&mut self, byte: u8) {
-        self.push_back(byte)
-    }
-    fn atbs_extend(&mut self, other: &Self) {
-        Extend::extend(self, other.iter())
     }
 }
