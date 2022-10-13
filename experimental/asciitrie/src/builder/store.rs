@@ -5,6 +5,16 @@
 use alloc::collections::VecDeque;
 use super::AsciiByte;
 
+/// # Panics
+/// Panics if `start..limit` is not a valid range in `slice`
+const fn const_subslice<T>(slice: &[T], limit: usize) -> &[T] {
+    unsafe {
+        let (ptr, len) = core::mem::transmute::<&[T], (*const T, usize)>(slice);
+        assert!(limit <= len);
+        core::mem::transmute((ptr, limit))
+    }
+}
+
 pub(crate) trait AsciiTrieBuilderStore {
     fn atbs_new_empty() -> Self;
     fn atbs_with_capacity(capacity: usize) -> Self;
@@ -56,6 +66,6 @@ impl ConstStackChildrenStore {
         self
     }
     pub const fn cs_as_slice(&self) -> &[(AsciiByte, usize)] {
-        &self.slice
+        const_subslice(&self.slice, self.len)
     }
 }
