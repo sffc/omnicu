@@ -3,7 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use alloc::collections::VecDeque;
-use alloc::vec::Vec;
 use super::AsciiByte;
 
 pub(crate) trait AsciiTrieBuilderStore {
@@ -34,52 +33,29 @@ impl AsciiTrieBuilderStore for VecDeque<u8> {
     }
 }
 
-pub(crate) trait ChildrenStore {
-    fn cs_new_empty() -> Self;
-    fn cs_len(&self) -> usize;
-
-    fn cs_push(&mut self, ascii: AsciiByte, size: usize);
-    fn cs_as_slice(&self) -> &[(AsciiByte, usize)];
-}
-
-impl ChildrenStore for Vec<(AsciiByte, usize)> {
-    fn cs_new_empty() -> Self {
-        Self::new()
-    }
-    fn cs_len(&self) -> usize {
-        self.len()
-    }
-
-    fn cs_push(&mut self, ascii: AsciiByte, size: usize) {
-        self.push((ascii, size))
-    }
-    fn cs_as_slice(&self) -> &[(AsciiByte, usize)] {
-        self.as_slice()
-    }
-}
-
 pub(crate) struct ConstStackChildrenStore {
     slice: [(AsciiByte, usize); 128],
     len: usize
 }
 
-impl ChildrenStore for ConstStackChildrenStore {
-    fn cs_new_empty() -> Self {
+impl ConstStackChildrenStore {
+    pub const fn cs_new_empty() -> Self {
         Self {
             slice: [(AsciiByte::nul(), 0); 128],
             len: 0
         }
     }
-    fn cs_len(&self) -> usize {
+    pub const fn cs_len(&self) -> usize {
         self.len
     }
 
-    fn cs_push(&mut self, ascii: AsciiByte, size: usize) {
+    pub const fn cs_push(mut self, ascii: AsciiByte, size: usize) -> Self {
         self.slice[self.len].0 = ascii;
         self.slice[self.len].1 = size;
         self.len += 1;
+        self
     }
-    fn cs_as_slice(&self) -> &[(AsciiByte, usize)] {
+    pub const fn cs_as_slice(&self) -> &[(AsciiByte, usize)] {
         &self.slice
     }
 }
