@@ -8,6 +8,7 @@ pub struct NonAsciiError;
 
 /// A byte that is always ASCII.
 /// TODO: Consider making this the same as tinystr AsciiByte?
+/// FIXME: Add ULE validation
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[derive(zerovec::ule::ULE)]
@@ -26,6 +27,7 @@ impl AsciiByte {
     }
 }
 
+/// FIXME: Add ULE validation
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[derive(zerovec::ule::VarULE)]
