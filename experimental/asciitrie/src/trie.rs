@@ -2,8 +2,8 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use core::borrow::Borrow;
 use crate::get;
+use core::borrow::Borrow;
 
 #[repr(transparent)]
 #[derive(Debug, Default)]

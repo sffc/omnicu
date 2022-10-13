@@ -19,9 +19,9 @@ mod builder;
 mod trie;
 mod varint;
 
+pub use algorithms::get;
 #[cfg(feature = "builder")]
 pub use builder::AsciiStr;
 #[cfg(feature = "builder")]
 pub use builder::NonAsciiError;
-pub use algorithms::get;
 pub use trie::AsciiTrie;

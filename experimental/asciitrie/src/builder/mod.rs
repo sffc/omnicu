@@ -26,7 +26,9 @@
 
 mod asciistr;
 mod builder;
+mod store;
 
+use alloc::collections::VecDeque;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;
 
@@ -74,7 +76,7 @@ impl AsciiTrie<Vec<u8>> {
         S: litemap::store::StoreSlice<&'a AsciiStr, usize>,
         for<'l> &'l S::Slice: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = S::Slice>,
     {
-        AsciiTrieBuilder::from_litemap(items.as_sliced())
+        AsciiTrieBuilder::<VecDeque<u8>>::from_litemap(items.as_sliced())
             .to_ascii_trie()
             .to_owned()
     }

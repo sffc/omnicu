@@ -2,43 +2,43 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use super::store::AsciiTrieBuilderStore;
 use super::AsciiByte;
 use super::AsciiStr;
 use crate::AsciiTrie;
-use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use litemap::LiteMap;
 
 /// A low-level builder for AsciiTrie.
-pub(crate) struct AsciiTrieBuilder {
-    data: VecDeque<u8>,
+pub(crate) struct AsciiTrieBuilder<B> {
+    data: B,
 }
 
-impl AsciiTrieBuilder {
+impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
     pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
-        let slice = self.data.make_contiguous();
+        let slice = self.data.atbs_make_contiguous();
         AsciiTrie(slice)
     }
 
     pub fn new() -> Self {
         Self {
-            data: VecDeque::new(),
+            data: B::atbs_new_empty(),
         }
     }
 
     pub fn byte_len(&self) -> usize {
-        self.data.len()
+        self.data.atbs_len()
     }
 
     fn prepend_ascii(&mut self, ascii: AsciiByte) {
-        self.data.push_front(ascii.get())
+        self.data.atbs_push_front(ascii.get())
     }
 
     fn prepend_value(&mut self, value: usize) {
         if value > 0b00011111 {
             todo!()
         }
-        self.data.push_front((value as u8) | 0b10000000);
+        self.data.atbs_push_front((value as u8) | 0b10000000);
     }
 
     fn make_branch(targets: &[(AsciiByte, Self)]) -> Self {
@@ -55,20 +55,20 @@ impl AsciiTrieBuilder {
         }
         // 1 for header, N bytes, N jump indices, and all tries
         let capacity = 1 + n * 2 + trie_lengths;
-        let mut data = VecDeque::with_capacity(capacity);
-        data.push_back((n as u8) | 0b11000000);
+        let mut data = B::atbs_with_capacity(capacity);
+        data.atbs_push_back((n as u8) | 0b11000000);
         for (ascii, _) in targets.iter() {
-            data.push_back(ascii.get());
+            data.atbs_push_back(ascii.get());
         }
         let mut index = 0;
         for (_, trie) in targets.iter() {
-            data.push_back(index.try_into().unwrap());
+            data.atbs_push_back(index.try_into().unwrap());
             index += trie.byte_len();
         }
         for (_, trie) in targets.iter() {
-            data.extend(&trie.data);
+            data.atbs_extend(&trie.data);
         }
-        debug_assert_eq!(capacity, data.len());
+        debug_assert_eq!(capacity, data.atbs_len());
         Self { data }
     }
 
