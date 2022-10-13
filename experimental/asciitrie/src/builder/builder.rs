@@ -30,18 +30,18 @@ impl AsciiTrieBuilder {
         self.data.len()
     }
 
-    pub fn prepend_ascii(&mut self, ascii: AsciiByte) {
+    fn prepend_ascii(&mut self, ascii: AsciiByte) {
         self.data.push_front(ascii.get())
     }
 
-    pub fn prepend_value(&mut self, value: usize) {
+    fn prepend_value(&mut self, value: usize) {
         if value > 0b00011111 {
             todo!()
         }
         self.data.push_front((value as u8) | 0b10000000);
     }
 
-    pub fn make_branch(targets: &[(AsciiByte, Self)]) -> Self {
+    fn make_branch(targets: &[(AsciiByte, Self)]) -> Self {
         let n = targets.len();
         if n > 0b00011111 {
             todo!()

@@ -11,12 +11,17 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+mod algorithms;
+#[cfg(feature = "alloc")]
+mod alloc_impls;
 #[cfg(feature = "builder")]
 mod builder;
 mod trie;
 mod varint;
 
+#[cfg(feature = "builder")]
 pub use builder::AsciiStr;
+#[cfg(feature = "builder")]
 pub use builder::NonAsciiError;
-pub use trie::get;
+pub use algorithms::get;
 pub use trie::AsciiTrie;

@@ -25,6 +25,11 @@ include = [
 [package.metadata.docs.rs]
 all-features = true
 
+[package.metadata.cargo-all-features]
+skip_optional_dependencies = true
+# Bench feature gets tested separately and is only relevant for CI
+denylist = ["bench"]
+
 [dependencies]
 zerovec = { path = "../../utils/zerovec", optional = true }
 litemap = { path = "../../utils/litemap", default-features = false, optional = true }
