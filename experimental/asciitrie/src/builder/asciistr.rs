@@ -21,6 +21,10 @@ impl AsciiByte {
         Ok(Self(byte))
     }
 
+    pub const fn nul() -> Self {
+        Self(0)
+    }
+
     pub fn get(self) -> u8 {
         self.0
     }

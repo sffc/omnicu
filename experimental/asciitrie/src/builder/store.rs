@@ -57,3 +57,29 @@ impl ChildrenStore for Vec<(AsciiByte, usize)> {
         self.as_slice()
     }
 }
+
+pub(crate) struct ConstStackChildrenStore {
+    slice: [(AsciiByte, usize); 128],
+    len: usize
+}
+
+impl ChildrenStore for ConstStackChildrenStore {
+    fn cs_new_empty() -> Self {
+        Self {
+            slice: [(AsciiByte::nul(), 0); 128],
+            len: 0
+        }
+    }
+    fn cs_len(&self) -> usize {
+        self.len
+    }
+
+    fn cs_push(&mut self, ascii: AsciiByte, size: usize) {
+        self.slice[self.len].0 = ascii;
+        self.slice[self.len].1 = size;
+        self.len += 1;
+    }
+    fn cs_as_slice(&self) -> &[(AsciiByte, usize)] {
+        &self.slice
+    }
+}

@@ -4,10 +4,10 @@
 
 use super::store::AsciiTrieBuilderStore;
 use super::store::ChildrenStore;
+use super::store::ConstStackChildrenStore;
 use super::AsciiByte;
 use super::AsciiStr;
 use crate::AsciiTrie;
-use alloc::vec::Vec;
 use litemap::LiteMap;
 
 /// A low-level builder for AsciiTrie.
@@ -73,7 +73,7 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
             return Self::new();
         }
         let mut result = Self::new();
-        let total_size = result.create_recursive::<_, Vec<(AsciiByte, usize)>>(items.as_sliced(), 0);
+        let total_size = result.create_recursive::<_, ConstStackChildrenStore>(items.as_sliced(), 0);
         debug_assert_eq!(total_size, result.data.atbs_len());
         result
     }
