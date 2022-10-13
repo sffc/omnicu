@@ -101,13 +101,13 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
         };
         let mut result;
         if !items.is_empty() {
-            let mut i = 0;
-            let mut j = 1;
-            let mut current_ascii = items.first().unwrap().0.ascii_at(prefix_len).unwrap();
+            let mut i = items.len() - 1;
+            let mut j = items.len();
+            let mut current_ascii = items.last().unwrap().0.ascii_at(prefix_len).unwrap();
             let mut children = Vec::new();
-            while j < items.len() {
+            while i > 0 {
                 let c = items
-                    .get_indexed(j)
+                    .get_indexed(i - 1)
                     .unwrap()
                     .0
                     .ascii_at(prefix_len)
@@ -117,11 +117,11 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
                         items.get_indexed_range(i..j).unwrap(),
                         prefix_len + 1,
                     );
-                    children.push((current_ascii, inner));
+                    children.insert(0, (current_ascii, inner));
                     current_ascii = c;
-                    i = j;
+                    j = i;
                 }
-                j += 1;
+                i -= 1;
             }
             let last_child =
                 Self::create_recursive(items.get_indexed_range(i..j).unwrap(), prefix_len + 1);
@@ -131,7 +131,7 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
                 result.prepend_ascii(current_ascii);
             } else {
                 // Need to make a branch node
-                children.push((current_ascii, last_child));
+                children.insert(0, (current_ascii, last_child));
                 result = Self::make_branch(&children);
             }
         } else {
