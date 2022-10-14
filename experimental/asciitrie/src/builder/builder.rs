@@ -2,9 +2,9 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use super::store::AsciiTrieBuilderStore;
 use super::store::ConstStackChildrenStore;
 use super::store::SafeConstSlice;
+use super::store::ConstAsciiTrieBuilderStore;
 use super::store::const_for_each;
 use super::AsciiByte;
 use super::AsciiStr;
@@ -12,11 +12,11 @@ use crate::AsciiTrie;
 use litemap::LiteMap;
 
 /// A low-level builder for AsciiTrie.
-pub(crate) struct AsciiTrieBuilder<B> {
-    data: B,
+pub(crate) struct AsciiTrieBuilder<const N: usize> {
+    data: ConstAsciiTrieBuilderStore<N>,
 }
 
-impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
+impl<const N: usize> AsciiTrieBuilder<N> {
     pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
         let slice = self.data.atbs_as_bytes();
         AsciiTrie(slice.as_slice())
@@ -24,7 +24,7 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
 
     pub fn new() -> Self {
         Self {
-            data: B::atbs_new_empty(),
+            data: ConstAsciiTrieBuilderStore::atbs_new_empty(),
         }
     }
 

@@ -2,7 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use alloc::vec::Vec;
 use super::AsciiByte;
 
 pub(crate) struct SafeConstSlice<'a, T> {
@@ -38,58 +37,22 @@ macro_rules! const_for_each {
 
 pub(crate) use const_for_each;
 
-pub(crate) trait AsciiTrieBuilderStore {
-    fn atbs_new_empty() -> Self;
-    fn atbs_with_capacity(capacity: usize) -> Self;
-    fn atbs_len(&self) -> usize;
-
-    fn atbs_as_bytes(&self) -> SafeConstSlice<u8>;
-    fn atbs_push_front(self, byte: u8) -> Self;
-}
-
-impl AsciiTrieBuilderStore for Vec<u8> {
-    fn atbs_new_empty() -> Self {
-        Self::new()
-    }
-    fn atbs_with_capacity(capacity: usize) -> Self {
-        Self::with_capacity(capacity)
-    }
-    fn atbs_len(&self) -> usize {
-        self.len()
-    }
-
-    fn atbs_as_bytes(&self) -> SafeConstSlice<u8> {
-        SafeConstSlice {
-            full_slice: self.as_slice(),
-            start: 0,
-            limit: self.len()
-        }
-    }
-    fn atbs_push_front(mut self, byte: u8) -> Self {
-        self.insert(0, byte);
-        self
-    }
-}
-
 pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
     data: [u8; N],
     start: usize
 }
 
-impl<const N: usize> AsciiTrieBuilderStore for ConstAsciiTrieBuilderStore<N> {
-    fn atbs_new_empty() -> Self {
+impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
+    pub const fn atbs_new_empty() -> Self {
         Self {
             data: [0; N],
             start: N
         }
     }
-    fn atbs_with_capacity(_: usize) -> Self {
-        Self::atbs_new_empty()
-    }
-    fn atbs_len(&self) -> usize {
+    pub const fn atbs_len(&self) -> usize {
         N - self.start
     }
-    fn atbs_push_front(mut self, byte: u8) -> Self {
+    pub const fn atbs_push_front(mut self, byte: u8) -> Self {
         if self.start == 0 {
             panic!("AsciiTrieBuilder buffer out of capacity");
         }
@@ -97,7 +60,7 @@ impl<const N: usize> AsciiTrieBuilderStore for ConstAsciiTrieBuilderStore<N> {
         self.data[self.start] = byte;
         self
     }
-    fn atbs_as_bytes(&self) -> SafeConstSlice<u8> {
+    pub const fn atbs_as_bytes(&self) -> SafeConstSlice<u8> {
         SafeConstSlice {
             full_slice: &self.data,
             start: self.start,
