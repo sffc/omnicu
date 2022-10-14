@@ -79,3 +79,69 @@ impl AsciiTrie<Vec<u8>> {
             .to_owned()
     }
 }
+
+impl<const N: usize> AsciiTrie<[u8; N]> {
+    /// **Const Constructor:** Creates an [`AsciiTrie`] from a sorted slice of keys and values.
+    ///
+    /// This function needs to know the exact length of the resulting trie at compile time.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `items` is not sorted or if `N` is not correct.
+    ///
+    /// # Examples
+    ///
+    /// Create a `const` AsciiTrie at compile time:
+    ///
+    /// ```
+    /// use asciitrie::{AsciiTrie, AsciiStr};
+    ///
+    /// // The required capacity for this trie happens to be 19 bytes
+    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_sorted_tuple_slice(&[
+    ///     (AsciiStr::from_str_or_panic("bar"), 2),
+    ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
+    ///     (AsciiStr::from_str_or_panic("foo"), 1),
+    /// ]);
+    ///
+    /// assert_eq!(TRIE.get(b"foo"), Some(1));
+    /// assert_eq!(TRIE.get(b"bar"), Some(2));
+    /// assert_eq!(TRIE.get(b"bazzoo"), Some(3));
+    /// assert_eq!(TRIE.get(b"unknown"), None);
+    /// ```
+    ///
+    /// Panics if strings are not sorted:
+    ///
+    /// ```compile_fail
+    /// # use asciitrie::{AsciiTrie, AsciiStr};
+    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_sorted_tuple_slice(&[
+    ///     (AsciiStr::from_str_or_panic("foo"), 1),
+    ///     (AsciiStr::from_str_or_panic("bar"), 2),
+    ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
+    /// ]);
+    /// ```
+    ///
+    /// Panics if capacity is too small:
+    ///
+    /// ```compile_fail
+    /// # use asciitrie::{AsciiTrie, AsciiStr};
+    /// const TRIE: AsciiTrie<[u8; 15]> = AsciiTrie::from_sorted_tuple_slice(&[
+    ///     (AsciiStr::from_str_or_panic("bar"), 2),
+    ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
+    ///     (AsciiStr::from_str_or_panic("foo"), 1),
+    /// ]);
+    /// ```
+    ///
+    /// Panics if capacity is too large:
+    ///
+    /// ```compile_fail
+    /// # use asciitrie::{AsciiTrie, AsciiStr};
+    /// const TRIE: AsciiTrie<[u8; 20]> = AsciiTrie::from_sorted_tuple_slice(&[
+    ///     (AsciiStr::from_str_or_panic("bar"), 2),
+    ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
+    ///     (AsciiStr::from_str_or_panic("foo"), 1),
+    /// ]);
+    /// ```
+    pub const fn from_sorted_tuple_slice(items: &[(&AsciiStr, usize)]) -> Self {
+        AsciiTrieBuilder::<N>::from_sorted_tuple_vec(items).into_ascii_trie_or_panic()
+    }
+}

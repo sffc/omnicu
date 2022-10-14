@@ -2,10 +2,10 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use super::store::const_for_each;
+use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstStackChildrenStore;
 use super::store::SafeConstSlice;
-use super::store::ConstAsciiTrieBuilderStore;
-use super::store::const_for_each;
 use super::AsciiByte;
 use super::AsciiStr;
 use crate::AsciiTrie;
@@ -22,7 +22,11 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         AsciiTrie(slice.as_slice())
     }
 
-    pub fn new() -> Self {
+    pub const fn into_ascii_trie_or_panic(self) -> AsciiTrie<[u8; N]> {
+        AsciiTrie(self.data.take_or_panic())
+    }
+
+    pub const fn new() -> Self {
         Self {
             data: ConstAsciiTrieBuilderStore::atbs_new_empty(),
         }
@@ -44,7 +48,10 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     }
 
     #[must_use]
-    const fn prepend_branch(self, targets_rev: SafeConstSlice<(AsciiByte, usize)>) -> (Self, usize) {
+    const fn prepend_branch(
+        self,
+        targets_rev: SafeConstSlice<(AsciiByte, usize)>,
+    ) -> (Self, usize) {
         let n = targets_rev.len();
         if n > 0b00011111 {
             todo!()
@@ -84,13 +91,36 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         result
     }
 
+    pub const fn from_sorted_tuple_vec<'a>(items: &[(&'a AsciiStr, usize)]) -> Self {
+        if items.is_empty() {
+            return Self::new();
+        }
+        let items = SafeConstSlice::from_slice(items);
+        let mut prev: Option<&'a AsciiStr> = None;
+        const_for_each!(items, (ascii_str, _), {
+            match prev {
+                None => (),
+                Some(prev) => {
+                    if !prev.is_less_then(ascii_str) {
+                        panic!("Strings in AsciiStr constructor are not sorted");
+                    }
+                }
+            };
+            prev = Some(ascii_str)
+        });
+        let mut result = Self::new();
+        let total_size;
+        (result, total_size) = result.create_recursive(items, 0);
+        debug_assert!(total_size == result.data.atbs_len());
+        result
+    }
+
     #[must_use]
     const fn create_recursive<'a>(
         mut self,
         items: SafeConstSlice<(&'a AsciiStr, usize)>,
         prefix_len: usize,
-    ) -> (Self, usize)
-    {
+    ) -> (Self, usize) {
         let first: (&'a AsciiStr, usize) = match items.first() {
             Some((k, v)) => (*k, *v),
             None => unreachable!(),
@@ -99,23 +129,24 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         let mut total_size = 0;
         let items = if first.0.len() == prefix_len {
             initial_value = Some(first.1);
-            items.get_indexed_range(1, items.len())
+            items.get_subslice_or_panic(1, items.len())
         } else {
             items
         };
         if !items.is_empty() {
             let mut i = items.len() - 1;
             let mut j = items.len();
-            let mut current_ascii = items.get_or_panic(items.len() - 1).0.ascii_at_or_panic(prefix_len);
+            let mut current_ascii = items
+                .get_or_panic(items.len() - 1)
+                .0
+                .ascii_at_or_panic(prefix_len);
             let mut children = ConstStackChildrenStore::cs_new_empty();
             while i > 0 {
-                let c = items
-                    .get_or_panic(i - 1)
-                    .0
-                    .ascii_at_or_panic(prefix_len);
+                let c = items.get_or_panic(i - 1).0.ascii_at_or_panic(prefix_len);
                 if c.get() != current_ascii.get() {
                     let size;
-                    (self, size) = self.create_recursive(items.get_indexed_range(i, j), prefix_len + 1);
+                    (self, size) =
+                        self.create_recursive(items.get_subslice_or_panic(i, j), prefix_len + 1);
                     total_size += size;
                     children = children.cs_push(current_ascii, size);
                     current_ascii = c;
@@ -124,7 +155,7 @@ impl<const N: usize> AsciiTrieBuilder<N> {
                 i -= 1;
             }
             let size;
-            (self, size) = self.create_recursive(items.get_indexed_range(i, j), prefix_len + 1);
+            (self, size) = self.create_recursive(items.get_subslice_or_panic(i, j), prefix_len + 1);
             total_size += size;
             if children.cs_len() == 0 {
                 // All strings start with same byte

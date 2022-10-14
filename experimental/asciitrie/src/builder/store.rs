@@ -11,6 +11,14 @@ pub(crate) struct SafeConstSlice<'a, T> {
 }
 
 impl<'a, T> SafeConstSlice<'a, T> {
+    pub const fn from_slice(other: &'a [T]) -> Self {
+        SafeConstSlice {
+            full_slice: other,
+            start: 0,
+            limit: other.len(),
+        }
+    }
+
     pub const fn len(&self) -> usize {
         self.limit - self.start
     }
@@ -31,22 +39,17 @@ impl<'a, T> SafeConstSlice<'a, T> {
         }
     }
 
-    pub const fn split_first_or_panic(&self) -> SafeConstSlice<'a, T> {
-        assert!(!self.is_empty());
-        SafeConstSlice {
-            full_slice: self.full_slice,
-            start: self.start + 1,
-            limit: self.limit
-        }
-    }
-
-    pub const fn get_indexed_range(&self, new_start: usize, new_limit: usize) -> SafeConstSlice<'a, T> {
+    pub const fn get_subslice_or_panic(
+        &self,
+        new_start: usize,
+        new_limit: usize,
+    ) -> SafeConstSlice<'a, T> {
         assert!(new_start <= new_limit);
         assert!(new_limit <= self.len());
         SafeConstSlice {
             full_slice: self.full_slice,
             start: self.start + new_start,
-            limit: self.start + new_limit
+            limit: self.start + new_limit,
         }
     }
 
@@ -57,11 +60,7 @@ impl<'a, T> SafeConstSlice<'a, T> {
 
 impl<'a, T> From<&'a [T]> for SafeConstSlice<'a, T> {
     fn from(other: &'a [T]) -> Self {
-        SafeConstSlice {
-            full_slice: other,
-            start: 0,
-            limit: other.len()
-        }
+        Self::from_slice(other)
     }
 }
 
@@ -80,14 +79,14 @@ pub(crate) use const_for_each;
 
 pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
     data: [u8; N],
-    start: usize
+    start: usize,
 }
 
 impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
     pub const fn atbs_new_empty() -> Self {
         Self {
             data: [0; N],
-            start: N
+            start: N,
         }
     }
     pub const fn atbs_len(&self) -> usize {
@@ -105,21 +104,27 @@ impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
         SafeConstSlice {
             full_slice: &self.data,
             start: self.start,
-            limit: N
+            limit: N,
         }
+    }
+    pub const fn take_or_panic(self) -> [u8; N] {
+        if self.start != 0 {
+            panic!("AsciiTrieBuilder buffer is too large");
+        }
+        self.data
     }
 }
 
 pub(crate) struct ConstStackChildrenStore {
     slice: [(AsciiByte, usize); 128],
-    len: usize
+    len: usize,
 }
 
 impl ConstStackChildrenStore {
     pub const fn cs_new_empty() -> Self {
         Self {
             slice: [(AsciiByte::nul(), 0); 128],
-            len: 0
+            len: 0,
         }
     }
     pub const fn cs_len(&self) -> usize {
@@ -136,7 +141,7 @@ impl ConstStackChildrenStore {
         SafeConstSlice {
             full_slice: &self.slice,
             start: 0,
-            limit: self.len
+            limit: self.len,
         }
     }
 }

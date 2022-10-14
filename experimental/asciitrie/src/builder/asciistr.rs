@@ -56,6 +56,13 @@ impl AsciiStr {
         Self::try_from_bytes(s.as_bytes())
     }
 
+    pub const fn from_str_or_panic(s: &str) -> &Self {
+        match Self::try_from_str(s) {
+            Ok(s) => s,
+            Err(_) => panic!("Non-ASCII string passed to AsciiStr"),
+        }
+    }
+
     pub fn try_from_bytes_with_value<T>(tuple: (&[u8], T)) -> Result<(&Self, T), NonAsciiError> {
         let s = AsciiStr::try_from_bytes(tuple.0)?;
         Ok((s, tuple.1))
@@ -74,6 +81,21 @@ impl AsciiStr {
         self.len() == 0
     }
 
+    pub(crate) const fn is_less_then(&self, other: &Self) -> bool {
+        let mut i = 0;
+        while i < self.len() && i < other.len() {
+            if self.0[i].get() < other.0[i].get() {
+                return true;
+            }
+            if self.0[i].get() > other.0[i].get() {
+                return false;
+            }
+            i += 1;
+        }
+        self.len() < other.len()
+    }
+
+    #[allow(dead_code)] // may want this in the future
     pub(crate) fn ascii_at(&self, index: usize) -> Option<AsciiByte> {
         self.0.get(index).copied()
     }
