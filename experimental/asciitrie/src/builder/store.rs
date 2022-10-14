@@ -2,7 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use alloc::collections::VecDeque;
+use alloc::vec::Vec;
 use super::AsciiByte;
 
 pub(crate) struct SafeConstSlice<'a, T> {
@@ -39,11 +39,11 @@ pub(crate) trait AsciiTrieBuilderStore {
     fn atbs_with_capacity(capacity: usize) -> Self;
     fn atbs_len(&self) -> usize;
 
-    fn atbs_make_contiguous(&mut self) -> &mut [u8];
-    fn atbs_push_front(&mut self, byte: u8);
+    fn atbs_as_bytes(&self) -> &[u8];
+    fn atbs_push_front(self, byte: u8) -> Self;
 }
 
-impl AsciiTrieBuilderStore for VecDeque<u8> {
+impl AsciiTrieBuilderStore for Vec<u8> {
     fn atbs_new_empty() -> Self {
         Self::new()
     }
@@ -54,11 +54,28 @@ impl AsciiTrieBuilderStore for VecDeque<u8> {
         self.len()
     }
 
-    fn atbs_make_contiguous(&mut self) -> &mut [u8] {
-        self.make_contiguous()
+    fn atbs_as_bytes(&self) -> &[u8] {
+        self.as_slice()
     }
-    fn atbs_push_front(&mut self, byte: u8) {
-        self.push_front(byte)
+    fn atbs_push_front(mut self, byte: u8) -> Self {
+        self.insert(0, byte);
+        self
+    }
+}
+
+pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
+    data: [u8; N],
+    start: usize
+}
+
+impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
+    pub const fn push_front(mut self, byte: u8) -> Self {
+        if self.start == 0 {
+            panic!("AsciiTrieBuilder buffer out of capacity");
+        }
+        self.start -= 1;
+        self.data[self.start] = byte;
+        self
     }
 }
 

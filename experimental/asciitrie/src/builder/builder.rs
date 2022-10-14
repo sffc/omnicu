@@ -18,7 +18,7 @@ pub(crate) struct AsciiTrieBuilder<B> {
 
 impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
     pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
-        let slice = self.data.atbs_make_contiguous();
+        let slice = self.data.atbs_as_bytes();
         AsciiTrie(slice)
     }
 
@@ -29,22 +29,22 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
     }
 
     #[must_use]
-    fn prepend_ascii(mut self, ascii: AsciiByte) -> (Self, usize) {
-        self.data.atbs_push_front(ascii.get());
-        (self, 1)
+    fn prepend_ascii(self, ascii: AsciiByte) -> (Self, usize) {
+        let data = self.data.atbs_push_front(ascii.get());
+        (Self { data }, 1)
     }
 
     #[must_use]
-    fn prepend_value(mut self, value: usize) -> (Self, usize) {
+    fn prepend_value(self, value: usize) -> (Self, usize) {
         if value > 0b00011111 {
             todo!()
         }
-        self.data.atbs_push_front((value as u8) | 0b10000000);
-        (self, 1)
+        let data = self.data.atbs_push_front((value as u8) | 0b10000000);
+        (Self { data }, 1)
     }
 
     #[must_use]
-    fn prepend_branch(mut self, targets_rev: SafeConstSlice<(AsciiByte, usize)>) -> (Self, usize) {
+    fn prepend_branch(self, targets_rev: SafeConstSlice<(AsciiByte, usize)>) -> (Self, usize) {
         let n = targets_rev.len();
         if n > 0b00011111 {
             todo!()
@@ -57,15 +57,16 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
             todo!()
         }
         let mut index = total_size;
+        let mut data = self.data;
         const_for_each!(targets_rev, (_, size), {
             index -= size;
-            self.data.atbs_push_front(index.try_into().unwrap());
+            data = data.atbs_push_front(index.try_into().unwrap());
         });
         const_for_each!(targets_rev, (ascii, _), {
-            self.data.atbs_push_front(ascii.get());
+            data = data.atbs_push_front(ascii.get());
         });
-        self.data.atbs_push_front((n as u8) | 0b11000000);
-        (self, 1 + n * 2)
+        data = data.atbs_push_front((n as u8) | 0b11000000);
+        (Self { data }, 1 + n * 2)
     }
 
     pub fn from_litemap<'a, S>(items: LiteMap<&'a AsciiStr, usize, S>) -> Self
