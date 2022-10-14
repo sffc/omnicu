@@ -29,13 +29,13 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     }
 
     #[must_use]
-    fn prepend_ascii(self, ascii: AsciiByte) -> (Self, usize) {
+    const fn prepend_ascii(self, ascii: AsciiByte) -> (Self, usize) {
         let data = self.data.atbs_push_front(ascii.get());
         (Self { data }, 1)
     }
 
     #[must_use]
-    fn prepend_value(self, value: usize) -> (Self, usize) {
+    const fn prepend_value(self, value: usize) -> (Self, usize) {
         if value > 0b00011111 {
             todo!()
         }
