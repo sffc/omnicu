@@ -63,6 +63,10 @@ impl AsciiStr {
         }
     }
 
+    pub const fn empty() -> &'static AsciiStr {
+        Self::from_str_or_panic("")
+    }
+
     pub fn try_from_bytes_with_value<T>(tuple: (&[u8], T)) -> Result<(&Self, T), NonAsciiError> {
         let s = AsciiStr::try_from_bytes(tuple.0)?;
         Ok((s, tuple.1))

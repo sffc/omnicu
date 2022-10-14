@@ -168,7 +168,8 @@ impl<const N: usize> AsciiTrieBuilder<N> {
                 // Need to make a branch node
                 children = children.cs_push(current_ascii, size);
                 let size;
-                (self, size) = self.prepend_branch(children.cs_ascii_slice(), children.cs_sizes_slice());
+                (self, size) =
+                    self.prepend_branch(children.cs_ascii_slice(), children.cs_sizes_slice());
                 total_size += size;
             }
         }
