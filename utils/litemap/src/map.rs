@@ -245,8 +245,8 @@ where
     /// map.insert(2, "two");
     ///
     /// let borrowed_map = map.as_sliced();
-    /// assert_eq!(sub_map.get(&1), Some(&"one"));
-    /// assert_eq!(sub_map.get(&2), Some(&"two"));
+    /// assert_eq!(borrowed_map.get(&1), Some(&"one"));
+    /// assert_eq!(borrowed_map.get(&2), Some(&"two"));
     /// ```
     pub fn as_sliced(&self) -> LiteMap<K, V, &S::Slice> {
         let subslice = self.values.lm_get_range(0..self.len()).unwrap();
@@ -257,6 +257,22 @@ where
         }
     }
 
+    /// Borrows the backing buffer of this [`LiteMap`] as its slice type.
+    ///
+    /// The slice will be sorted.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use litemap::LiteMap;
+    ///
+    /// let mut map = LiteMap::new_vec();
+    /// map.insert(1, "one");
+    /// map.insert(2, "two");
+    ///
+    /// let slice = map.as_slice();
+    /// assert_eq!(slice, &[(1, "one"), (2, "two")]);
+    /// ```
     pub fn as_slice(&self) -> &S::Slice {
         self.values.lm_get_range(0..self.len()).unwrap()
     }
