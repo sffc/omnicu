@@ -5,15 +5,34 @@
 use alloc::collections::VecDeque;
 use super::AsciiByte;
 
-/// # Panics
-/// Panics if `start..limit` is not a valid range in `slice`
-const fn const_subslice<T>(slice: &[T], limit: usize) -> &[T] {
-    unsafe {
-        let (ptr, len) = core::mem::transmute::<&[T], (*const T, usize)>(slice);
-        assert!(limit <= len);
-        core::mem::transmute((ptr, limit))
+pub(crate) struct SafeConstSlice<'a, T> {
+    full_slice: &'a [T],
+    start: usize,
+    limit: usize,
+}
+
+impl<'a, T> SafeConstSlice<'a, T> {
+    pub const fn len(&self) -> usize {
+        self.limit - self.start
+    }
+
+    pub const fn get_or_panic(&self, index: usize) -> &T {
+        &self.full_slice[index + self.start]
     }
 }
+
+macro_rules! const_for_each {
+    ($safe_const_slice:expr, $item:tt, $inner:expr) => {{
+        let mut i = 0;
+        while i < $safe_const_slice.len() {
+            let $item = $safe_const_slice.get_or_panic(i);
+            $inner;
+            i += 1;
+        }
+    }};
+}
+
+pub(crate) use const_for_each;
 
 pub(crate) trait AsciiTrieBuilderStore {
     fn atbs_new_empty() -> Self;
@@ -65,7 +84,11 @@ impl ConstStackChildrenStore {
         self.len += 1;
         self
     }
-    pub const fn cs_as_slice(&self) -> &[(AsciiByte, usize)] {
-        const_subslice(&self.slice, self.len)
+    pub const fn cs_as_slice(&self) -> SafeConstSlice<(AsciiByte, usize)> {
+        SafeConstSlice {
+            full_slice: &self.slice,
+            start: 0,
+            limit: self.len
+        }
     }
 }

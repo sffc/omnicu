@@ -4,6 +4,8 @@
 
 use super::store::AsciiTrieBuilderStore;
 use super::store::ConstStackChildrenStore;
+use super::store::SafeConstSlice;
+use super::store::const_for_each;
 use super::AsciiByte;
 use super::AsciiStr;
 use crate::AsciiTrie;
@@ -42,23 +44,26 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
     }
 
     #[must_use]
-    fn prepend_branch(&mut self, targets_rev: &[(AsciiByte, usize)]) -> usize {
+    fn prepend_branch(&mut self, targets_rev: SafeConstSlice<(AsciiByte, usize)>) -> usize {
         let n = targets_rev.len();
         if n > 0b00011111 {
             todo!()
         }
-        let trie_lengths = targets_rev.iter().map(|(_, size)| size).sum::<usize>();
+        let mut trie_lengths = 0;
+        const_for_each!(targets_rev, (_, size), {
+            trie_lengths += size;
+        });
         if trie_lengths > 256 {
             todo!()
         }
         let mut index = trie_lengths;
-        for (_, size) in targets_rev.iter() {
+        const_for_each!(targets_rev, (_, size), {
             index -= size;
             self.data.atbs_push_front(index.try_into().unwrap());
-        }
-        for (ascii, _) in targets_rev.iter() {
+        });
+        const_for_each!(targets_rev, (ascii, _), {
             self.data.atbs_push_front(ascii.get());
-        }
+        });
         self.data.atbs_push_front((n as u8) | 0b11000000);
         1 + n * 2
     }
