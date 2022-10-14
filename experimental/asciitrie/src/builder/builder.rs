@@ -29,34 +29,34 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
     }
 
     #[must_use]
-    fn prepend_ascii(&mut self, ascii: AsciiByte) -> usize {
+    fn prepend_ascii(mut self, ascii: AsciiByte) -> (Self, usize) {
         self.data.atbs_push_front(ascii.get());
-        1
+        (self, 1)
     }
 
     #[must_use]
-    fn prepend_value(&mut self, value: usize) -> usize {
+    fn prepend_value(mut self, value: usize) -> (Self, usize) {
         if value > 0b00011111 {
             todo!()
         }
         self.data.atbs_push_front((value as u8) | 0b10000000);
-        1
+        (self, 1)
     }
 
     #[must_use]
-    fn prepend_branch(&mut self, targets_rev: SafeConstSlice<(AsciiByte, usize)>) -> usize {
+    fn prepend_branch(mut self, targets_rev: SafeConstSlice<(AsciiByte, usize)>) -> (Self, usize) {
         let n = targets_rev.len();
         if n > 0b00011111 {
             todo!()
         }
-        let mut trie_lengths = 0;
+        let mut total_size = 0;
         const_for_each!(targets_rev, (_, size), {
-            trie_lengths += size;
+            total_size += size;
         });
-        if trie_lengths > 256 {
+        if total_size > 256 {
             todo!()
         }
-        let mut index = trie_lengths;
+        let mut index = total_size;
         const_for_each!(targets_rev, (_, size), {
             index -= size;
             self.data.atbs_push_front(index.try_into().unwrap());
@@ -65,7 +65,7 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
             self.data.atbs_push_front(ascii.get());
         });
         self.data.atbs_push_front((n as u8) | 0b11000000);
-        1 + n * 2
+        (self, 1 + n * 2)
     }
 
     pub fn from_litemap<'a, S>(items: LiteMap<&'a AsciiStr, usize, S>) -> Self
@@ -77,17 +77,18 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
             return Self::new();
         }
         let mut result = Self::new();
-        let total_size = result.create_recursive(items.as_sliced(), 0);
+        let total_size;
+        (result, total_size) = result.create_recursive(items.as_sliced(), 0);
         debug_assert_eq!(total_size, result.data.atbs_len());
         result
     }
 
     #[must_use]
     fn create_recursive<'a, 'b, S: ?Sized>(
-        &mut self,
+        mut self,
         items: LiteMap<&'a AsciiStr, usize, &'b S>,
         prefix_len: usize,
-    ) -> usize
+    ) -> (Self, usize)
     where
         for<'l> &'l S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = S>,
         'a: 'b,
@@ -117,30 +118,36 @@ impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
                     .ascii_at(prefix_len)
                     .unwrap();
                 if c != current_ascii {
-                    let inner = self
-                        .create_recursive(items.get_indexed_range(i..j).unwrap(), prefix_len + 1);
-                    total_size += inner;
-                    children = children.cs_push(current_ascii, inner);
+                    let size;
+                    (self, size) = self.create_recursive(items.get_indexed_range(i..j).unwrap(), prefix_len + 1);
+                    total_size += size;
+                    children = children.cs_push(current_ascii, size);
                     current_ascii = c;
                     j = i;
                 }
                 i -= 1;
             }
-            let last_child =
-                self.create_recursive(items.get_indexed_range(i..j).unwrap(), prefix_len + 1);
-            total_size += last_child;
+            let size;
+            (self, size) = self.create_recursive(items.get_indexed_range(i..j).unwrap(), prefix_len + 1);
+            total_size += size;
             if children.cs_len() == 0 {
                 // All strings start with same byte
-                total_size += self.prepend_ascii(current_ascii);
+                let size;
+                (self, size) = self.prepend_ascii(current_ascii);
+                total_size += size;
             } else {
                 // Need to make a branch node
-                children = children.cs_push(current_ascii, last_child);
-                total_size += self.prepend_branch(children.cs_as_slice());
+                children = children.cs_push(current_ascii, size);
+                let size;
+                (self, size) = self.prepend_branch(children.cs_as_slice());
+                total_size += size;
             }
         }
         if let Some(value) = initial_value {
-            total_size += self.prepend_value(value);
+            let size;
+            (self, size) = self.prepend_value(value);
+            total_size += size;
         }
-        total_size
+        (self, total_size)
     }
 }
