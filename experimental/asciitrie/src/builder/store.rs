@@ -15,12 +15,53 @@ impl<'a, T> SafeConstSlice<'a, T> {
         self.limit - self.start
     }
 
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub const fn get_or_panic(&self, index: usize) -> &T {
         &self.full_slice[index + self.start]
     }
 
+    pub const fn first(&self) -> Option<&T> {
+        if self.len() == 0 {
+            None
+        } else {
+            Some(self.get_or_panic(0))
+        }
+    }
+
+    pub const fn split_first_or_panic(&self) -> SafeConstSlice<'a, T> {
+        assert!(!self.is_empty());
+        SafeConstSlice {
+            full_slice: self.full_slice,
+            start: self.start + 1,
+            limit: self.limit
+        }
+    }
+
+    pub const fn get_indexed_range(&self, new_start: usize, new_limit: usize) -> SafeConstSlice<'a, T> {
+        assert!(new_start <= new_limit);
+        assert!(new_limit <= self.len());
+        SafeConstSlice {
+            full_slice: self.full_slice,
+            start: self.start + new_start,
+            limit: self.start + new_limit
+        }
+    }
+
     pub fn as_slice(&self) -> &'a [T] {
         &self.full_slice[self.start..self.limit]
+    }
+}
+
+impl<'a, T> From<&'a [T]> for SafeConstSlice<'a, T> {
+    fn from(other: &'a [T]) -> Self {
+        SafeConstSlice {
+            full_slice: other,
+            start: 0,
+            limit: other.len()
+        }
     }
 }
 

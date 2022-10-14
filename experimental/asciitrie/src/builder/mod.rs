@@ -72,8 +72,7 @@ impl AsciiTrie<Vec<u8>> {
     /// ```
     pub fn from_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Self
     where
-        S: litemap::store::StoreSlice<&'a AsciiStr, usize>,
-        for<'l> &'l S::Slice: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = S::Slice>,
+        S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
     {
         AsciiTrieBuilder::<256>::from_litemap(items.as_sliced())
             .to_ascii_trie()

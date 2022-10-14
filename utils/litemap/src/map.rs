@@ -256,6 +256,10 @@ where
             _value_type: PhantomData,
         }
     }
+
+    pub fn as_slice(&self) -> &S::Slice {
+        self.values.lm_get_range(0..self.len()).unwrap()
+    }
 }
 
 impl<K, V, S> LiteMap<K, V, S>
