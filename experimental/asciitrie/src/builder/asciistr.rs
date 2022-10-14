@@ -78,6 +78,10 @@ impl AsciiStr {
         self.0.get(index).copied()
     }
 
+    pub(crate) const fn ascii_at_or_panic(&self, index: usize) -> AsciiByte {
+        self.0[index]
+    }
+
     pub fn as_bytes(&self) -> &[u8] {
         // Safety:
         // - AsciiByte is transparent over u8

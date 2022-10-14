@@ -85,7 +85,7 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     }
 
     #[must_use]
-    fn create_recursive<'a>(
+    const fn create_recursive<'a>(
         mut self,
         items: SafeConstSlice<(&'a AsciiStr, usize)>,
         prefix_len: usize,
@@ -106,15 +106,14 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         if !items.is_empty() {
             let mut i = items.len() - 1;
             let mut j = items.len();
-            let mut current_ascii = items.get_or_panic(items.len() - 1).0.ascii_at(prefix_len).unwrap();
+            let mut current_ascii = items.get_or_panic(items.len() - 1).0.ascii_at_or_panic(prefix_len);
             let mut children = ConstStackChildrenStore::cs_new_empty();
             while i > 0 {
                 let c = items
                     .get_or_panic(i - 1)
                     .0
-                    .ascii_at(prefix_len)
-                    .unwrap();
-                if c != current_ascii {
+                    .ascii_at_or_panic(prefix_len);
+                if c.get() != current_ascii.get() {
                     let size;
                     (self, size) = self.create_recursive(items.get_indexed_range(i, j), prefix_len + 1);
                     total_size += size;
