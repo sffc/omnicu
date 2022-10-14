@@ -19,6 +19,10 @@ impl<'a, T> SafeConstSlice<'a, T> {
     pub const fn get_or_panic(&self, index: usize) -> &T {
         &self.full_slice[index + self.start]
     }
+
+    pub fn as_slice(&self) -> &'a [T] {
+        &self.full_slice[self.start..self.limit]
+    }
 }
 
 macro_rules! const_for_each {
@@ -39,7 +43,7 @@ pub(crate) trait AsciiTrieBuilderStore {
     fn atbs_with_capacity(capacity: usize) -> Self;
     fn atbs_len(&self) -> usize;
 
-    fn atbs_as_bytes(&self) -> &[u8];
+    fn atbs_as_bytes(&self) -> SafeConstSlice<u8>;
     fn atbs_push_front(self, byte: u8) -> Self;
 }
 
@@ -54,8 +58,12 @@ impl AsciiTrieBuilderStore for Vec<u8> {
         self.len()
     }
 
-    fn atbs_as_bytes(&self) -> &[u8] {
-        self.as_slice()
+    fn atbs_as_bytes(&self) -> SafeConstSlice<u8> {
+        SafeConstSlice {
+            full_slice: self.as_slice(),
+            start: 0,
+            limit: self.len()
+        }
     }
     fn atbs_push_front(mut self, byte: u8) -> Self {
         self.insert(0, byte);
@@ -68,14 +76,33 @@ pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
     start: usize
 }
 
-impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
-    pub const fn push_front(mut self, byte: u8) -> Self {
+impl<const N: usize> AsciiTrieBuilderStore for ConstAsciiTrieBuilderStore<N> {
+    fn atbs_new_empty() -> Self {
+        Self {
+            data: [0; N],
+            start: N
+        }
+    }
+    fn atbs_with_capacity(_: usize) -> Self {
+        Self::atbs_new_empty()
+    }
+    fn atbs_len(&self) -> usize {
+        N - self.start
+    }
+    fn atbs_push_front(mut self, byte: u8) -> Self {
         if self.start == 0 {
             panic!("AsciiTrieBuilder buffer out of capacity");
         }
         self.start -= 1;
         self.data[self.start] = byte;
         self
+    }
+    fn atbs_as_bytes(&self) -> SafeConstSlice<u8> {
+        SafeConstSlice {
+            full_slice: &self.data,
+            start: self.start,
+            limit: N
+        }
     }
 }
 

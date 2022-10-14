@@ -19,7 +19,7 @@ pub(crate) struct AsciiTrieBuilder<B> {
 impl<B: AsciiTrieBuilderStore> AsciiTrieBuilder<B> {
     pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
         let slice = self.data.atbs_as_bytes();
-        AsciiTrie(slice)
+        AsciiTrie(slice.as_slice())
     }
 
     pub fn new() -> Self {
