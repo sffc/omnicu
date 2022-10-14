@@ -44,14 +44,14 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     }
 
     #[must_use]
-    fn prepend_branch(self, targets_rev: SafeConstSlice<(AsciiByte, usize)>) -> (Self, usize) {
+    const fn prepend_branch(self, targets_rev: SafeConstSlice<(AsciiByte, usize)>) -> (Self, usize) {
         let n = targets_rev.len();
         if n > 0b00011111 {
             todo!()
         }
-        let mut total_size = 0;
+        let mut total_size = 0usize;
         const_for_each!(targets_rev, (_, size), {
-            total_size += size;
+            total_size += *size;
         });
         if total_size > 256 {
             todo!()
@@ -59,8 +59,8 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         let mut index = total_size;
         let mut data = self.data;
         const_for_each!(targets_rev, (_, size), {
-            index -= size;
-            data = data.atbs_push_front(index.try_into().unwrap());
+            index -= *size;
+            data = data.atbs_push_front(index as u8);
         });
         const_for_each!(targets_rev, (ascii, _), {
             data = data.atbs_push_front(ascii.get());
