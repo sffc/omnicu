@@ -116,14 +116,18 @@ impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
 }
 
 pub(crate) struct ConstStackChildrenStore {
-    slice: [(AsciiByte, usize); 128],
+    // There are 128 ASCII bytes, so this should always be enough.
+    // Note: This needs 1160 stack bytes on x64.
+    ascii: [AsciiByte; 128],
+    sizes: [usize; 128],
     len: usize,
 }
 
 impl ConstStackChildrenStore {
     pub const fn cs_new_empty() -> Self {
         Self {
-            slice: [(AsciiByte::nul(), 0); 128],
+            ascii: [AsciiByte::nul(); 128],
+            sizes: [0; 128],
             len: 0,
         }
     }
@@ -132,14 +136,21 @@ impl ConstStackChildrenStore {
     }
 
     pub const fn cs_push(mut self, ascii: AsciiByte, size: usize) -> Self {
-        self.slice[self.len].0 = ascii;
-        self.slice[self.len].1 = size;
+        self.ascii[self.len] = ascii;
+        self.sizes[self.len] = size;
         self.len += 1;
         self
     }
-    pub const fn cs_as_slice(&self) -> SafeConstSlice<(AsciiByte, usize)> {
+    pub const fn cs_ascii_slice(&self) -> SafeConstSlice<AsciiByte> {
         SafeConstSlice {
-            full_slice: &self.slice,
+            full_slice: &self.ascii,
+            start: 0,
+            limit: self.len,
+        }
+    }
+    pub const fn cs_sizes_slice(&self) -> SafeConstSlice<usize> {
+        SafeConstSlice {
+            full_slice: &self.sizes,
             start: 0,
             limit: self.len,
         }

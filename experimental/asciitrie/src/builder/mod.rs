@@ -74,7 +74,16 @@ impl AsciiTrie<Vec<u8>> {
     where
         S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
     {
-        AsciiTrieBuilder::<256>::from_litemap(items.as_sliced())
+        /// TODO: Once const mut references are allowed, we can make this fully infallible by
+        /// calculating the required length, heap-allocating the required capacity, and pointing
+        /// ConstAsciiTrieBuilderStore to the heap buffer.
+        /// ```compile_fail
+        /// // error[E0658]: mutable references are not allowed in constant functions
+        /// const fn write_to_mut_buffer(buf: &mut [u8]) { buf[0] = 0; }
+        /// ```
+        const _: () = ();
+
+        AsciiTrieBuilder::<2048>::from_litemap(items.as_sliced())
             .to_ascii_trie()
             .to_owned()
     }

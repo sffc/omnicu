@@ -50,14 +50,16 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     #[must_use]
     const fn prepend_branch(
         self,
-        targets_rev: SafeConstSlice<(AsciiByte, usize)>,
+        ascii_rev: SafeConstSlice<AsciiByte>,
+        sizes_rev: SafeConstSlice<usize>,
     ) -> (Self, usize) {
-        let n = targets_rev.len();
+        debug_assert!(ascii_rev.len() == sizes_rev.len());
+        let n = ascii_rev.len();
         if n > 0b00011111 {
             todo!()
         }
         let mut total_size = 0usize;
-        const_for_each!(targets_rev, (_, size), {
+        const_for_each!(sizes_rev, size, {
             total_size += *size;
         });
         if total_size > 256 {
@@ -65,11 +67,11 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         }
         let mut index = total_size;
         let mut data = self.data;
-        const_for_each!(targets_rev, (_, size), {
+        const_for_each!(sizes_rev, size, {
             index -= *size;
             data = data.atbs_push_front(index as u8);
         });
-        const_for_each!(targets_rev, (ascii, _), {
+        const_for_each!(ascii_rev, ascii, {
             data = data.atbs_push_front(ascii.get());
         });
         data = data.atbs_push_front((n as u8) | 0b11000000);
@@ -166,7 +168,7 @@ impl<const N: usize> AsciiTrieBuilder<N> {
                 // Need to make a branch node
                 children = children.cs_push(current_ascii, size);
                 let size;
-                (self, size) = self.prepend_branch(children.cs_as_slice());
+                (self, size) = self.prepend_branch(children.cs_ascii_slice(), children.cs_sizes_slice());
                 total_size += size;
             }
         }
