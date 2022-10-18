@@ -4,8 +4,8 @@
 
 //! Varint spec for AsciiTrie:
 //!
-//! - First byte: top 2 bits are trie metadata; third is varint extender; rest is value
-//! - Remaining bytes: top bit is varint extender; add rest to current value * 2^7
+//! - Lead byte: top 2 bits are trie metadata; third is varint extender; rest is value
+//! - Trail bytes: top bit is varint extender; add rest to current value * 2^7
 //! - Add the "latent value" to the final result: (1<<5) + (1<<7) + (1<<14) + ...
 
 pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
@@ -27,12 +27,46 @@ pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
     Some((value, remainder))
 }
 
+// *Upper Bound:* Each trail byte stores 7 bits of data, plus the latent value.
+// Add an extra 1 since the lead byte holds only 5 bits of data.
+const MAX_VARINT_LENGTH: usize = 1 + core::mem::size_of::<usize>() * 8 / 7;
+
+pub const fn write_varint(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
+    let mut result = [0; MAX_VARINT_LENGTH];
+    if value < 32 {
+        result[0] = value as u8;
+        return (1, result);
+    }
+    result[0] = 32;
+    let mut latent = 32;
+    let mut steps = 2;
+    loop {
+        let next_latent = (latent << 7) + 32;
+        if value < next_latent || next_latent == latent {
+            break;
+        }
+        latent = next_latent;
+        steps += 1;
+    }
+    let mut value = value - latent;
+    let mut i = steps;
+    while i > 0 {
+        i -= 1;
+        result[i] |= (value as u8) & 0b01111111;
+        value >>= 7;
+        if i > 0 && i < steps - 1 {
+            result[i] |= 0b10000000;
+        }
+    }
+    (steps, result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_read() {
+    fn test_read_write() {
         #[derive(Debug)]
         struct TestCase<'a> {
             bytes: &'a [u8],
@@ -159,6 +193,43 @@ mod tests {
         for cas in cases {
             let actual = read_varint(cas.bytes[0], &cas.bytes[1..]).unwrap();
             assert_eq!(actual, (cas.value, cas.remainder), "{:?}", cas);
+            let (written_len, written_bytes) = write_varint(cas.value);
+            assert_eq!(
+                written_len,
+                cas.bytes.len() - cas.remainder.len(),
+                "{:?}",
+                cas
+            );
+            assert_eq!(
+                &written_bytes[0..written_len],
+                &cas.bytes[0..written_len],
+                "{:?}",
+                cas
+            );
         }
+    }
+
+    #[test]
+    fn test_max() {
+        let (written_len, written_bytes) = write_varint(usize::MAX);
+        let (recovered_value, remainder) =
+            read_varint(written_bytes[0], &written_bytes[1..written_len]).unwrap();
+        assert!(remainder.is_empty());
+        assert_eq!(recovered_value, usize::MAX);
+        assert_eq!(
+            written_bytes,
+            [
+                0b00100001, //
+                0b11011111, //
+                0b11011111, //
+                0b11011111, //
+                0b11011111, //
+                0b11011111, //
+                0b11011111, //
+                0b11011111, //
+                0b11011111, //
+                0b01011111, //
+            ]
+        );
     }
 }
