@@ -6,25 +6,25 @@
 //!
 //! - First byte: top 2 bits are trie metadata; third is varint extender; rest is value
 //! - Remaining bytes: top bit is varint extender; add rest to current value * 2^7
+//! - Add the "latent value" to the final result: (1<<5) + (1<<7) + (1<<14) + ...
 
 pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
     let mut value = (start & 0b00011111) as usize;
-    let mut latent = 0;
     let mut remainder = remainder;
     if (start & 0b00100000) != 0 {
-        latent = 32;
         loop {
             let next;
             (next, remainder) = remainder.split_first()?;
-            // Note: value << 7 could drop high bits. The addition can't overflow.
-            value = (value << 7) + ((next & 0b01111111) as usize);
+            // Note: value << 7 could drop high bits. The first addition can't overflow.
+            // The second addition could overflow; in such a case we just inform the
+            // developer via the debug assertion.
+            value = (value << 7) + ((next & 0b01111111) as usize) + 32;
             if (next & 0b10000000) == 0 {
                 break;
             }
-            latent = (latent << 7) + 32;
         }
     }
-    Some((value + latent, remainder))
+    Some((value, remainder))
 }
 
 #[cfg(test)]
