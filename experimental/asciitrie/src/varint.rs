@@ -31,22 +31,26 @@ pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
 // Add an extra 1 since the lead byte holds only 5 bits of data.
 const MAX_VARINT_LENGTH: usize = 1 + core::mem::size_of::<usize>() * 8 / 7;
 
-pub const fn write_varint_v2(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
+/// Returns the start index. The bytes are from the start index to MAX_VARINT_LENGTH.
+pub const fn write_varint(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
     let mut result = [0; MAX_VARINT_LENGTH];
     let mut i = MAX_VARINT_LENGTH - 1;
     let mut value = value;
+    let mut last = true;
     loop {
         if value < 32 {
-            result[i] = (value as u8) & 0b00011111;
-            if i != MAX_VARINT_LENGTH - 1 {
+            result[i] = value as u8;
+            if !last {
                 result[i] |= 0b00100000;
             }
             break;
         }
         value -= 32;
         result[i] = (value as u8) & 0b01111111;
-        if i != MAX_VARINT_LENGTH - 1 {
+        if !last {
             result[i] |= 0b10000000;
+        } else {
+            last = false;
         }
         value >>= 7;
         i -= 1;
@@ -54,7 +58,9 @@ pub const fn write_varint_v2(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
     (i, result)
 }
 
-pub const fn write_varint(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
+/// Returns the length. The bytes are from 0 to length.
+#[cfg(test)]
+pub const fn write_varint_reference(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
     let mut result = [0; MAX_VARINT_LENGTH];
     if value < 32 {
         result[0] = value as u8;
@@ -216,23 +222,24 @@ mod tests {
         for cas in cases {
             let actual = read_varint(cas.bytes[0], &cas.bytes[1..]).unwrap();
             assert_eq!(actual, (cas.value, cas.remainder), "{:?}", cas);
-            let (written_len, written_bytes) = write_varint(cas.value);
+            let (reference_len, reference_bytes) = write_varint_reference(cas.value);
             assert_eq!(
-                written_len,
+                reference_len,
                 cas.bytes.len() - cas.remainder.len(),
                 "{:?}",
                 cas
             );
             assert_eq!(
-                &written_bytes[0..written_len],
-                &cas.bytes[0..written_len],
+                &reference_bytes[0..reference_len],
+                &cas.bytes[0..reference_len],
                 "{:?}",
                 cas
             );
-            let (v2_i, v2_bytes) = write_varint_v2(cas.value);
+            let (write_start, write_bytes) = write_varint(cas.value);
+            assert_eq!(reference_len, MAX_VARINT_LENGTH - write_start);
             assert_eq!(
-                &v2_bytes[v2_i..MAX_VARINT_LENGTH],
-                &cas.bytes[0..(MAX_VARINT_LENGTH-v2_i)],
+                &write_bytes[write_start..MAX_VARINT_LENGTH],
+                &cas.bytes[0..reference_len],
                 "{:?}",
                 cas
             );
@@ -241,13 +248,17 @@ mod tests {
 
     #[test]
     fn test_max() {
-        let (written_len, written_bytes) = write_varint(usize::MAX);
+        let (write_start, write_bytes) = write_varint(usize::MAX);
+        let (reference_len, reference_bytes) = write_varint_reference(usize::MAX);
+        assert_eq!(reference_len, MAX_VARINT_LENGTH);
+        assert_eq!(write_start, 0);
         let (recovered_value, remainder) =
-            read_varint(written_bytes[0], &written_bytes[1..written_len]).unwrap();
+            read_varint(write_bytes[write_start], &write_bytes[write_start + 1..]).unwrap();
         assert!(remainder.is_empty());
         assert_eq!(recovered_value, usize::MAX);
+        assert_eq!(reference_bytes, write_bytes);
         assert_eq!(
-            written_bytes,
+            write_bytes,
             [
                 0b00100001, //
                 0b11011111, //
