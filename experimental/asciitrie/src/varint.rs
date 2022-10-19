@@ -31,6 +31,29 @@ pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
 // Add an extra 1 since the lead byte holds only 5 bits of data.
 const MAX_VARINT_LENGTH: usize = 1 + core::mem::size_of::<usize>() * 8 / 7;
 
+pub const fn write_varint_v2(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
+    let mut result = [0; MAX_VARINT_LENGTH];
+    let mut i = MAX_VARINT_LENGTH - 1;
+    let mut value = value;
+    loop {
+        if value < 32 {
+            result[i] = (value as u8) & 0b00011111;
+            if i != MAX_VARINT_LENGTH - 1 {
+                result[i] |= 0b00100000;
+            }
+            break;
+        }
+        value -= 32;
+        result[i] = (value as u8) & 0b01111111;
+        if i != MAX_VARINT_LENGTH - 1 {
+            result[i] |= 0b10000000;
+        }
+        value >>= 7;
+        i -= 1;
+    }
+    (i, result)
+}
+
 pub const fn write_varint(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
     let mut result = [0; MAX_VARINT_LENGTH];
     if value < 32 {
@@ -203,6 +226,13 @@ mod tests {
             assert_eq!(
                 &written_bytes[0..written_len],
                 &cas.bytes[0..written_len],
+                "{:?}",
+                cas
+            );
+            let (v2_i, v2_bytes) = write_varint_v2(cas.value);
+            assert_eq!(
+                &v2_bytes[v2_i..MAX_VARINT_LENGTH],
+                &cas.bytes[0..(MAX_VARINT_LENGTH-v2_i)],
                 "{:?}",
                 cas
             );
