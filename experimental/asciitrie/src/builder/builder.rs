@@ -2,13 +2,13 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use super::store::const_for_each;
+use super::const_util::const_for_each;
+use super::const_util::ConstSlice;
 use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstStackChildrenStore;
-use super::store::ConstSlice;
-use crate::varint;
 use super::AsciiByte;
 use super::AsciiStr;
+use crate::varint;
 use crate::AsciiTrie;
 use litemap::LiteMap;
 
@@ -42,7 +42,9 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     #[must_use]
     const fn prepend_value(self, value: usize) -> (Self, usize) {
         let varint_array_slice = varint::write_varint(value);
-        let data = self.data.atbs_extend_front(varint_array_slice.as_const_slice());
+        let data = self
+            .data
+            .atbs_extend_front(varint_array_slice.as_const_slice());
         let data = data.atbs_bitor_assign(0, 0b10000000);
         (Self { data }, varint_array_slice.len())
     }

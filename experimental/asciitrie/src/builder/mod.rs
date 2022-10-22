@@ -26,7 +26,8 @@
 
 mod asciistr;
 mod builder;
-pub(crate) mod store;
+pub(crate) mod const_util;
+mod store;
 
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;

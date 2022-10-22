@@ -9,7 +9,7 @@
 //! - Add the "latent value" to the final result: (1<<5) + (1<<7) + (1<<14) + ...
 
 #[cfg(feature = "builder")]
-use crate::builder::store::ConstArraySlice;
+use crate::builder::const_util::ConstArrayBuilder;
 
 pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
     let mut value = (start & 0b00011111) as usize;
@@ -35,7 +35,7 @@ pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
 const MAX_VARINT_LENGTH: usize = 1 + core::mem::size_of::<usize>() * 8 / 7;
 
 #[cfg(feature = "builder")]
-pub(crate) const fn write_varint(value: usize) -> ConstArraySlice<MAX_VARINT_LENGTH, u8> {
+pub(crate) const fn write_varint(value: usize) -> ConstArrayBuilder<MAX_VARINT_LENGTH, u8> {
     let mut result = [0; MAX_VARINT_LENGTH];
     let mut i = MAX_VARINT_LENGTH - 1;
     let mut value = value;
@@ -59,16 +59,18 @@ pub(crate) const fn write_varint(value: usize) -> ConstArraySlice<MAX_VARINT_LEN
         i -= 1;
     }
     // The bytes are from i to the end.
-    ConstArraySlice::from_manual_slice(result, i, MAX_VARINT_LENGTH)
+    ConstArrayBuilder::from_manual_slice(result, i, MAX_VARINT_LENGTH)
 }
 
 /// A secondary implementation that separates the latent value while computing the varint.
 #[cfg(all(test, feature = "builder"))]
-pub(crate) const fn write_varint_reference(value: usize) -> ConstArraySlice<MAX_VARINT_LENGTH, u8> {
+pub(crate) const fn write_varint_reference(
+    value: usize,
+) -> ConstArrayBuilder<MAX_VARINT_LENGTH, u8> {
     let mut result = [0; MAX_VARINT_LENGTH];
     if value < 32 {
         result[0] = value as u8;
-        return ConstArraySlice::from_manual_slice(result, 0, 1);
+        return ConstArrayBuilder::from_manual_slice(result, 0, 1);
     }
     result[0] = 32;
     let mut latent = 32;
@@ -92,7 +94,7 @@ pub(crate) const fn write_varint_reference(value: usize) -> ConstArraySlice<MAX_
         }
     }
     // The bytes are from 0 to `steps`.
-    ConstArraySlice::from_manual_slice(result, 0, steps)
+    ConstArrayBuilder::from_manual_slice(result, 0, steps)
 }
 
 #[cfg(test)]
@@ -282,9 +284,14 @@ mod tests {
         let write_bytes = write_varint(usize::MAX);
         assert_eq!(reference_bytes.len(), MAX_VARINT_LENGTH);
         assert_eq!(reference_bytes.as_slice(), write_bytes.as_slice());
-        let subarray = write_bytes.as_const_slice().get_subslice_or_panic(1, write_bytes.len());
-        let (recovered_value, remainder) =
-            read_varint(*write_bytes.as_const_slice().first().unwrap(), subarray.as_slice()).unwrap();
+        let subarray = write_bytes
+            .as_const_slice()
+            .get_subslice_or_panic(1, write_bytes.len());
+        let (recovered_value, remainder) = read_varint(
+            *write_bytes.as_const_slice().first().unwrap(),
+            subarray.as_slice(),
+        )
+        .unwrap();
         assert!(remainder.is_empty());
         assert_eq!(recovered_value, usize::MAX);
         assert_eq!(
