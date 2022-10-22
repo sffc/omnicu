@@ -41,12 +41,10 @@ impl<const N: usize> AsciiTrieBuilder<N> {
 
     #[must_use]
     const fn prepend_value(self, value: usize) -> (Self, usize) {
-        let varint_array_slice = varint::write_varint(value);
-        let data = self
-            .data
-            .atbs_extend_front(varint_array_slice.as_const_slice());
+        let varint_array = varint::write_varint(value);
+        let data = self.data.atbs_extend_front(varint_array.as_const_slice());
         let data = data.atbs_bitor_assign(0, 0b10000000);
-        (Self { data }, varint_array_slice.len())
+        (Self { data }, varint_array.len())
     }
 
     #[must_use]
