@@ -282,9 +282,9 @@ mod tests {
         let write_bytes = write_varint(usize::MAX);
         assert_eq!(reference_bytes.len(), MAX_VARINT_LENGTH);
         assert_eq!(reference_bytes.as_slice(), write_bytes.as_slice());
-        let subarray = write_bytes.into_subslice_or_panic(1, write_bytes.len());
+        let subarray = write_bytes.as_const_slice().get_subslice_or_panic(1, write_bytes.len());
         let (recovered_value, remainder) =
-            read_varint(*write_bytes.first().unwrap(), subarray.as_slice()).unwrap();
+            read_varint(*write_bytes.as_const_slice().first().unwrap(), subarray.as_slice()).unwrap();
         assert!(remainder.is_empty());
         assert_eq!(recovered_value, usize::MAX);
         assert_eq!(

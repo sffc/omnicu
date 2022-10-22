@@ -4,15 +4,16 @@
 
 use super::AsciiByte;
 
-pub(crate) struct SafeConstSlice<'a, T> {
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct ConstSlice<'a, T> {
     full_slice: &'a [T],
     start: usize,
     limit: usize,
 }
 
-impl<'a, T> SafeConstSlice<'a, T> {
+impl<'a, T> ConstSlice<'a, T> {
     pub const fn from_slice(other: &'a [T]) -> Self {
-        SafeConstSlice {
+        ConstSlice {
             full_slice: other,
             start: 0,
             limit: other.len(),
@@ -20,7 +21,7 @@ impl<'a, T> SafeConstSlice<'a, T> {
     }
 
     pub const fn from_manual_slice(full_slice: &'a [T], start: usize, limit: usize) -> Self {
-        SafeConstSlice { full_slice, start, limit }
+        ConstSlice { full_slice, start, limit }
     }
 
     pub const fn len(&self) -> usize {
@@ -47,10 +48,10 @@ impl<'a, T> SafeConstSlice<'a, T> {
         &self,
         new_start: usize,
         new_limit: usize,
-    ) -> SafeConstSlice<'a, T> {
+    ) -> ConstSlice<'a, T> {
         assert!(new_start <= new_limit);
         assert!(new_limit <= self.len());
-        SafeConstSlice {
+        ConstSlice {
             full_slice: self.full_slice,
             start: self.start + new_start,
             limit: self.start + new_limit,
@@ -62,7 +63,7 @@ impl<'a, T> SafeConstSlice<'a, T> {
     }
 }
 
-impl<'a, T> From<&'a [T]> for SafeConstSlice<'a, T> {
+impl<'a, T> From<&'a [T]> for ConstSlice<'a, T> {
     fn from(other: &'a [T]) -> Self {
         Self::from_slice(other)
     }
@@ -99,41 +100,16 @@ impl<const N: usize, T> ConstArraySlice<N, T> {
         self.limit - self.start
     }
 
+    #[allow(dead_code)]
     pub const fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    pub const fn get_or_panic(&self, index: usize) -> &T {
-        &self.full_array[index + self.start]
+    pub const fn as_const_slice(&self) -> ConstSlice<T> {
+        ConstSlice::from_manual_slice(&self.full_array, self.start, self.limit)
     }
 
-    pub const fn first(&self) -> Option<&T> {
-        if self.len() == 0 {
-            None
-        } else {
-            Some(self.get_or_panic(0))
-        }
-    }
-
-    #[cfg(feature = "builder")]
-    pub const fn as_const_slice(&self) -> crate::builder::store::SafeConstSlice<T> {
-        crate::builder::store::SafeConstSlice::from_manual_slice(&self.full_array, self.start, self.limit)
-    }
-
-    pub fn into_subslice_or_panic(
-        self,
-        new_start: usize,
-        new_limit: usize,
-    ) -> ConstArraySlice<N, T> {
-        assert!(new_start <= new_limit);
-        assert!(new_limit <= self.len());
-        ConstArraySlice {
-            full_array: self.full_array,
-            start: self.start + new_start,
-            limit: self.start + new_limit,
-        }
-    }
-
+    #[cfg(test)]
     pub fn as_slice(&self) -> &[T] {
         &self.full_array[self.start..self.limit]
     }
@@ -141,7 +117,7 @@ impl<const N: usize, T> ConstArraySlice<N, T> {
 
 impl<const N: usize> ConstArraySlice<N, u8> {
     pub const fn const_bitor_assign(mut self, index: usize, other: u8) -> Self {
-        self.full_array[self.start] |= other;
+        self.full_array[self.start + index] |= other;
         self
     }
     // Can't be generic because T has a destructor
@@ -161,14 +137,13 @@ impl<const N: usize> ConstArraySlice<N, u8> {
         self
     }
     // Can't be generic because T has a destructor
-    #[cfg(feature = "builder")]
-    pub const fn const_extend_front(mut self, other: crate::builder::store::SafeConstSlice<u8>) -> Self {
+    pub const fn const_extend_front(mut self, other: ConstSlice<u8>) -> Self {
         if self.start < other.len() {
             panic!("AsciiTrieBuilder buffer out of capacity");
         }
         self.start -= other.len();
         let mut i = self.start;
-        crate::builder::store::const_for_each!(other, byte, {
+        const_for_each!(other, byte, {
             self.full_array[i] = *byte;
             i += 1;
         });
@@ -206,11 +181,11 @@ impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
         self.data = self.data.const_push_front(byte);
         self
     }
-    pub const fn atbs_extend_front(mut self, other: SafeConstSlice<u8>) -> Self {
+    pub const fn atbs_extend_front(mut self, other: ConstSlice<u8>) -> Self {
         self.data = self.data.const_extend_front(other);
         self
     }
-    pub const fn atbs_as_bytes(&self) -> SafeConstSlice<u8> {
+    pub const fn atbs_as_bytes(&self) -> ConstSlice<u8> {
         self.data.as_const_slice()
     }
     pub const fn atbs_bitor_assign(mut self, index: usize, other: u8) -> Self {
@@ -248,15 +223,15 @@ impl ConstStackChildrenStore {
         self.len += 1;
         self
     }
-    pub const fn cs_ascii_slice(&self) -> SafeConstSlice<AsciiByte> {
-        SafeConstSlice {
+    pub const fn cs_ascii_slice(&self) -> ConstSlice<AsciiByte> {
+        ConstSlice {
             full_slice: &self.ascii,
             start: 0,
             limit: self.len,
         }
     }
-    pub const fn cs_sizes_slice(&self) -> SafeConstSlice<usize> {
-        SafeConstSlice {
+    pub const fn cs_sizes_slice(&self) -> ConstSlice<usize> {
+        ConstSlice {
             full_slice: &self.sizes,
             start: 0,
             limit: self.len,

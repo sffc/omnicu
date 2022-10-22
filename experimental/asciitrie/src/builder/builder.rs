@@ -5,7 +5,7 @@
 use super::store::const_for_each;
 use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstStackChildrenStore;
-use super::store::SafeConstSlice;
+use super::store::ConstSlice;
 use crate::varint;
 use super::AsciiByte;
 use super::AsciiStr;
@@ -50,8 +50,8 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     #[must_use]
     const fn prepend_branch(
         self,
-        ascii_rev: SafeConstSlice<AsciiByte>,
-        sizes_rev: SafeConstSlice<usize>,
+        ascii_rev: ConstSlice<AsciiByte>,
+        sizes_rev: ConstSlice<usize>,
     ) -> (Self, usize) {
         debug_assert!(ascii_rev.len() == sizes_rev.len());
         let n = ascii_rev.len();
@@ -87,7 +87,7 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         }
         let mut result = Self::new();
         let total_size;
-        let items: SafeConstSlice<(&AsciiStr, usize)> = items.as_slice().into();
+        let items: ConstSlice<(&AsciiStr, usize)> = items.as_slice().into();
         (result, total_size) = result.create_recursive(items, 0);
         debug_assert_eq!(total_size, result.data.atbs_len());
         result
@@ -97,7 +97,7 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         if items.is_empty() {
             return Self::new();
         }
-        let items = SafeConstSlice::from_slice(items);
+        let items = ConstSlice::from_slice(items);
         let mut prev: Option<&'a AsciiStr> = None;
         const_for_each!(items, (ascii_str, _), {
             match prev {
@@ -120,7 +120,7 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     #[must_use]
     const fn create_recursive<'a>(
         mut self,
-        items: SafeConstSlice<(&'a AsciiStr, usize)>,
+        items: ConstSlice<(&'a AsciiStr, usize)>,
         prefix_len: usize,
     ) -> (Self, usize) {
         let first: (&'a AsciiStr, usize) = match items.first() {
