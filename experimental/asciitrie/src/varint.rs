@@ -28,13 +28,21 @@ pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct ConstArraySlice<const N: usize, T> {
+pub(crate) struct ConstArraySlice<const N: usize, T> {
     full_array: [T; N],
     start: usize,
     limit: usize,
 }
 
 impl<const N: usize, T> ConstArraySlice<N, T> {
+    pub const fn new_empty(full_array: [T; N], cursor: usize) -> Self {
+        Self {
+            full_array,
+            start: cursor,
+            limit: cursor
+        }
+    }
+
     pub const fn len(&self) -> usize {
         self.limit - self.start
     }
@@ -56,7 +64,7 @@ impl<const N: usize, T> ConstArraySlice<N, T> {
     }
 
     #[cfg(feature = "builder")]
-    pub fn as_const_slice(&self) -> crate::builder::store::SafeConstSlice<T> {
+    pub const fn as_const_slice(&self) -> crate::builder::store::SafeConstSlice<T> {
         crate::builder::store::SafeConstSlice::from_manual_slice(&self.full_array, self.start, self.limit)
     }
 
@@ -79,11 +87,48 @@ impl<const N: usize, T> ConstArraySlice<N, T> {
     }
 }
 
+impl<const N: usize> ConstArraySlice<N, u8> {
+    pub const fn const_bitor_assign(mut self, index: usize, other: u8) -> Self {
+        self.full_array[self.start] |= other;
+        self
+    }
+    // Can't be generic because T has a destructor
+    pub const fn const_take_or_panic(self) -> [u8; N] {
+        if self.start != 0 || self.limit != N {
+            panic!("AsciiTrieBuilder buffer is too large");
+        }
+        self.full_array
+    }
+    // Can't be generic because T has a destructor
+    pub const fn const_push_front(mut self, value: u8) -> Self {
+        if self.start == 0 {
+            panic!("AsciiTrieBuilder buffer out of capacity");
+        }
+        self.start -= 1;
+        self.full_array[self.start] = value;
+        self
+    }
+    // Can't be generic because T has a destructor
+    #[cfg(feature = "builder")]
+    pub const fn const_extend_front(mut self, other: crate::builder::store::SafeConstSlice<u8>) -> Self {
+        if self.start < other.len() {
+            panic!("AsciiTrieBuilder buffer out of capacity");
+        }
+        self.start -= other.len();
+        let mut i = self.start;
+        crate::builder::store::const_for_each!(other, byte, {
+            self.full_array[i] = *byte;
+            i += 1;
+        });
+        self
+    }
+}
+
 // *Upper Bound:* Each trail byte stores 7 bits of data, plus the latent value.
 // Add an extra 1 since the lead byte holds only 5 bits of data.
 const MAX_VARINT_LENGTH: usize = 1 + core::mem::size_of::<usize>() * 8 / 7;
 
-pub const fn write_varint(value: usize) -> ConstArraySlice<MAX_VARINT_LENGTH, u8> {
+pub(crate) const fn write_varint(value: usize) -> ConstArraySlice<MAX_VARINT_LENGTH, u8> {
     let mut result = [0; MAX_VARINT_LENGTH];
     let mut i = MAX_VARINT_LENGTH - 1;
     let mut value = value;
@@ -116,7 +161,7 @@ pub const fn write_varint(value: usize) -> ConstArraySlice<MAX_VARINT_LENGTH, u8
 
 /// A secondary implementation that separates the latent value while computing the varint.
 #[cfg(test)]
-pub const fn write_varint_reference(value: usize) -> ConstArraySlice<MAX_VARINT_LENGTH, u8> {
+pub(crate) const fn write_varint_reference(value: usize) -> ConstArraySlice<MAX_VARINT_LENGTH, u8> {
     let mut result = [0; MAX_VARINT_LENGTH];
     if value < 32 {
         result[0] = value as u8;

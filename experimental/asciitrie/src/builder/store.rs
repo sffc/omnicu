@@ -2,9 +2,8 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::varint::ConstArraySlice;
-
 use super::AsciiByte;
+use crate::varint::ConstArraySlice;
 
 pub(crate) struct SafeConstSlice<'a, T> {
     full_slice: &'a [T],
@@ -64,13 +63,6 @@ impl<'a, T> SafeConstSlice<'a, T> {
     }
 }
 
-impl<'a> SafeConstSlice<'a, u8> {
-    pub const fn const_bitor_assign(mut self, index: usize, other: u8) -> Self {
-        self.full_slice[self.start] |= other;
-        self
-    }
-}
-
 impl<'a, T> From<&'a [T]> for SafeConstSlice<'a, T> {
     fn from(other: &'a [T]) -> Self {
         Self::from_slice(other)
@@ -91,47 +83,35 @@ macro_rules! const_for_each {
 pub(crate) use const_for_each;
 
 pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
-    data: [u8; N],
-    start: usize,
+    data: ConstArraySlice<N, u8>
 }
 
 impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
     pub const fn atbs_new_empty() -> Self {
         Self {
-            data: [0; N],
-            start: N,
+            data: ConstArraySlice::new_empty([0; N], N)
         }
     }
     pub const fn atbs_len(&self) -> usize {
-        N - self.start
+        self.data.len()
     }
     pub const fn atbs_push_front(mut self, byte: u8) -> Self {
-        if self.start == 0 {
-            panic!("AsciiTrieBuilder buffer out of capacity");
-        }
-        self.start -= 1;
-        self.data[self.start] = byte;
+        self.data = self.data.const_push_front(byte);
         self
     }
-    pub const fn atbs_extend_front(mut self, other: SafeConstSlice<u8>) {
-        todo!()
+    pub const fn atbs_extend_front(mut self, other: SafeConstSlice<u8>) -> Self {
+        self.data = self.data.const_extend_front(other);
+        self
     }
     pub const fn atbs_as_bytes(&self) -> SafeConstSlice<u8> {
-        SafeConstSlice {
-            full_slice: &self.data,
-            start: self.start,
-            limit: N,
-        }
+        self.data.as_const_slice()
     }
     pub const fn atbs_bitor_assign(mut self, index: usize, other: u8) -> Self {
         self.data = self.data.const_bitor_assign(index, other);
         self
     }
     pub const fn take_or_panic(self) -> [u8; N] {
-        if self.start != 0 {
-            panic!("AsciiTrieBuilder buffer is too large");
-        }
-        self.data
+        self.data.const_take_or_panic()
     }
 }
 
