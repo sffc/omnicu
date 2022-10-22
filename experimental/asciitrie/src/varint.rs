@@ -27,12 +27,58 @@ pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
     Some((value, remainder))
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct ConstArraySlice<const N: usize, T> {
+    full_array: [T; N],
+    start: usize,
+    limit: usize,
+}
+
+impl<const N: usize, T> ConstArraySlice<N, T> {
+    pub const fn len(&self) -> usize {
+        self.limit - self.start
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub const fn get_or_panic(&self, index: usize) -> &T {
+        &self.full_array[index + self.start]
+    }
+
+    pub const fn first(&self) -> Option<&T> {
+        if self.len() == 0 {
+            None
+        } else {
+            Some(self.get_or_panic(0))
+        }
+    }
+
+    pub fn into_subslice_or_panic(
+        self,
+        new_start: usize,
+        new_limit: usize,
+    ) -> ConstArraySlice<N, T> {
+        assert!(new_start <= new_limit);
+        assert!(new_limit <= self.len());
+        ConstArraySlice {
+            full_array: self.full_array,
+            start: self.start + new_start,
+            limit: self.start + new_limit,
+        }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.full_array[self.start..self.limit]
+    }
+}
+
 // *Upper Bound:* Each trail byte stores 7 bits of data, plus the latent value.
 // Add an extra 1 since the lead byte holds only 5 bits of data.
 const MAX_VARINT_LENGTH: usize = 1 + core::mem::size_of::<usize>() * 8 / 7;
 
-/// Returns the start index. The bytes are from the start index to MAX_VARINT_LENGTH.
-pub const fn write_varint(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
+pub const fn write_varint(value: usize) -> ConstArraySlice<MAX_VARINT_LENGTH, u8> {
     let mut result = [0; MAX_VARINT_LENGTH];
     let mut i = MAX_VARINT_LENGTH - 1;
     let mut value = value;
@@ -55,16 +101,25 @@ pub const fn write_varint(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
         value >>= 7;
         i -= 1;
     }
-    (i, result)
+    // The bytes are from i to the end.
+    ConstArraySlice {
+        full_array: result,
+        start: i,
+        limit: MAX_VARINT_LENGTH,
+    }
 }
 
-/// Returns the length. The bytes are from 0 to length.
+/// A secondary implementation that separates the latent value while computing the varint.
 #[cfg(test)]
-pub const fn write_varint_reference(value: usize) -> (usize, [u8; MAX_VARINT_LENGTH]) {
+pub const fn write_varint_reference(value: usize) -> ConstArraySlice<MAX_VARINT_LENGTH, u8> {
     let mut result = [0; MAX_VARINT_LENGTH];
     if value < 32 {
         result[0] = value as u8;
-        return (1, result);
+        return ConstArraySlice {
+            full_array: result,
+            start: 0,
+            limit: 1,
+        };
     }
     result[0] = 32;
     let mut latent = 32;
@@ -87,7 +142,12 @@ pub const fn write_varint_reference(value: usize) -> (usize, [u8; MAX_VARINT_LEN
             result[i] |= 0b10000000;
         }
     }
-    (steps, result)
+    // The bytes are from 0 to `steps`.
+    ConstArraySlice {
+        full_array: result,
+        start: 0,
+        limit: steps,
+    }
 }
 
 #[cfg(test)]
@@ -222,24 +282,23 @@ mod tests {
         for cas in cases {
             let actual = read_varint(cas.bytes[0], &cas.bytes[1..]).unwrap();
             assert_eq!(actual, (cas.value, cas.remainder), "{:?}", cas);
-            let (reference_len, reference_bytes) = write_varint_reference(cas.value);
+            let reference_bytes = write_varint_reference(cas.value);
             assert_eq!(
-                reference_len,
+                reference_bytes.len(),
                 cas.bytes.len() - cas.remainder.len(),
                 "{:?}",
                 cas
             );
             assert_eq!(
-                &reference_bytes[0..reference_len],
-                &cas.bytes[0..reference_len],
+                reference_bytes.as_slice(),
+                &cas.bytes[0..reference_bytes.len()],
                 "{:?}",
                 cas
             );
-            let (write_start, write_bytes) = write_varint(cas.value);
-            assert_eq!(reference_len, MAX_VARINT_LENGTH - write_start);
+            let write_bytes = write_varint(cas.value);
             assert_eq!(
-                &write_bytes[write_start..MAX_VARINT_LENGTH],
-                &cas.bytes[0..reference_len],
+                reference_bytes.as_slice(),
+                write_bytes.as_slice(),
                 "{:?}",
                 cas
             );
@@ -248,18 +307,18 @@ mod tests {
 
     #[test]
     fn test_max() {
-        let (write_start, write_bytes) = write_varint(usize::MAX);
-        let (reference_len, reference_bytes) = write_varint_reference(usize::MAX);
-        assert_eq!(reference_len, MAX_VARINT_LENGTH);
-        assert_eq!(write_start, 0);
+        let reference_bytes = write_varint_reference(usize::MAX);
+        let write_bytes = write_varint(usize::MAX);
+        assert_eq!(reference_bytes.len(), MAX_VARINT_LENGTH);
+        assert_eq!(reference_bytes.as_slice(), write_bytes.as_slice());
+        let subarray = write_bytes.into_subslice_or_panic(1, write_bytes.len());
         let (recovered_value, remainder) =
-            read_varint(write_bytes[write_start], &write_bytes[write_start + 1..]).unwrap();
+            read_varint(*write_bytes.first().unwrap(), subarray.as_slice()).unwrap();
         assert!(remainder.is_empty());
         assert_eq!(recovered_value, usize::MAX);
-        assert_eq!(reference_bytes, write_bytes);
         assert_eq!(
-            write_bytes,
-            [
+            write_bytes.as_slice(),
+            &[
                 0b00100001, //
                 0b11011111, //
                 0b11011111, //
