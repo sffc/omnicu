@@ -746,7 +746,7 @@ dependencies = [
 [[package]]
 name = "diplomat"
 version = "0.4.0"
-source = "git+https://github.com/rust-diplomat/diplomat#f59ef837eb3941e97503b6e615a590cbaa8c5a0f"
+source = "git+https://github.com/rust-diplomat/diplomat?rev=046be4036b0defb0cffdeb8548f57789a3a31285#046be4036b0defb0cffdeb8548f57789a3a31285"
 dependencies = [
  "diplomat_core",
  "proc-macro2",
@@ -757,12 +757,12 @@ dependencies = [
 [[package]]
 name = "diplomat-runtime"
 version = "0.4.0"
-source = "git+https://github.com/rust-diplomat/diplomat#f59ef837eb3941e97503b6e615a590cbaa8c5a0f"
+source = "git+https://github.com/rust-diplomat/diplomat?rev=046be4036b0defb0cffdeb8548f57789a3a31285#046be4036b0defb0cffdeb8548f57789a3a31285"
 
 [[package]]
 name = "diplomat_core"
 version = "0.4.0"
-source = "git+https://github.com/rust-diplomat/diplomat#f59ef837eb3941e97503b6e615a590cbaa8c5a0f"
+source = "git+https://github.com/rust-diplomat/diplomat?rev=046be4036b0defb0cffdeb8548f57789a3a31285#046be4036b0defb0cffdeb8548f57789a3a31285"
 dependencies = [
  "impls",
  "lazy_static",
@@ -953,7 +953,7 @@ dependencies = [
 
 [[package]]
 name = "fixed_decimal"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "criterion",
  "displaydoc",
@@ -964,7 +964,6 @@ dependencies = [
  "rand_pcg",
  "ryu",
  "smallvec",
- "static_assertions",
  "writeable",
 ]
 
@@ -1341,6 +1340,7 @@ dependencies = [
  "icu_segmenter",
  "icu_testdata",
  "icu_timezone",
+ "writeable",
 ]
 
 [[package]]
@@ -1506,7 +1506,7 @@ dependencies = [
 
 [[package]]
 name = "icu_datagen"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "cached-path",
  "clap",
@@ -1697,6 +1697,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tinystr 0.7.0",
+ "writeable",
  "zerovec",
 ]
 
@@ -1766,7 +1767,7 @@ dependencies = [
 
 [[package]]
 name = "icu_provider"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "bincode",
  "databake",
@@ -1781,7 +1782,6 @@ dependencies = [
  "serde",
  "serde_json",
  "stable_deref_trait",
- "static_assertions",
  "writeable",
  "yoke",
  "zerofrom",
@@ -3211,12 +3211,6 @@ checksum = "e113fb6f3de07a243d434a56ec6f186dfd51cb08448239fe7bcae73f87ff28ff"
 dependencies = [
  "version_check",
 ]
-
-[[package]]
-name = "static_assertions"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stdweb"

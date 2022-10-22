@@ -5,7 +5,7 @@
 [package]
 name = "icu_provider"
 description = "Trait and struct definitions for the ICU data provider"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["The ICU4X Project Developers"]
 edition = "2021"
 readme = "README.md"
@@ -79,5 +79,4 @@ databake = { version = "0.1.0", path = "../../utils/databake", optional = true, 
 
 [dev-dependencies]
 serde_json = "1.0"
-static_assertions = "1.1"
 icu_provider_adapters = { path = "../../provider/adapters" }
