@@ -44,7 +44,7 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         let varint_array_slice = varint::write_varint(value);
         let data = self.data.atbs_extend_front(varint_array_slice.as_const_slice());
         let data = data.atbs_bitor_assign(0, 0b10000000);
-        (Self { data }, 1)
+        (Self { data }, varint_array_slice.len())
     }
 
     #[must_use]
