@@ -167,14 +167,64 @@ fn test_linear_varint_values() {
 }
 
 #[test]
+fn test_varint_branch() {
+    let chars =
+        AsciiStr::try_from_str("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz").unwrap();
+    let litemap: LiteMap<&AsciiStr, usize> = (0..chars.len())
+        .map(|i| (chars.substring(i..i + 1).unwrap(), i))
+        .collect();
+    let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
+    assert_eq!(trie.byte_len(), 178);
+    assert_eq!(trie.get(b""), None);
+    assert_eq!(trie.get(b"ax"), None);
+    assert_eq!(trie.get(b"ay"), None);
+    check_ascii_trie(&litemap, &trie);
+    #[rustfmt::skip]
+    assert_eq!(
+        trie.as_bytes(),
+        &[
+            0b11100000, // branch varint lead
+            0x14,       // branch varint trail
+            // search array:
+            b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J',
+            b'K', b'L', b'M', b'N', b'O', b'P', b'Q', b'R', b'S', b'T',
+            b'U', b'V', b'W', b'X', b'Y', b'Z',
+            b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j',
+            b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't',
+            b'u', b'v', b'w', b'x', b'y', b'z',
+            // offset array:
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+            10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+            20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+            30, 31, 32, 34, 36, 38, 40, 42, 44, 46,
+            48, 50, 52, 54, 56, 58, 60, 62, 64, 66,
+            68, 70,
+            // single-byte values:
+            (0x80 | 0), (0x80 | 1), (0x80 | 2), (0x80 | 3), (0x80 | 4),
+            (0x80 | 5), (0x80 | 6), (0x80 | 7), (0x80 | 8), (0x80 | 9),
+            (0x80 | 10), (0x80 | 11), (0x80 | 12), (0x80 | 13), (0x80 | 14),
+            (0x80 | 15), (0x80 | 16), (0x80 | 17), (0x80 | 18), (0x80 | 19),
+            (0x80 | 20), (0x80 | 21), (0x80 | 22), (0x80 | 23), (0x80 | 24),
+            (0x80 | 25), (0x80 | 26), (0x80 | 27), (0x80 | 28), (0x80 | 29),
+            (0x80 | 30), (0x80 | 31),
+            // multi-byte values:
+            0xA0, 0, 0xA0, 1, 0xA0, 2, 0xA0, 3, 0xA0, 4,
+            0xA0, 5, 0xA0, 6, 0xA0, 7, 0xA0, 8, 0xA0, 9,
+            0xA0, 10, 0xA0, 11, 0xA0, 12, 0xA0, 13, 0xA0, 14,
+            0xA0, 15, 0xA0, 16, 0xA0, 17, 0xA0, 18, 0xA0, 19,
+        ]
+    );
+}
+
+#[test]
 fn test_everything() {
     let litemap: LiteMap<&AsciiStr, usize> = [
         (AsciiStr::try_from_str("").unwrap(), 0),
-        (AsciiStr::try_from_str("axb").unwrap(), 1),
+        (AsciiStr::try_from_str("axb").unwrap(), 100),
         (AsciiStr::try_from_str("ayc").unwrap(), 2),
         (AsciiStr::try_from_str("azd").unwrap(), 3),
         (AsciiStr::try_from_str("bxe").unwrap(), 4),
-        (AsciiStr::try_from_str("bxefg").unwrap(), 5),
+        (AsciiStr::try_from_str("bxefg").unwrap(), 500),
         (AsciiStr::try_from_str("bxefh").unwrap(), 6),
         (AsciiStr::try_from_str("bxei").unwrap(), 7),
         (AsciiStr::try_from_str("bxeikl").unwrap(), 8),
@@ -182,7 +232,7 @@ fn test_everything() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 38);
+    assert_eq!(trie.byte_len(), 40);
     assert_eq!(trie.get(b""), Some(0));
     assert_eq!(trie.get(b"a"), None);
     assert_eq!(trie.get(b"ax"), None);
@@ -196,16 +246,17 @@ fn test_everything() {
             b'a',       //
             b'b',       //
             0,          //
-            13,         //
+            14,         //
             0b11000011, // branch of 3
             b'x',       //
             b'y',       //
             b'z',       //
             0,          //
-            2,          //
-            4,          //
+            3,          //
+            5,          //
             b'b',       //
-            0b10000001, // value 1
+            0b10100000, // value 100 (lead)
+            0x44,       // value 100 (trail)
             b'c',       //
             0b10000010, // value 2
             b'd',       //
@@ -217,13 +268,14 @@ fn test_everything() {
             b'f',       //
             b'i',       //
             0,          //
-            7,          //
+            8,          //
             0b11000010, // branch of 2
             b'g',       //
             b'h',       //
             0,          //
-            1,          //
-            0b10000101, // value 5
+            2,          //
+            0b10100011, // value 500 (lead)
+            0x54,       // value 500 (trail)
             0b10000110, // value 6
             0b10000111, // value 7
             b'k',       //

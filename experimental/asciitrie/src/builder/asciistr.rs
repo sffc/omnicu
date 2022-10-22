@@ -2,6 +2,8 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use core::ops::Range;
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[allow(clippy::exhaustive_structs)] // marker type
 pub struct NonAsciiError;
@@ -36,6 +38,11 @@ impl AsciiByte {
 pub struct AsciiStr([AsciiByte]);
 
 impl AsciiStr {
+    pub(crate) const fn from_ascii_slice(ascii_slice: &[AsciiByte]) -> &Self {
+        // Safety: AsciiStr is transparent over [AsciiByte]
+        unsafe { core::mem::transmute(ascii_slice) }
+    }
+
     pub const fn try_from_bytes(bytes: &[u8]) -> Result<&Self, NonAsciiError> {
         let mut i = 0;
         while i < bytes.len() {
@@ -47,20 +54,24 @@ impl AsciiStr {
         }
         // Safety:
         // - AsciiByte is transparent over u8
-        // - AsciiStr is transparent over [AsciiByte]
-        // - Therefore, AsciiStr is transparent over [u8]
-        unsafe { core::mem::transmute(bytes) }
+        // - Therefore, [AsciiByte] is transparent over [u8]
+        let ascii_slice = unsafe { core::mem::transmute(bytes) };
+        Ok(Self::from_ascii_slice(ascii_slice))
     }
 
     pub const fn try_from_str(s: &str) -> Result<&Self, NonAsciiError> {
         Self::try_from_bytes(s.as_bytes())
     }
 
-    pub const fn from_str_or_panic(s: &str) -> &Self {
-        match Self::try_from_str(s) {
+    pub const fn from_bytes_or_panic(s: &[u8]) -> &Self {
+        match Self::try_from_bytes(s) {
             Ok(s) => s,
             Err(_) => panic!("Non-ASCII string passed to AsciiStr"),
         }
+    }
+
+    pub const fn from_str_or_panic(s: &str) -> &Self {
+        Self::from_bytes_or_panic(s.as_bytes())
     }
 
     pub const fn empty() -> &'static AsciiStr {
@@ -83,6 +94,11 @@ impl AsciiStr {
 
     pub const fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub fn substring(&self, range: Range<usize>) -> Option<&AsciiStr> {
+        let slice = self.0.get(range)?;
+        Some(Self::from_ascii_slice(slice))
     }
 
     pub(crate) const fn is_less_then(&self, other: &Self) -> bool {

@@ -41,9 +41,10 @@ impl<const N: usize> AsciiTrieBuilder<N> {
 
     #[must_use]
     const fn prepend_value(self, value: usize) -> (Self, usize) {
+        let mut data = self.data;
         let varint_array = varint::write_varint(value);
-        let data = self.data.atbs_extend_front(varint_array.as_const_slice());
-        let data = data.atbs_bitor_assign(0, 0b10000000);
+        data = data.atbs_extend_front(varint_array.as_const_slice());
+        data = data.atbs_bitor_assign(0, 0b10000000);
         (Self { data }, varint_array.len())
     }
 
@@ -54,10 +55,6 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         sizes_rev: ConstSlice<usize>,
     ) -> (Self, usize) {
         debug_assert!(ascii_rev.len() == sizes_rev.len());
-        let n = ascii_rev.len();
-        if n > 0b00011111 {
-            todo!()
-        }
         let mut total_size = 0usize;
         const_for_each!(sizes_rev, size, {
             total_size += *size;
@@ -74,8 +71,10 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         const_for_each!(ascii_rev, ascii, {
             data = data.atbs_push_front(ascii.get());
         });
-        data = data.atbs_push_front((n as u8) | 0b11000000);
-        (Self { data }, 1 + n * 2)
+        let varint_array = varint::write_varint(ascii_rev.len());
+        data = data.atbs_extend_front(varint_array.as_const_slice());
+        data = data.atbs_bitor_assign(0, 0b11000000);
+        (Self { data }, varint_array.len() + ascii_rev.len() * 2)
     }
 
     pub fn from_litemap<'a, S>(items: LiteMap<&'a AsciiStr, usize, S>) -> Self
