@@ -55,6 +55,11 @@ impl<const N: usize, T> ConstArraySlice<N, T> {
         }
     }
 
+    #[cfg(feature = "builder")]
+    pub fn as_const_slice(&self) -> crate::builder::store::SafeConstSlice<T> {
+        crate::builder::store::SafeConstSlice::from_manual_slice(&self.full_array, self.start, self.limit)
+    }
+
     pub fn into_subslice_or_panic(
         self,
         new_start: usize,
@@ -199,6 +204,11 @@ mod tests {
                 value: 64,
             },
             TestCase {
+                bytes: &[0x20, 0x44],
+                remainder: &[],
+                value: 100,
+            },
+            TestCase {
                 bytes: &[0b00100000, 0b01111111],
                 remainder: &[],
                 value: 159,
@@ -212,6 +222,11 @@ mod tests {
                 bytes: &[0b00100001, 0b00000001],
                 remainder: &[],
                 value: 161,
+            },
+            TestCase {
+                bytes: &[0x23, 0x54],
+                remainder: &[],
+                value: 500,
             },
             TestCase {
                 bytes: &[0b00111111, 0b01111111],
@@ -242,6 +257,11 @@ mod tests {
                 bytes: &[0b00100000, 0b10000001, 0b00000001],
                 remainder: &[],
                 value: 4257, // 32 + (1 << 12) + 129
+            },
+            TestCase {
+                bytes: &[0x20, 0x86, 0x68],
+                remainder: &[],
+                value: 5000,
             },
             TestCase {
                 bytes: &[0b00100000, 0b11111111, 0b01111111],
@@ -280,8 +300,6 @@ mod tests {
             },
         ];
         for cas in cases {
-            let actual = read_varint(cas.bytes[0], &cas.bytes[1..]).unwrap();
-            assert_eq!(actual, (cas.value, cas.remainder), "{:?}", cas);
             let reference_bytes = write_varint_reference(cas.value);
             assert_eq!(
                 reference_bytes.len(),
@@ -295,6 +313,8 @@ mod tests {
                 "{:?}",
                 cas
             );
+            let recovered = read_varint(cas.bytes[0], &cas.bytes[1..]).unwrap();
+            assert_eq!(recovered, (cas.value, cas.remainder), "{:?}", cas);
             let write_bytes = write_varint(cas.value);
             assert_eq!(
                 reference_bytes.as_slice(),

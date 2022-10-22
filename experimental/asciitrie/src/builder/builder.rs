@@ -6,6 +6,7 @@ use super::store::const_for_each;
 use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstStackChildrenStore;
 use super::store::SafeConstSlice;
+use crate::varint;
 use super::AsciiByte;
 use super::AsciiStr;
 use crate::AsciiTrie;
@@ -40,10 +41,9 @@ impl<const N: usize> AsciiTrieBuilder<N> {
 
     #[must_use]
     const fn prepend_value(self, value: usize) -> (Self, usize) {
-        if value > 0b00011111 {
-            todo!()
-        }
-        let data = self.data.atbs_push_front((value as u8) | 0b10000000);
+        let varint_array_slice = varint::write_varint(value);
+        let data = self.data.atbs_extend_front(varint_array_slice.as_const_slice());
+        let data = data.atbs_bitor_assign(0, 0b10000000);
         (Self { data }, 1)
     }
 

@@ -146,6 +146,27 @@ fn test_multi_byte_branch() {
 }
 
 #[test]
+fn test_linear_varint_values() {
+    let litemap: LiteMap<&AsciiStr, usize> = [
+        (AsciiStr::try_from_str("").unwrap(), 100),
+        (AsciiStr::try_from_str("x").unwrap(), 500),
+        (AsciiStr::try_from_str("xyz").unwrap(), 5000),
+    ]
+    .into_iter()
+    .collect();
+    let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
+    assert_eq!(trie.byte_len(), 10);
+    assert_eq!(trie.get(b"xy"), None);
+    assert_eq!(trie.get(b"xz"), None);
+    assert_eq!(trie.get(b"xyzz"), None);
+    check_ascii_trie(&litemap, &trie);
+    assert_eq!(
+        trie.as_bytes(),
+        &[0xA0, 0x44, b'x', 0xA3, 0x54, b'y', b'z', 0xA0, 0x86, 0x68]
+    );
+}
+
+#[test]
 fn test_everything() {
     let litemap: LiteMap<&AsciiStr, usize> = [
         (AsciiStr::try_from_str("").unwrap(), 0),
