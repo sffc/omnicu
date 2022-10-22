@@ -3,7 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use super::AsciiByte;
-use crate::varint::ConstArraySlice;
 
 pub(crate) struct SafeConstSlice<'a, T> {
     full_slice: &'a [T],
@@ -66,6 +65,114 @@ impl<'a, T> SafeConstSlice<'a, T> {
 impl<'a, T> From<&'a [T]> for SafeConstSlice<'a, T> {
     fn from(other: &'a [T]) -> Self {
         Self::from_slice(other)
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct ConstArraySlice<const N: usize, T> {
+    full_array: [T; N],
+    start: usize,
+    limit: usize,
+}
+
+impl<const N: usize, T> ConstArraySlice<N, T> {
+    pub const fn new_empty(full_array: [T; N], cursor: usize) -> Self {
+        assert!(cursor <= N);
+        Self {
+            full_array,
+            start: cursor,
+            limit: cursor
+        }
+    }
+
+    pub const fn from_manual_slice(full_array: [T; N], start: usize, limit: usize) -> Self {
+        assert!(start <= limit);
+        assert!(limit <= N);
+        Self {
+            full_array,
+            start,
+            limit
+        }
+    }
+
+    pub const fn len(&self) -> usize {
+        self.limit - self.start
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub const fn get_or_panic(&self, index: usize) -> &T {
+        &self.full_array[index + self.start]
+    }
+
+    pub const fn first(&self) -> Option<&T> {
+        if self.len() == 0 {
+            None
+        } else {
+            Some(self.get_or_panic(0))
+        }
+    }
+
+    #[cfg(feature = "builder")]
+    pub const fn as_const_slice(&self) -> crate::builder::store::SafeConstSlice<T> {
+        crate::builder::store::SafeConstSlice::from_manual_slice(&self.full_array, self.start, self.limit)
+    }
+
+    pub fn into_subslice_or_panic(
+        self,
+        new_start: usize,
+        new_limit: usize,
+    ) -> ConstArraySlice<N, T> {
+        assert!(new_start <= new_limit);
+        assert!(new_limit <= self.len());
+        ConstArraySlice {
+            full_array: self.full_array,
+            start: self.start + new_start,
+            limit: self.start + new_limit,
+        }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.full_array[self.start..self.limit]
+    }
+}
+
+impl<const N: usize> ConstArraySlice<N, u8> {
+    pub const fn const_bitor_assign(mut self, index: usize, other: u8) -> Self {
+        self.full_array[self.start] |= other;
+        self
+    }
+    // Can't be generic because T has a destructor
+    pub const fn const_take_or_panic(self) -> [u8; N] {
+        if self.start != 0 || self.limit != N {
+            panic!("AsciiTrieBuilder buffer is too large");
+        }
+        self.full_array
+    }
+    // Can't be generic because T has a destructor
+    pub const fn const_push_front(mut self, value: u8) -> Self {
+        if self.start == 0 {
+            panic!("AsciiTrieBuilder buffer out of capacity");
+        }
+        self.start -= 1;
+        self.full_array[self.start] = value;
+        self
+    }
+    // Can't be generic because T has a destructor
+    #[cfg(feature = "builder")]
+    pub const fn const_extend_front(mut self, other: crate::builder::store::SafeConstSlice<u8>) -> Self {
+        if self.start < other.len() {
+            panic!("AsciiTrieBuilder buffer out of capacity");
+        }
+        self.start -= other.len();
+        let mut i = self.start;
+        crate::builder::store::const_for_each!(other, byte, {
+            self.full_array[i] = *byte;
+            i += 1;
+        });
+        self
     }
 }
 
