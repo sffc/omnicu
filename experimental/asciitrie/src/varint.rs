@@ -32,6 +32,7 @@ pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
 
 // *Upper Bound:* Each trail byte stores 7 bits of data, plus the latent value.
 // Add an extra 1 since the lead byte holds only 5 bits of data.
+#[cfg(feature = "builder")]
 const MAX_VARINT_LENGTH: usize = 1 + core::mem::size_of::<usize>() * 8 / 7;
 
 #[cfg(feature = "builder")]

@@ -18,6 +18,8 @@ mod alloc_impls;
 mod builder;
 mod trie;
 mod varint;
+#[cfg(feature = "zerovec")]
+mod zerovec;
 
 pub use algorithms::get;
 #[cfg(feature = "builder")]

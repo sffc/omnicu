@@ -26,9 +26,9 @@ include = [
 all-features = true
 
 [package.metadata.cargo-all-features]
-skip_optional_dependencies = true
 # Bench feature gets tested separately and is only relevant for CI
-denylist = ["bench"]
+# LiteMap is intended to be enabled by the "builder" feature
+denylist = ["bench", "litemap"]
 
 [dependencies]
 zerovec = { path = "../../utils/zerovec", optional = true }
