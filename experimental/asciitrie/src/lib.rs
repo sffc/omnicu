@@ -16,6 +16,8 @@ mod algorithms;
 mod alloc_impls;
 #[cfg(feature = "builder")]
 mod builder;
+#[cfg(feature = "ref-cast")]
+mod ref_cast;
 mod trie;
 mod varint;
 #[cfg(feature = "zerovec")]

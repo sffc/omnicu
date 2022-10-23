@@ -11,18 +11,21 @@
 #[cfg(feature = "builder")]
 use crate::builder::const_util::ConstArrayBuilder;
 
-pub fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
+pub const fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
     let mut value = (start & 0b00011111) as usize;
     let mut remainder = remainder;
     if (start & 0b00100000) != 0 {
         loop {
             let next;
-            (next, remainder) = remainder.split_first()?;
+            (next, remainder) = match remainder.split_first() {
+                Some(t) => t,
+                None => return None,
+            };
             // Note: value << 7 could drop high bits. The first addition can't overflow.
             // The second addition could overflow; in such a case we just inform the
             // developer via the debug assertion.
-            value = (value << 7) + ((next & 0b01111111) as usize) + 32;
-            if (next & 0b10000000) == 0 {
+            value = (value << 7) + ((*next & 0b01111111) as usize) + 32;
+            if (*next & 0b10000000) == 0 {
                 break;
             }
         }

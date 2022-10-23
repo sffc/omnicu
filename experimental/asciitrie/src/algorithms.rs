@@ -10,14 +10,9 @@ fn maybe_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
     if mid > slice.len() {
         None
     } else {
-        // Safety: `mid` is in bounds
-        // Note: we could use split_at_unchecked once stabilized
-        unsafe {
-            Some((
-                slice.get_unchecked(0..mid),
-                slice.get_unchecked(mid..slice.len()),
-            ))
-        }
+        // Note: We're trusting the compiler to inline this and remove the assertion
+        // hiding on the top of slice::split_at: `assert(mid <= self.len())`
+        Some(slice.split_at(mid))
     }
 }
 

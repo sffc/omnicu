@@ -2,10 +2,12 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::AsciiTrie;
 use zerovec::ule::VarULE;
 use zerovec::ule::ULE;
 use zerovec::ZeroVecError;
-use crate::AsciiTrie;
+
+// TODO(#2778): Auto-derive these impls based on the repr(transparent).
 
 // Safety (based on the safety checklist on the ULE trait):
 //  1. AsciiTrie<S> does not include any uninitialized or padding bytes (transparent over S, a ULE)

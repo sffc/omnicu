@@ -33,6 +33,7 @@ denylist = ["bench", "litemap"]
 [dependencies]
 zerovec = { path = "../../utils/zerovec", optional = true }
 litemap = { path = "../../utils/litemap", default-features = false, optional = true }
+ref-cast = { version = "1.0.12", optional = true }
 
 [dev-dependencies]
 postcard = { version = "1.0", default-features = false, features = ["alloc"] }
@@ -46,9 +47,10 @@ bench = false  # This option is required for Benchmark CI
 path = "src/lib.rs"
 
 [features]
-default = []
+default = ["ref-cast"]
 bench = []
-alloc = ["litemap?/alloc"]
+# Note: ref-cast is needed for alloc due to the ToOwned/Borrow impl.
+alloc = ["litemap?/alloc", "ref-cast"]
 builder = ["alloc", "litemap", "zerovec/derive"]
 
 [[bench]]
