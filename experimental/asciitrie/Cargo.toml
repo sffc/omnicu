@@ -51,7 +51,7 @@ default = ["ref-cast"]
 bench = []
 # Note: ref-cast is needed for alloc due to the ToOwned/Borrow impl.
 alloc = ["litemap?/alloc", "ref-cast"]
-builder = ["alloc", "litemap", "zerovec/derive"]
+builder = ["alloc", "litemap", "ref-cast", "zerovec/derive"]
 
 [[bench]]
 name = "overview"

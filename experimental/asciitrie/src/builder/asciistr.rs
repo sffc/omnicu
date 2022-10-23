@@ -3,6 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use core::ops::Range;
+use ref_cast::{ref_cast_custom, RefCastCustom};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[allow(clippy::exhaustive_structs)] // marker type
@@ -31,30 +32,42 @@ impl AsciiByte {
     }
 }
 
+const fn try_ascii_slice_from_bytes(bytes: &[u8]) -> Result<&[AsciiByte], NonAsciiError> {
+    let mut i = 0;
+    while i < bytes.len() {
+        match AsciiByte::try_from_u8(bytes[i]) {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        };
+        i += 1;
+    }
+    // Safety:
+    // - AsciiByte is transparent over u8
+    // - Therefore, [AsciiByte] is transparent over [u8]
+    let ascii_slice = unsafe { core::mem::transmute(bytes) };
+    Ok(ascii_slice)
+}
+
+const fn ascii_slice_to_bytes(ascii_slice: &[AsciiByte]) -> &[u8] {
+    // Safety:
+    // - AsciiByte is transparent over u8
+    // - Therefore, [AsciiByte] is transparent over [u8]
+    unsafe { core::mem::transmute(ascii_slice) }
+}
+
 #[repr(transparent)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, RefCastCustom)]
 pub struct AsciiStr([AsciiByte]);
 
 impl AsciiStr {
-    pub(crate) const fn from_ascii_slice(ascii_slice: &[AsciiByte]) -> &Self {
-        // Safety: AsciiStr is transparent over [AsciiByte]
-        unsafe { core::mem::transmute(ascii_slice) }
-    }
+    #[ref_cast_custom]
+    pub(crate) const fn from_ascii_slice(ascii_slice: &[AsciiByte]) -> &Self;
 
     pub const fn try_from_bytes(bytes: &[u8]) -> Result<&Self, NonAsciiError> {
-        let mut i = 0;
-        while i < bytes.len() {
-            match AsciiByte::try_from_u8(bytes[i]) {
-                Ok(_) => (),
-                Err(e) => return Err(e),
-            };
-            i += 1;
+        match try_ascii_slice_from_bytes(bytes) {
+            Ok(ascii_slice) => Ok(Self::from_ascii_slice(ascii_slice)),
+            Err(e) => Err(e)
         }
-        // Safety:
-        // - AsciiByte is transparent over u8
-        // - Therefore, [AsciiByte] is transparent over [u8]
-        let ascii_slice = unsafe { core::mem::transmute(bytes) };
-        Ok(Self::from_ascii_slice(ascii_slice))
     }
 
     pub const fn try_from_str(s: &str) -> Result<&Self, NonAsciiError> {
@@ -123,10 +136,6 @@ impl AsciiStr {
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        // Safety:
-        // - AsciiByte is transparent over u8
-        // - AsciiStr is transparent over [AsciiByte]
-        // - Therefore, AsciiStr is transparent over [u8]
-        unsafe { core::mem::transmute(self) }
+        ascii_slice_to_bytes(&self.0)
     }
 }
