@@ -11,11 +11,11 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-mod algorithms;
 #[cfg(feature = "alloc")]
 mod alloc_impls;
 #[cfg(feature = "builder")]
 mod builder;
+mod reader;
 #[cfg(feature = "ref-cast")]
 mod ref_cast;
 mod trie;
@@ -23,7 +23,7 @@ mod varint;
 #[cfg(feature = "zerovec")]
 mod zerovec;
 
-pub use algorithms::get;
+pub use reader::get;
 #[cfg(feature = "builder")]
 pub use builder::AsciiStr;
 #[cfg(feature = "builder")]
