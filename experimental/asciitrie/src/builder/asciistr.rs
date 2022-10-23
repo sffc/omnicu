@@ -66,7 +66,7 @@ impl AsciiStr {
     pub const fn try_from_bytes(bytes: &[u8]) -> Result<&Self, NonAsciiError> {
         match try_ascii_slice_from_bytes(bytes) {
             Ok(ascii_slice) => Ok(Self::from_ascii_slice(ascii_slice)),
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 

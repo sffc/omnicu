@@ -59,14 +59,19 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         const_for_each!(sizes_rev, size, {
             total_size += *size;
         });
-        if total_size > 256 {
-            todo!()
-        }
+        const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
+        let w = (USIZE_BITS - (total_size.leading_zeros() as usize) - 1) / 8 + 1;
         let mut index = total_size;
         let mut data = self.data;
         const_for_each!(sizes_rev, size, {
             index -= *size;
-            data = data.atbs_push_front(index as u8);
+            let mut x = index;
+            let mut i = 0;
+            while i < w {
+                data = data.atbs_push_front(x as u8);
+                x >>= 8;
+                i += 1;
+            }
         });
         const_for_each!(ascii_rev, ascii, {
             data = data.atbs_push_front(ascii.get());
@@ -74,7 +79,10 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         let varint_array = varint::write_varint(ascii_rev.len());
         data = data.atbs_extend_front(varint_array.as_const_slice());
         data = data.atbs_bitor_assign(0, 0b11000000);
-        (Self { data }, varint_array.len() + ascii_rev.len() * 2)
+        (
+            Self { data },
+            varint_array.len() + ascii_rev.len() * (1 + w),
+        )
     }
 
     pub fn from_litemap<'a, S>(items: LiteMap<&'a AsciiStr, usize, S>) -> Self

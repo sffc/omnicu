@@ -217,6 +217,193 @@ fn test_varint_branch() {
 }
 
 #[test]
+fn test_below_wide() {
+    let litemap: LiteMap<&AsciiStr, usize> = [
+        (
+            AsciiStr::try_from_str("abcdefghijklmnopqrstuvwxyz").unwrap(),
+            1,
+        ),
+        (
+            AsciiStr::try_from_str("bcdefghijklmnopqrstuvwxyza").unwrap(),
+            2,
+        ),
+        (
+            AsciiStr::try_from_str("cdefghijklmnopqrstuvwxyzab").unwrap(),
+            3,
+        ),
+        (
+            AsciiStr::try_from_str("defghijklmnopqrstuvwxyzabc").unwrap(),
+            4,
+        ),
+        (
+            AsciiStr::try_from_str("efghijklmnopqrstuvwxyzabcd").unwrap(),
+            5,
+        ),
+        (
+            AsciiStr::try_from_str("fghijklmnopqrstuvwxyzabcde").unwrap(),
+            6,
+        ),
+        (
+            AsciiStr::try_from_str("ghijklmnopqrstuvwxyzabcdef").unwrap(),
+            7,
+        ),
+        (
+            AsciiStr::try_from_str("hijklmnopqrstuvwxyzabcdefg").unwrap(),
+            8,
+        ),
+        (
+            AsciiStr::try_from_str("ijklmnopqrstuvwxyzabcdefgh").unwrap(),
+            9,
+        ),
+        (AsciiStr::try_from_str("jklmnopqrstuvwxyzabcd").unwrap(), 10),
+    ]
+    .into_iter()
+    .collect();
+    let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
+    assert_eq!(trie.byte_len(), 276);
+    assert_eq!(trie.get(b""), None);
+    assert_eq!(trie.get(b"abc"), None);
+    check_ascii_trie(&litemap, &trie);
+    #[rustfmt::skip]
+    assert_eq!(
+        trie.as_bytes(),
+        &[
+            0b11001010, // branch
+            // search array:
+            b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j',
+            // offset array:
+            0, 26, 52, 78, 104, 130, 156, 182, 208, 234,
+            // offset data:
+            b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
+            b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+            0x81,
+            b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
+            b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
+            0x82,
+            b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+            b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
+            0x83,
+            b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q',
+            b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c',
+            0x84,
+            b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r',
+            b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd',
+            0x85,
+            b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's',
+            b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
+            0x86,
+            b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't',
+            b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
+            0x87,
+            b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u',
+            b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g',
+            0x88,
+            b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v',
+            b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h',
+            0x89,
+            b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w',
+            b'x', b'y', b'z', b'a', b'b', b'c', b'd',
+            0x8A,
+        ]
+    );
+}
+
+#[test]
+fn test_at_wide() {
+    let litemap: LiteMap<&AsciiStr, usize> = [
+        (
+            AsciiStr::try_from_str("abcdefghijklmnopqrstuvwxyz").unwrap(),
+            1,
+        ),
+        (
+            AsciiStr::try_from_str("bcdefghijklmnopqrstuvwxyza").unwrap(),
+            2,
+        ),
+        (
+            AsciiStr::try_from_str("cdefghijklmnopqrstuvwxyzab").unwrap(),
+            3,
+        ),
+        (
+            AsciiStr::try_from_str("defghijklmnopqrstuvwxyzabc").unwrap(),
+            4,
+        ),
+        (
+            AsciiStr::try_from_str("efghijklmnopqrstuvwxyzabcd").unwrap(),
+            5,
+        ),
+        (
+            AsciiStr::try_from_str("fghijklmnopqrstuvwxyzabcde").unwrap(),
+            6,
+        ),
+        (
+            AsciiStr::try_from_str("ghijklmnopqrstuvwxyzabcdef").unwrap(),
+            7,
+        ),
+        (
+            AsciiStr::try_from_str("hijklmnopqrstuvwxyzabcdefg").unwrap(),
+            8,
+        ),
+        (
+            AsciiStr::try_from_str("ijklmnopqrstuvwxyzabcdefgh").unwrap(),
+            9,
+        ),
+        (
+            AsciiStr::try_from_str("jklmnopqrstuvwxyzabcdef").unwrap(),
+            10,
+        ),
+    ]
+    .into_iter()
+    .collect();
+    let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
+    assert_eq!(trie.byte_len(), 288);
+    assert_eq!(trie.get(b""), None);
+    assert_eq!(trie.get(b"abc"), None);
+    check_ascii_trie(&litemap, &trie);
+    #[rustfmt::skip]
+    assert_eq!(
+        trie.as_bytes(),
+        &[
+            0b11001010, // branch
+            // search array:
+            b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j',
+            // offset array (wide):
+            0, 0, 0, 26, 0, 52, 0, 78, 0, 104, 0, 130, 0, 156, 0, 182, 0, 208, 0, 234,
+            // offset data:
+            b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
+            b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+            0x81,
+            b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
+            b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
+            0x82,
+            b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+            b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
+            0x83,
+            b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q',
+            b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c',
+            0x84,
+            b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r',
+            b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd',
+            0x85,
+            b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's',
+            b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
+            0x86,
+            b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't',
+            b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
+            0x87,
+            b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u',
+            b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g',
+            0x88,
+            b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v',
+            b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h',
+            0x89,
+            b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w',
+            b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
+            0x8A,
+        ]
+    );
+}
+
+#[test]
 fn test_everything() {
     let litemap: LiteMap<&AsciiStr, usize> = [
         (AsciiStr::try_from_str("").unwrap(), 0),

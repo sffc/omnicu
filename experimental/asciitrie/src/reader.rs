@@ -16,9 +16,21 @@ fn maybe_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
     }
 }
 
+#[inline]
+fn get_usize(slice: &[u8]) -> usize {
+    let mut result = 0;
+    let mut i = 0;
+    while i < slice.len() {
+        result <<= 8;
+        result += slice[i] as usize;
+        i += 1;
+    }
+    result
+}
+
 pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
     loop {
-        let (b, x, i, w, p, q, search, indices);
+        let (b, x, i, mut w, p, q, search, indices);
         (b, trie) = trie.split_first()?;
         if let Some((c, temp)) = ascii.split_first() {
             if b == c {
@@ -38,20 +50,15 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             // Branch node
             (search, trie) = maybe_split_at(trie, x)?;
             i = search.binary_search(c).ok()?;
-            w = if trie.len() > 256 { 2 } else { 1 };
+            w = 1;
+            while trie.len() - w * x > 1 << (w * 8) {
+                w += 1;
+            }
             (indices, trie) = maybe_split_at(trie, x * w)?;
-            (p, q) = if w == 1 {
-                (
-                    indices.get(i).copied().map(usize::from).unwrap(),
-                    indices
-                        .get(i + 1)
-                        .copied()
-                        .map(usize::from)
-                        .unwrap_or(trie.len()),
-                )
-            } else {
-                todo!()
-            };
+            let p_range = i * w..(i + 1) * w;
+            let q_range = (i + 1) * w..(i + 2) * w;
+            p = indices.get(p_range).map(get_usize).unwrap();
+            q = indices.get(q_range).map(get_usize).unwrap_or(trie.len());
             trie = trie.get(p..q)?;
             ascii = temp;
             continue;

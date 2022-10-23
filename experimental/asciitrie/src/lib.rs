@@ -23,9 +23,9 @@ mod varint;
 #[cfg(feature = "zerovec")]
 mod zerovec;
 
-pub use reader::get;
 #[cfg(feature = "builder")]
 pub use builder::AsciiStr;
 #[cfg(feature = "builder")]
 pub use builder::NonAsciiError;
+pub use reader::get;
 pub use trie::AsciiTrie;
