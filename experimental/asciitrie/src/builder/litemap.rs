@@ -2,11 +2,10 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-
 use crate::builder::AsciiTrieBuilder;
+use crate::AsciiStr;
 use crate::AsciiTrie;
 use alloc::vec::Vec;
-use crate::AsciiStr;
 use litemap::LiteMap;
 
 impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<Vec<u8>> {
