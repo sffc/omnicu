@@ -173,11 +173,21 @@ static TRIE: AsciiTrie<[u8; 561]> = AsciiTrie::from_sorted_asciistr_value_slice(
     (AsciiStr::from_str_or_panic("ZW"), weekday::SUN),
 ]);
 
+fn black_box<T>(dummy: T) -> T {
+    unsafe {
+        let ret = std::ptr::read_volatile(&dummy);
+        std::mem::forget(dummy);
+        ret
+    }
+}
+
 #[no_mangle]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
     icu_benchmark_macros::main_setup!();
 
-    assert_eq!(TRIE.get(b"MV"), Some(weekday::FRI));
-
-    0
+    if black_box(&TRIE).get(b"MV") == Some(weekday::FRI) {
+        0
+    } else {
+        1
+    }
 }
