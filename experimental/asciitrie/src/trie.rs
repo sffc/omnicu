@@ -2,11 +2,11 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::get;
+use crate::reader::get;
 
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy)]
-#[cfg_attr(feature = "ref-cast", derive(ref_cast::RefCast))]
+#[derive(ref_cast::RefCast)]
 pub struct AsciiTrie<S: ?Sized>(pub S);
 
 impl<S> AsciiTrie<S>

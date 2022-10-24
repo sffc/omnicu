@@ -8,7 +8,6 @@
 //! - Trail bytes: top bit is varint extender; add rest to current value * 2^7
 //! - Add the "latent value" to the final result: (1<<5) + (1<<7) + (1<<14) + ...
 
-#[cfg(feature = "builder")]
 use crate::builder::const_util::ConstArrayBuilder;
 
 pub const fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
@@ -35,10 +34,8 @@ pub const fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> 
 
 // *Upper Bound:* Each trail byte stores 7 bits of data, plus the latent value.
 // Add an extra 1 since the lead byte holds only 5 bits of data.
-#[cfg(feature = "builder")]
 const MAX_VARINT_LENGTH: usize = 1 + core::mem::size_of::<usize>() * 8 / 7;
 
-#[cfg(feature = "builder")]
 pub(crate) const fn write_varint(value: usize) -> ConstArrayBuilder<MAX_VARINT_LENGTH, u8> {
     let mut result = [0; MAX_VARINT_LENGTH];
     let mut i = MAX_VARINT_LENGTH - 1;
@@ -67,7 +64,7 @@ pub(crate) const fn write_varint(value: usize) -> ConstArrayBuilder<MAX_VARINT_L
 }
 
 /// A secondary implementation that separates the latent value while computing the varint.
-#[cfg(all(test, feature = "builder"))]
+#[cfg(test)]
 pub(crate) const fn write_varint_reference(
     value: usize,
 ) -> ConstArrayBuilder<MAX_VARINT_LENGTH, u8> {
@@ -252,7 +249,6 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "builder")]
     #[test]
     fn test_read_write() {
         for cas in CASES {
@@ -281,7 +277,6 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "builder")]
     #[test]
     fn test_max() {
         let reference_bytes = write_varint_reference(usize::MAX);

@@ -13,19 +13,14 @@ extern crate alloc;
 
 #[cfg(feature = "alloc")]
 mod alloc_impls;
-#[cfg(feature = "builder")]
 mod builder;
 mod reader;
-#[cfg(feature = "ref-cast")]
 mod ref_cast;
 mod trie;
 mod varint;
 #[cfg(feature = "zerovec")]
 mod zerovec;
 
-#[cfg(feature = "builder")]
 pub use builder::AsciiStr;
-#[cfg(feature = "builder")]
 pub use builder::NonAsciiError;
-pub use reader::get;
 pub use trie::AsciiTrie;

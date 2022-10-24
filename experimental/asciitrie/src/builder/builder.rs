@@ -10,7 +10,6 @@ use super::AsciiByte;
 use super::AsciiStr;
 use crate::varint;
 use crate::AsciiTrie;
-use litemap::LiteMap;
 
 /// A low-level builder for AsciiTrie.
 pub(crate) struct AsciiTrieBuilder<const N: usize> {
@@ -18,6 +17,7 @@ pub(crate) struct AsciiTrieBuilder<const N: usize> {
 }
 
 impl<const N: usize> AsciiTrieBuilder<N> {
+    #[cfg(feature = "litemap")]
     pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
         let slice = self.data.atbs_as_bytes();
         AsciiTrie(slice.as_slice())
@@ -85,7 +85,8 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         )
     }
 
-    pub fn from_litemap<'a, S>(items: LiteMap<&'a AsciiStr, usize, S>) -> Self
+    #[cfg(feature = "litemap")]
+    pub fn from_litemap<'a, S>(items: litemap::LiteMap<&'a AsciiStr, usize, S>) -> Self
     where
         S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
     {

@@ -27,13 +27,12 @@ all-features = true
 
 [package.metadata.cargo-all-features]
 # Bench feature gets tested separately and is only relevant for CI
-# LiteMap is intended to be enabled by the "builder" feature
-denylist = ["bench", "litemap"]
+denylist = ["bench"]
 
 [dependencies]
 zerovec = { path = "../../utils/zerovec", optional = true }
-litemap = { path = "../../utils/litemap", default-features = false, optional = true }
-ref-cast = { version = "1.0.12", optional = true }
+litemap = { path = "../../utils/litemap", default-features = false, features = ["alloc"], optional = true }
+ref-cast = { version = "1.0.12" }
 
 [dev-dependencies]
 postcard = { version = "1.0", default-features = false, features = ["alloc"] }
@@ -48,11 +47,11 @@ bench = false  # This option is required for Benchmark CI
 path = "src/lib.rs"
 
 [features]
-default = ["ref-cast"]
+default = []
 bench = []
 # Note: ref-cast is needed for alloc due to the ToOwned/Borrow impl.
-alloc = ["litemap?/alloc", "ref-cast"]
-builder = ["alloc", "litemap", "ref-cast"]
+alloc = []
+litemap = ["dep:litemap", "alloc"]
 
 [[bench]]
 name = "overview"
@@ -60,9 +59,4 @@ harness = false
 
 [[test]]
 name = "builder_test"
-required-features = ["builder"]
-
-[[example]]
-name = "first_weekday_for_region"
-path = "examples/first_weekday_for_region.rs"
-required-features = ["builder"]
+required-features = ["litemap"]

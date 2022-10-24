@@ -30,6 +30,7 @@ impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
         self.data = self.data.const_extend_front(other);
         self
     }
+    #[cfg(feature = "litemap")]
     pub const fn atbs_as_bytes(&self) -> ConstSlice<u8> {
         self.data.as_const_slice()
     }

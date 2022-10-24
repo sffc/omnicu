@@ -5,6 +5,7 @@
 use postcard::ser_flavors::{AllocVec, Flavor};
 use serde::Serialize;
 use zerovec::ZeroMap;
+use asciitrie::AsciiTrie;
 
 mod testdata {
     include!("data.rs");
@@ -17,7 +18,7 @@ fn test_basic() {
 
     // Check that the getter works
     for (key, expected) in data {
-        let actual = match asciitrie::get(trie, key) {
+        let actual = match AsciiTrie::from_bytes(trie).get(key) {
             Some(v) => v,
             None => panic!("value should be in trie: {:?} => {}", key, expected),
         };
