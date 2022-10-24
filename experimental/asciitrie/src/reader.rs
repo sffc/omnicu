@@ -57,7 +57,13 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             (indices, trie) = maybe_split_at(trie, x * w)?;
             let p_range = i * w..(i + 1) * w;
             let q_range = (i + 1) * w..(i + 2) * w;
-            p = indices.get(p_range).map(get_usize).unwrap();
+            p = match indices.get(p_range).map(get_usize) {
+                Some(x) => x,
+                None => {
+                    debug_assert!(false, "p_range should be in range due to binary search");
+                    return None;
+                }
+            };
             q = indices.get(q_range).map(get_usize).unwrap_or(trie.len());
             trie = trie.get(p..q)?;
             ascii = temp;
