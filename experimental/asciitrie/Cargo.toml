@@ -41,6 +41,7 @@ serde = { version = "1.0", default-features = false }
 zerovec = { path = "../../utils/zerovec", features = ["serde"] }
 litemap = { path = "../../utils/litemap" }
 criterion = "0.3"
+icu_benchmark_macros = { version = "0.7", path = "../../tools/benchmark/macros" }
 
 [lib]
 bench = false  # This option is required for Benchmark CI
@@ -51,7 +52,7 @@ default = ["ref-cast"]
 bench = []
 # Note: ref-cast is needed for alloc due to the ToOwned/Borrow impl.
 alloc = ["litemap?/alloc", "ref-cast"]
-builder = ["alloc", "litemap", "ref-cast", "zerovec/derive"]
+builder = ["alloc", "litemap", "ref-cast"]
 
 [[bench]]
 name = "overview"
@@ -59,4 +60,9 @@ harness = false
 
 [[test]]
 name = "builder_test"
+required-features = ["builder"]
+
+[[example]]
+name = "first_weekday_for_region"
+path = "examples/first_weekday_for_region.rs"
 required-features = ["builder"]
