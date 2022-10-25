@@ -74,6 +74,10 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 continue;
             }
             // Branch node
+            if x <= 1 {
+                debug_assert!(false, "there should be 2 or more branches");
+                return None;
+            }
             (search, trie) = debug_split_at(trie, x)?;
             i = search.binary_search(c).ok()?;
             p = 0usize;
