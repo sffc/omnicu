@@ -48,7 +48,7 @@ enum ByteType {
 
 pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
     loop {
-        let (b, x, i, mut p, mut q, search, mut indices);
+        let (b, x, i, mut p, mut q, mut h, search, mut indices);
         (b, trie) = trie.split_first()?;
         let byte_type = match b & 0b11000000 {
             0b10000000 => ByteType::Value,
@@ -78,6 +78,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             i = search.binary_search(c).ok()?;
             p = 0usize;
             q = 0usize;
+            h = 1usize;
             loop {
                 (indices, trie) = debug_split_at(trie, x)?;
                 p = (p << 8) + debug_get(indices, i)? as usize;
@@ -85,7 +86,8 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                     Some(x) => (q << 8) + *x as usize,
                     None => trie.len()
                 };
-                if trie.len() <= 256 {
+                h <<= 8;
+                if trie.len() < h {
                     break;
                 }
             }
