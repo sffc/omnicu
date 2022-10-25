@@ -61,18 +61,22 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         });
         const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
         let w = (USIZE_BITS - (total_size.leading_zeros() as usize) - 1) / 8 + 1;
-        let mut index = total_size;
         let mut data = self.data;
-        const_for_each!(sizes_rev, size, {
-            index -= *size;
-            let mut x = index;
-            let mut i = 0;
-            while i < w {
+        let mut i = 0;
+        while i < w {
+            let mut index = total_size;
+            const_for_each!(sizes_rev, size, {
+                index -= *size;
+                let mut x = index;
+                let mut j = 0;
+                while j < i {
+                    x >>= 8;
+                    j += 1;
+                }
                 data = data.atbs_push_front(x as u8);
-                x >>= 8;
-                i += 1;
-            }
-        });
+            });
+            i += 1;
+        }
         const_for_each!(ascii_rev, ascii, {
             data = data.atbs_push_front(ascii.get());
         });

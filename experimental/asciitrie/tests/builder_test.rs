@@ -348,14 +348,14 @@ fn test_at_wide() {
             9,
         ),
         (
-            AsciiStr::try_from_str("jklmnopqrstuvwxyzabcdef").unwrap(),
+            AsciiStr::try_from_str("jklmnopqrstuvwxyzabcde").unwrap(),
             10,
         ),
     ]
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 288);
+    assert_eq!(trie.byte_len(), 287);
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"abc"), None);
     check_ascii_trie(&litemap, &trie);
@@ -367,7 +367,8 @@ fn test_at_wide() {
             // search array:
             b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j',
             // offset array (wide):
-            0, 0, 0, 26, 0, 52, 0, 78, 0, 104, 0, 130, 0, 156, 0, 182, 0, 208, 0, 234,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 26, 52, 78, 104, 130, 156, 182, 208, 234,
             // offset data:
             b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
             b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
@@ -397,7 +398,7 @@ fn test_at_wide() {
             b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h',
             0x89,
             b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w',
-            b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
+            b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
             0x8A,
         ]
     );

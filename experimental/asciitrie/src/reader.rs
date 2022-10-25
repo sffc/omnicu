@@ -3,11 +3,13 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::varint::read_varint;
+use core::ops::Range;
 
 /// Like slice::split_at but returns an Option instead of panicking
 #[inline]
-fn maybe_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
+fn debug_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
     if mid > slice.len() {
+        debug_assert!(false, "debug_split_at: index expected to be in range");
         None
     } else {
         // Note: We're trusting the compiler to inline this and remove the assertion
@@ -17,15 +19,25 @@ fn maybe_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
 }
 
 #[inline]
-fn get_usize(slice: &[u8]) -> usize {
-    let mut result = 0;
-    let mut i = 0;
-    while i < slice.len() {
-        result <<= 8;
-        result += slice[i] as usize;
-        i += 1;
+fn debug_get(slice: &[u8], index: usize) -> Option<u8> {
+    match slice.get(index) {
+        Some(x) => Some(*x),
+        None => {
+            debug_assert!(false, "debug_get: index expected to be in range");
+            None
+        }
     }
-    result
+}
+
+#[inline]
+fn debug_get_range(slice: &[u8], range: Range<usize>) -> Option<&[u8]> {
+    match slice.get(range) {
+        Some(x) => Some(x),
+        None => {
+            debug_assert!(false, "debug_get_range: indices expected to be in range");
+            None
+        }
+    }
 }
 
 enum ByteType {
@@ -36,7 +48,7 @@ enum ByteType {
 
 pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
     loop {
-        let (b, x, i, mut w, p, q, search, indices);
+        let (b, x, i, mut p, mut q, search, mut indices);
         (b, trie) = trie.split_first()?;
         let byte_type = match b & 0b11000000 {
             0b10000000 => ByteType::Value,
@@ -49,7 +61,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
         };
         if let Some((c, temp)) = ascii.split_first() {
             if b == c {
-                // Matched a byte
+                // Matched a byte (note: high bit of ASCII is expected to be 0)
                 ascii = temp;
                 continue;
             }
@@ -57,36 +69,33 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 // Byte that doesn't match
                 return None;
             }
-            // (x, trie) = read_varint(*b, trie)?;
             if matches!(byte_type, ByteType::Value) {
                 // Value node, but not at end of string
                 continue;
             }
             // Branch node
-            (search, trie) = maybe_split_at(trie, x)?;
+            (search, trie) = debug_split_at(trie, x)?;
             i = search.binary_search(c).ok()?;
-            w = 1;
-            while trie.len() - w * x > 1 << (w * 8) {
-                w += 1;
-            }
-            (indices, trie) = maybe_split_at(trie, x * w)?;
-            let p_range = i * w..(i + 1) * w;
-            let q_range = (i + 1) * w..(i + 2) * w;
-            p = match indices.get(p_range).map(get_usize) {
-                Some(x) => x,
-                None => {
-                    debug_assert!(false, "p_range should be in range due to binary search");
-                    return None;
+            p = 0usize;
+            q = 0usize;
+            loop {
+                (indices, trie) = debug_split_at(trie, x)?;
+                p = (p << 8) + debug_get(indices, i)? as usize;
+                q = match indices.get(i + 1) {
+                    Some(x) => (q << 8) + *x as usize,
+                    None => trie.len()
+                };
+                if trie.len() <= 256 {
+                    break;
                 }
-            };
-            q = indices.get(q_range).map(get_usize).unwrap_or(trie.len());
-            trie = trie.get(p..q)?;
+            }
+            // trie = trie.get(p..q)?;
+            trie = debug_get_range(trie, p..q)?;
             ascii = temp;
             continue;
         } else {
             if matches!(byte_type, ByteType::Value) {
                 // Value node at end of string
-                // let (x, _trie) = read_varint(*b, trie)?;
                 return Some(x);
             }
             return None;
