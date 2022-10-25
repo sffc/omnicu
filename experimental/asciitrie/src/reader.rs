@@ -78,7 +78,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             i = search.binary_search(c).ok()?;
             p = 0usize;
             q = 0usize;
-            h = 1usize;
+            h = 0usize;
             loop {
                 (indices, trie) = debug_split_at(trie, x)?;
                 p = (p << 8) + debug_get(indices, i)? as usize;
@@ -86,8 +86,8 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                     Some(x) => (q << 8) + *x as usize,
                     None => trie.len()
                 };
-                h <<= 8;
-                if trie.len() < h {
+                h = (h << 8) + 0xff;
+                if trie.len() <= h {
                     break;
                 }
             }
