@@ -28,22 +28,37 @@ fn get_usize(slice: &[u8]) -> usize {
     result
 }
 
+enum ByteType {
+    Ascii,
+    Value,
+    Match,
+}
+
 pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
     loop {
         let (b, x, i, mut w, p, q, search, indices);
         (b, trie) = trie.split_first()?;
+        let byte_type = match b & 0b11000000 {
+            0b10000000 => ByteType::Value,
+            0b11000000 => ByteType::Match,
+            _ => ByteType::Ascii,
+        };
+        (x, trie) = match byte_type {
+            ByteType::Ascii => (0, trie),
+            _ => read_varint(*b, trie)?,
+        };
         if let Some((c, temp)) = ascii.split_first() {
             if b == c {
                 // Matched a byte
                 ascii = temp;
                 continue;
             }
-            if (0b10000000 & b) == 0 {
+            if matches!(byte_type, ByteType::Ascii) {
                 // Byte that doesn't match
                 return None;
             }
-            (x, trie) = read_varint(*b, trie)?;
-            if (0b01000000 & b) == 0 {
+            // (x, trie) = read_varint(*b, trie)?;
+            if matches!(byte_type, ByteType::Value) {
                 // Value node, but not at end of string
                 continue;
             }
@@ -69,9 +84,9 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             ascii = temp;
             continue;
         } else {
-            if (0b11000000 & b) == 0b10000000 {
+            if matches!(byte_type, ByteType::Value) {
                 // Value node at end of string
-                let (x, _trie) = read_varint(*b, trie)?;
+                // let (x, _trie) = read_varint(*b, trie)?;
                 return Some(x);
             }
             return None;
