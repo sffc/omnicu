@@ -49,7 +49,6 @@ path = "src/lib.rs"
 [features]
 default = []
 bench = []
-# Note: ref-cast is needed for alloc due to the ToOwned/Borrow impl.
 alloc = []
 litemap = ["dep:litemap", "alloc"]
 

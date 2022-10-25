@@ -20,6 +20,8 @@ impl ToOwned for AsciiTrie<[u8]> {
     ///
     /// Note that it is also possible to use `AsciiTrie<ZeroVec<u8>>` for a similar result.
     ///
+    /// ***Enable this impl with the `"alloc"` feature.***
+    ///
     /// # Examples
     ///
     /// ```
@@ -40,6 +42,22 @@ impl<S> AsciiTrie<S>
 where
     S: AsRef<[u8]> + ?Sized,
 {
+    /// Converts a possibly-borrowed AsciiTrie to an owned one.
+    ///
+    /// ***Enable this impl with the `"alloc"` feature.***
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::borrow::Cow;
+    /// use asciitrie::AsciiTrie;
+    ///
+    /// let trie: AsciiTrie<&[u8]> = AsciiTrie(b"abc\x85");
+    /// let owned: AsciiTrie<Vec<u8>> = trie.to_owned();
+    ///
+    /// assert_eq!(trie.get(b"abc"), Some(5));
+    /// assert_eq!(owned.get(b"abc"), Some(5));
+    /// ```
     pub fn to_owned(&self) -> AsciiTrie<Vec<u8>> {
         AsciiTrie {
             0: Vec::from(self.0.as_ref()),
