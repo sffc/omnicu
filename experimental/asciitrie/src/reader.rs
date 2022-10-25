@@ -91,7 +91,6 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                     break;
                 }
             }
-            // trie = trie.get(p..q)?;
             trie = debug_get_range(trie, p..q)?;
             ascii = temp;
             continue;
