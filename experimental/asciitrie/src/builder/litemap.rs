@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 use litemap::LiteMap;
 
 impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<Vec<u8>> {
-    /// ***Enable this impl with the `"litemap"` feature.***
+    /// ***Enable this function with the `"litemap"` feature.***
     ///
     /// ```
     /// use asciitrie::AsciiStr;
@@ -41,7 +41,7 @@ impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<Vec<u8>> {
 impl AsciiTrie<Vec<u8>> {
     /// Creates an [`AsciiTrie`] from a [`LiteMap`] mapping from [`AsciiStr`] to `usize`.
     ///
-    /// ***Enable this impl with the `"litemap"` feature.***
+    /// ***Enable this function with the `"litemap"` feature.***
     ///
     /// # Examples
     ///
