@@ -58,4 +58,4 @@ harness = false
 
 [[test]]
 name = "builder_test"
-required-features = ["litemap"]
+required-features = ["alloc", "litemap"]

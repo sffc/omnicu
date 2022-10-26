@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use alloc::boxed::Box;
 use core::ops::Range;
 use ref_cast::{ref_cast_custom, RefCastCustom};
 
@@ -21,6 +22,16 @@ impl AsciiByte {
             return Err(NonAsciiError);
         }
         Ok(Self(byte))
+    }
+
+    pub(crate) fn debug_from_u8(byte: u8) -> Self {
+        match Self::try_from_u8(byte) {
+            Ok(x) => x,
+            Err(_) => {
+                debug_assert!(false, "debug_from_u8: non-ascii byte: {:?}", byte);
+                Self(0)
+            }
+        }
     }
 
     pub const fn nul() -> Self {
@@ -56,12 +67,23 @@ const fn ascii_slice_to_bytes(ascii_slice: &[AsciiByte]) -> &[u8] {
 }
 
 #[repr(transparent)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, RefCastCustom)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, RefCastCustom)]
 pub struct AsciiStr([AsciiByte]);
+
+impl core::fmt::Debug for AsciiStr {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
+        f.write_str(self.as_str())
+    }
+}
 
 impl AsciiStr {
     #[ref_cast_custom]
     pub(crate) const fn from_ascii_slice(ascii_slice: &[AsciiByte]) -> &Self;
+
+    pub(crate) fn from_boxed_ascii_slice(ascii_slice: Box<[AsciiByte]>) -> Box<Self> {
+        // Safety: same reason ref-cast works on references
+        unsafe { core::mem::transmute(ascii_slice) }
+    }
 
     pub const fn try_from_bytes(bytes: &[u8]) -> Result<&Self, NonAsciiError> {
         match try_ascii_slice_from_bytes(bytes) {
@@ -137,5 +159,10 @@ impl AsciiStr {
 
     pub fn as_bytes(&self) -> &[u8] {
         ascii_slice_to_bytes(&self.0)
+    }
+
+    pub fn as_str(&self) -> &str {
+        // Safety: all ASCII bytes are valid UTF-8 bytes
+        unsafe { core::str::from_utf8_unchecked(self.as_bytes()) }
     }
 }

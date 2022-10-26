@@ -11,9 +11,9 @@ mod store;
 
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;
+pub(crate) use asciistr::AsciiByte;
 
 use super::AsciiTrie;
-use asciistr::AsciiByte;
 use builder::AsciiTrieBuilder;
 
 impl<const N: usize> AsciiTrie<[u8; N]> {

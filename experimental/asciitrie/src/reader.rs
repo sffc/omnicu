@@ -7,7 +7,7 @@ use core::ops::Range;
 
 /// Like slice::split_at but returns an Option instead of panicking
 #[inline]
-fn debug_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
+pub(crate) fn debug_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
     if mid > slice.len() {
         debug_assert!(false, "debug_split_at: index expected to be in range");
         None
@@ -19,7 +19,7 @@ fn debug_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
 }
 
 #[inline]
-fn debug_get(slice: &[u8], index: usize) -> Option<u8> {
+pub(crate) fn debug_get(slice: &[u8], index: usize) -> Option<u8> {
     match slice.get(index) {
         Some(x) => Some(*x),
         None => {
@@ -40,21 +40,47 @@ fn debug_get_range(slice: &[u8], range: Range<usize>) -> Option<&[u8]> {
     }
 }
 
-enum ByteType {
+#[inline]
+pub(crate) fn read_range(mut trie: &[u8], i: usize, x: usize) -> Option<&[u8]> {
+    let mut p = 0usize;
+    let mut q = 0usize;
+    let mut h = 0usize;
+    loop {
+        let indices;
+        (indices, trie) = debug_split_at(trie, x)?;
+        p = (p << 8) + debug_get(indices, i)? as usize;
+        q = match indices.get(i + 1) {
+            Some(x) => (q << 8) + *x as usize,
+            None => trie.len()
+        };
+        h = (h << 8) + 0xff;
+        if trie.len() <= h {
+            break;
+        }
+    }
+    debug_get_range(trie, p..q)
+}
+
+pub(crate) enum ByteType {
     Ascii,
     Value,
     Match,
 }
 
+#[inline]
+pub(crate) fn byte_type(b: u8) -> ByteType {
+    match b & 0b11000000 {
+        0b10000000 => ByteType::Value,
+        0b11000000 => ByteType::Match,
+        _ => ByteType::Ascii,
+    }
+}
+
 pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
     loop {
-        let (b, x, i, mut p, mut q, mut h, search, mut indices);
+        let (b, x, i, search);
         (b, trie) = trie.split_first()?;
-        let byte_type = match b & 0b11000000 {
-            0b10000000 => ByteType::Value,
-            0b11000000 => ByteType::Match,
-            _ => ByteType::Ascii,
-        };
+        let byte_type = byte_type(*b);
         (x, trie) = match byte_type {
             ByteType::Ascii => (0, trie),
             _ => read_varint(*b, trie)?,
@@ -80,22 +106,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             }
             (search, trie) = debug_split_at(trie, x)?;
             i = search.binary_search(c).ok()?;
-            p = 0usize;
-            q = 0usize;
-            h = 0usize;
-            loop {
-                (indices, trie) = debug_split_at(trie, x)?;
-                p = (p << 8) + debug_get(indices, i)? as usize;
-                q = match indices.get(i + 1) {
-                    Some(x) => (q << 8) + *x as usize,
-                    None => trie.len()
-                };
-                h = (h << 8) + 0xff;
-                if trie.len() <= h {
-                    break;
-                }
-            }
-            trie = debug_get_range(trie, p..q)?;
+            trie = read_range(trie, i, x)?;
             ascii = temp;
             continue;
         } else {

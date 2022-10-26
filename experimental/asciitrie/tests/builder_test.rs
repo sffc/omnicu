@@ -23,6 +23,10 @@ fn test_basic() {
         .collect::<Result<_, _>>()
         .unwrap();
     assert_eq!(built_trie.as_bytes(), trie);
+
+    for (string, value) in built_trie.iter() {
+        println!("{:?}, {:?}", string, value);
+    }
 }
 
 fn check_ascii_trie<S>(items: &LiteMap<&AsciiStr, usize>, trie: &AsciiTrie<S>)
