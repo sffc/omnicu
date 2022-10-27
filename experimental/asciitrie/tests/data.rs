@@ -2,6 +2,8 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use asciitrie::AsciiStr;
+
 const fn single_byte_value(x: u8) -> u8 {
     debug_assert!(x <= 0b00011111);
     x | 0b10000000
@@ -53,13 +55,13 @@ pub mod basic {
         b'n',
         single_byte_value(7),
     ];
-    pub const DATA: &[(&[u8], usize)] = &[
-        (b"ab", 1),
-        (b"abc", 2),
-        (b"abcd", 3),
-        (b"abcdghi", 4),
-        (b"abcejk", 5),
-        (b"abcfl", 6),
-        (b"abcfmn", 7),
+    pub const DATA: &[(&AsciiStr, usize)] = &[
+        (AsciiStr::from_str_or_panic("ab"), 1),
+        (AsciiStr::from_str_or_panic("abc"), 2),
+        (AsciiStr::from_str_or_panic("abcd"), 3),
+        (AsciiStr::from_str_or_panic("abcdghi"), 4),
+        (AsciiStr::from_str_or_panic("abcejk"), 5),
+        (AsciiStr::from_str_or_panic("abcfl"), 6),
+        (AsciiStr::from_str_or_panic("abcfmn"), 7),
     ];
 }

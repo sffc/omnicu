@@ -165,4 +165,32 @@ impl AsciiStr {
         // Safety: all ASCII bytes are valid UTF-8 bytes
         unsafe { core::str::from_utf8_unchecked(self.as_bytes()) }
     }
+
+    pub fn to_boxed(&self) -> Box<AsciiStr> {
+        Self::from_boxed_ascii_slice(Box::from(&self.0))
+    }
+}
+
+impl core::borrow::Borrow<[u8]> for AsciiStr {
+    fn borrow(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl core::borrow::Borrow<[u8]> for &AsciiStr {
+    fn borrow(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl core::borrow::Borrow<str> for AsciiStr {
+    fn borrow(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl core::borrow::Borrow<str> for &AsciiStr {
+    fn borrow(&self) -> &str {
+        self.as_str()
+    }
 }

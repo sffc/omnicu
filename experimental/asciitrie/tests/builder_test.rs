@@ -19,14 +19,10 @@ fn test_basic() {
     let built_trie: AsciiTrie<Vec<u8>> = data
         .iter()
         .copied()
-        .map(AsciiStr::try_from_bytes_with_value)
-        .collect::<Result<_, _>>()
-        .unwrap();
+        .collect();
     assert_eq!(built_trie.as_bytes(), trie);
 
-    for (string, value) in built_trie.iter() {
-        println!("{:?}, {:?}", string, value);
-    }
+    assert!(data.iter().copied().map(|(s, v)| (s.to_boxed(), v)).eq(built_trie.iter()));
 }
 
 fn check_ascii_trie<S>(items: &LiteMap<&AsciiStr, usize>, trie: &AsciiTrie<S>)
@@ -36,6 +32,7 @@ where
     for (k, v) in items.iter() {
         assert_eq!(trie.get(k.as_bytes()), Some(*v));
     }
+    assert!(items.iter().map(|(s, v)| (s.to_boxed(), *v)).eq(trie.iter()));
 }
 
 #[test]

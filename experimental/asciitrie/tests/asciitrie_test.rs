@@ -18,7 +18,7 @@ fn test_basic() {
 
     // Check that the getter works
     for (key, expected) in data {
-        let actual = match AsciiTrie::from_bytes(trie).get(key) {
+        let actual = match AsciiTrie::from_bytes(trie).get(key.as_bytes()) {
             Some(v) => v,
             None => panic!("value should be in trie: {:?} => {}", key, expected),
         };
