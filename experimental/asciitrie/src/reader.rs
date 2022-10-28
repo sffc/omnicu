@@ -44,7 +44,13 @@ fn debug_get_range(slice: &[u8], range: Range<usize>) -> Option<&[u8]> {
     }
 }
 
-fn read_range(mut trie: &[u8], i: usize, x: usize) -> Option<&[u8]> {
+/// Given a slice starting with an offset table, returns the trie for the given index.
+///
+/// Arguments:
+/// - `trie` = a trie pointing at an offset table (after the branch node and search table)
+/// - `i` = the desired index within the offset table
+/// - `x` = the number of items in the offset table
+fn get_branch(mut trie: &[u8], i: usize, x: usize) -> Option<&[u8]> {
     let mut p = 0usize;
     let mut q = 0usize;
     let mut h = 0usize;
@@ -109,7 +115,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             }
             (search, trie) = debug_split_at(trie, x)?;
             i = search.binary_search(c).ok()?;
-            trie = read_range(trie, i, x)?;
+            trie = get_branch(trie, i, x)?;
             ascii = temp;
             continue;
         } else {
@@ -140,15 +146,17 @@ impl<'a> AsciiTrieIterator<'a> {
 impl<'a> Iterator for AsciiTrieIterator<'a> {
     type Item = (Box<AsciiStr>, usize);
     fn next(&mut self) -> Option<Self::Item> {
-        let (mut trie, mut string, mut dial);
-        (trie, string, dial) = self.state.pop()?;
+        let (mut trie, mut string, mut branch_idx);
+        (trie, string, branch_idx) = self.state.pop()?;
         loop {
             let (b, x, search);
-            let old_trie = trie;
+            let return_trie = trie;
             (b, trie) = match trie.split_first() {
                 Some(tpl) => tpl,
                 None => {
-                    (trie, string, dial) = self.state.pop()?;
+                    // At end of current branch; step back to the branch node.
+                    // If there are no more branches, we are finished.
+                    (trie, string, branch_idx) = self.state.pop()?;
                     continue;
                 }
             };
@@ -160,18 +168,19 @@ impl<'a> Iterator for AsciiTrieIterator<'a> {
             (x, trie) = read_varint(*b, trie)?;
             if matches!(byte_type, ByteType::Value) {
                 let retval = AsciiStr::from_boxed_ascii_slice(string.clone().into_boxed_slice());
+                // Return to this position on the next step
                 self.state.push((trie, string, 0));
                 return Some((retval, x))
             }
-            if dial + 1 < x {
+            if branch_idx + 1 < x {
                 // Return to this branch node at the next index
-                self.state.push((old_trie, string.clone(), dial + 1));
+                self.state.push((return_trie, string.clone(), branch_idx + 1));
             }
             (search, trie) = debug_split_at(trie, x)?;
-            let ascii = debug_get(search, dial)?;
+            let ascii = debug_get(search, branch_idx)?;
             string.push(AsciiByte::debug_from_u8(ascii));
-            trie = read_range(trie, dial, x)?;
-            dial = 0;
+            trie = get_branch(trie, branch_idx, x)?;
+            branch_idx = 0;
         }
     }
 }
