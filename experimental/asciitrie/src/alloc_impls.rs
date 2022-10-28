@@ -73,20 +73,17 @@ where
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Box<AsciiStr>, usize)> + '_ {
-        if self.is_empty() {
-            AsciiTrieIterator {
-                state: alloc::vec![],
-            }
-        } else {
-            AsciiTrieIterator {
-                state: alloc::vec![(self.as_bytes(), alloc::vec![], 0)],
-            }
+        AsciiTrieIterator {
+            state: alloc::vec![(self.as_bytes(), alloc::vec![], 0)],
         }
     }
 }
 
 struct AsciiTrieIterator<'a> {
     state: Vec<(&'a [u8], Vec<AsciiByte>, usize)>,
+}
+
+impl<'a> AsciiTrieIterator<'a> {
 }
 
 impl<'a> Iterator for AsciiTrieIterator<'a> {
