@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use alloc::boxed::Box;
 use crate::builder::AsciiTrieBuilder;
 use crate::AsciiStr;
 use crate::AsciiTrie;
@@ -79,5 +80,14 @@ impl AsciiTrie<Vec<u8>> {
         AsciiTrieBuilder::<2048>::from_litemap(items.as_sliced())
             .to_ascii_trie()
             .to_owned()
+    }
+}
+
+impl<S> AsciiTrie<S>
+where
+    S: AsRef<[u8]> + ?Sized,
+{
+    pub fn to_litemap(&self) -> LiteMap<Box<AsciiStr>, usize> {
+        self.iter().collect()
     }
 }

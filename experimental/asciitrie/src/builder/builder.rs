@@ -94,21 +94,12 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     where
         S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
     {
-        if items.is_empty() {
-            return Self::new();
-        }
-        let mut result = Self::new();
-        let total_size;
         let items: ConstSlice<(&AsciiStr, usize)> = items.as_slice().into();
-        (result, total_size) = result.create_recursive(items, 0);
-        debug_assert_eq!(total_size, result.data.atbs_len());
-        result
+        Self::from_sorted_tuple_vec(items)
     }
 
-    pub const fn from_sorted_tuple_vec<'a>(items: &[(&'a AsciiStr, usize)]) -> Self {
-        if items.is_empty() {
-            return Self::new();
-        }
+    /// Panics if the items are not sorted
+    pub const fn from_tuple_vec<'a>(items: &[(&'a AsciiStr, usize)]) -> Self {
         let items = ConstSlice::from_slice(items);
         let mut prev: Option<&'a AsciiStr> = None;
         const_for_each!(items, (ascii_str, _), {
@@ -122,6 +113,11 @@ impl<const N: usize> AsciiTrieBuilder<N> {
             };
             prev = Some(ascii_str)
         });
+        Self::from_sorted_tuple_vec(items)
+    }
+
+    /// Assumes that the items are sorted
+    pub(crate) const fn from_sorted_tuple_vec<'a>(items: ConstSlice<(&'a AsciiStr, usize)>) -> Self {
         let mut result = Self::new();
         let total_size;
         (result, total_size) = result.create_recursive(items, 0);
@@ -137,7 +133,7 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     ) -> (Self, usize) {
         let first: (&'a AsciiStr, usize) = match items.first() {
             Some((k, v)) => (*k, *v),
-            None => unreachable!(),
+            None => return (Self::new(), 0), // empty slice
         };
         let mut initial_value = None;
         let mut total_size = 0;

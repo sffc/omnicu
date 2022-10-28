@@ -21,7 +21,7 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     ///
     /// This function needs to know the exact length of the resulting trie at compile time.
     ///
-    /// Also see [`Self::from_sorted_str_value_array`].
+    /// Also see [`Self::from_str_value_array`].
     ///
     /// # Panics
     ///
@@ -35,7 +35,7 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     /// use asciitrie::{AsciiTrie, AsciiStr};
     ///
     /// // The required capacity for this trie happens to be 19 bytes
-    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_sorted_asciistr_value_slice(&[
+    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_asciistr_value_slice(&[
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
@@ -51,7 +51,7 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     ///
     /// ```compile_fail
     /// # use asciitrie::{AsciiTrie, AsciiStr};
-    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_sorted_asciistr_value_slice(&[
+    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_asciistr_value_slice(&[
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
@@ -62,7 +62,7 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     ///
     /// ```compile_fail
     /// # use asciitrie::{AsciiTrie, AsciiStr};
-    /// const TRIE: AsciiTrie<[u8; 15]> = AsciiTrie::from_sorted_asciistr_value_slice(&[
+    /// const TRIE: AsciiTrie<[u8; 15]> = AsciiTrie::from_asciistr_value_slice(&[
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
@@ -73,21 +73,21 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     ///
     /// ```compile_fail
     /// # use asciitrie::{AsciiTrie, AsciiStr};
-    /// const TRIE: AsciiTrie<[u8; 20]> = AsciiTrie::from_sorted_asciistr_value_slice(&[
+    /// const TRIE: AsciiTrie<[u8; 20]> = AsciiTrie::from_asciistr_value_slice(&[
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
     /// ]);
     /// ```
-    pub const fn from_sorted_asciistr_value_slice(items: &[(&AsciiStr, usize)]) -> Self {
-        AsciiTrieBuilder::<N>::from_sorted_tuple_vec(items).into_ascii_trie_or_panic()
+    pub const fn from_asciistr_value_slice(items: &[(&AsciiStr, usize)]) -> Self {
+        AsciiTrieBuilder::<N>::from_tuple_vec(items).into_ascii_trie_or_panic()
     }
 
     /// **Const Constructor:** Creates an [`AsciiTrie`] from a sorted slice of keys and values.
     ///
     /// This function needs to know the exact length of the resulting trie at compile time.
     ///
-    /// Also see [`Self::from_sorted_asciistr_value_slice`].
+    /// Also see [`Self::from_asciistr_value_slice`].
     ///
     /// # Panics
     ///
@@ -102,7 +102,7 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     /// use asciitrie::{AsciiTrie, AsciiStr};
     ///
     /// // The required capacity for this trie happens to be 19 bytes
-    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_sorted_str_value_array([
+    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_str_value_array([
     ///     ("bar", 2),
     ///     ("bazzoo", 3),
     ///     ("foo", 1),
@@ -118,13 +118,13 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     ///
     /// ```compile_fail
     /// # use asciitrie::{AsciiTrie, AsciiStr};
-    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_sorted_str_value_array([
+    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_str_value_array([
     ///     ("bár", 2),
     ///     ("båzzöo", 3),
     ///     ("foo", 1),
     /// ]);
     /// ```
-    pub const fn from_sorted_str_value_array<const M: usize>(items: [(&str, usize); M]) -> Self {
+    pub const fn from_str_value_array<const M: usize>(items: [(&str, usize); M]) -> Self {
         let mut asciistr_array = [(AsciiStr::empty(), 0); M];
         let mut i = 0;
         while i < items.len() {
@@ -132,6 +132,6 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
             asciistr_array[i].1 = items[i].1;
             i += 1;
         }
-        Self::from_sorted_asciistr_value_slice(&asciistr_array)
+        Self::from_asciistr_value_slice(&asciistr_array)
     }
 }

@@ -19,7 +19,7 @@ mod weekday {
 }
 
 // This data originates from CLDR 41.
-static TRIE: AsciiTrie<[u8; 561]> = AsciiTrie::from_sorted_asciistr_value_slice(&[
+static TRIE: AsciiTrie<[u8; 561]> = AsciiTrie::from_asciistr_value_slice(&[
     (AsciiStr::from_str_or_panic("001"), weekday::MON),
     (AsciiStr::from_str_or_panic("AD"), weekday::MON),
     (AsciiStr::from_str_or_panic("AE"), weekday::SAT),

@@ -184,4 +184,3 @@ impl<'a> Iterator for AsciiTrieIterator<'a> {
         }
     }
 }
-
