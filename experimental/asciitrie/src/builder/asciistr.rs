@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+#[cfg(feature = "alloc")]
 use alloc::boxed::Box;
 use core::ops::Range;
 use ref_cast::{ref_cast_custom, RefCastCustom};
@@ -24,6 +25,7 @@ impl AsciiByte {
         Ok(Self(byte))
     }
 
+    #[cfg(feature = "alloc")]
     pub(crate) fn debug_from_u8(byte: u8) -> Self {
         match Self::try_from_u8(byte) {
             Ok(x) => x,
@@ -80,6 +82,7 @@ impl AsciiStr {
     #[ref_cast_custom]
     pub(crate) const fn from_ascii_slice(ascii_slice: &[AsciiByte]) -> &Self;
 
+    #[cfg(feature = "alloc")]
     pub(crate) fn from_boxed_ascii_slice(ascii_slice: Box<[AsciiByte]>) -> Box<Self> {
         // Safety: same reason ref-cast works on references
         unsafe { core::mem::transmute(ascii_slice) }
@@ -166,6 +169,7 @@ impl AsciiStr {
         unsafe { core::str::from_utf8_unchecked(self.as_bytes()) }
     }
 
+    #[cfg(feature = "alloc")]
     pub fn to_boxed(&self) -> Box<AsciiStr> {
         Self::from_boxed_ascii_slice(Box::from(&self.0))
     }
