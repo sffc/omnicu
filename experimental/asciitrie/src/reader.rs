@@ -2,12 +2,16 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+#[cfg(feature = "alloc")]
+use alloc::{boxed::Box, vec::Vec};
+#[cfg(feature = "alloc")]
+use crate::{AsciiTrie, AsciiStr, builder::AsciiByte};
 use crate::varint::read_varint;
 use core::ops::Range;
 
 /// Like slice::split_at but returns an Option instead of panicking
 #[inline]
-pub(crate) fn debug_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
+fn debug_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
     if mid > slice.len() {
         debug_assert!(false, "debug_split_at: index expected to be in range");
         None
@@ -19,7 +23,7 @@ pub(crate) fn debug_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])>
 }
 
 #[inline]
-pub(crate) fn debug_get(slice: &[u8], index: usize) -> Option<u8> {
+fn debug_get(slice: &[u8], index: usize) -> Option<u8> {
     match slice.get(index) {
         Some(x) => Some(*x),
         None => {
@@ -40,8 +44,7 @@ fn debug_get_range(slice: &[u8], range: Range<usize>) -> Option<&[u8]> {
     }
 }
 
-#[inline]
-pub(crate) fn read_range(mut trie: &[u8], i: usize, x: usize) -> Option<&[u8]> {
+fn read_range(mut trie: &[u8], i: usize, x: usize) -> Option<&[u8]> {
     let mut p = 0usize;
     let mut q = 0usize;
     let mut h = 0usize;
@@ -61,14 +64,14 @@ pub(crate) fn read_range(mut trie: &[u8], i: usize, x: usize) -> Option<&[u8]> {
     debug_get_range(trie, p..q)
 }
 
-pub(crate) enum ByteType {
+enum ByteType {
     Ascii,
     Value,
     Match,
 }
 
 #[inline]
-pub(crate) fn byte_type(b: u8) -> ByteType {
+fn byte_type(b: u8) -> ByteType {
     match b & 0b11000000 {
         0b10000000 => ByteType::Value,
         0b11000000 => ByteType::Match,
@@ -118,3 +121,58 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
         }
     }
 }
+
+#[cfg(feature = "alloc")]
+pub(crate) struct AsciiTrieIterator<'a> {
+    state: Vec<(&'a [u8], Vec<AsciiByte>, usize)>,
+}
+
+#[cfg(feature = "alloc")]
+impl<'a> AsciiTrieIterator<'a> {
+    pub fn new<S: AsRef<[u8]> + ?Sized>(trie: &'a AsciiTrie<S>) -> Self {
+        AsciiTrieIterator {
+            state: alloc::vec![(trie.as_bytes(), alloc::vec![], 0)],
+        }
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'a> Iterator for AsciiTrieIterator<'a> {
+    type Item = (Box<AsciiStr>, usize);
+    fn next(&mut self) -> Option<Self::Item> {
+        let (mut trie, mut string, mut dial);
+        (trie, string, dial) = self.state.pop()?;
+        loop {
+            let (b, x, search);
+            let old_trie = trie;
+            (b, trie) = match trie.split_first() {
+                Some(tpl) => tpl,
+                None => {
+                    (trie, string, dial) = self.state.pop()?;
+                    continue;
+                }
+            };
+            let byte_type = byte_type(*b);
+            if matches!(byte_type, ByteType::Ascii) {
+                string.push(AsciiByte::debug_from_u8(*b));
+                continue;
+            }
+            (x, trie) = read_varint(*b, trie)?;
+            if matches!(byte_type, ByteType::Value) {
+                let retval = AsciiStr::from_boxed_ascii_slice(string.clone().into_boxed_slice());
+                self.state.push((trie, string, 0));
+                return Some((retval, x))
+            }
+            if dial + 1 < x {
+                // Return to this branch node at the next index
+                self.state.push((old_trie, string.clone(), dial + 1));
+            }
+            (search, trie) = debug_split_at(trie, x)?;
+            let ascii = debug_get(search, dial)?;
+            string.push(AsciiByte::debug_from_u8(ascii));
+            trie = read_range(trie, dial, x)?;
+            dial = 0;
+        }
+    }
+}
+
