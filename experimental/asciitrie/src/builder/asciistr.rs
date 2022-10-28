@@ -6,6 +6,7 @@
 use alloc::boxed::Box;
 use core::ops::Range;
 use ref_cast::{ref_cast_custom, RefCastCustom};
+use core::borrow::Borrow;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[allow(clippy::exhaustive_structs)] // marker type
@@ -175,25 +176,39 @@ impl AsciiStr {
     }
 }
 
-impl core::borrow::Borrow<[u8]> for AsciiStr {
+impl Borrow<[u8]> for AsciiStr {
     fn borrow(&self) -> &[u8] {
         self.as_bytes()
     }
 }
 
-impl core::borrow::Borrow<[u8]> for &AsciiStr {
+impl Borrow<[u8]> for &AsciiStr {
     fn borrow(&self) -> &[u8] {
         self.as_bytes()
     }
 }
 
-impl core::borrow::Borrow<str> for AsciiStr {
+#[cfg(feature = "alloc")]
+impl Borrow<[u8]> for Box<AsciiStr> {
+    fn borrow(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl Borrow<str> for AsciiStr {
     fn borrow(&self) -> &str {
         self.as_str()
     }
 }
 
-impl core::borrow::Borrow<str> for &AsciiStr {
+#[cfg(feature = "alloc")]
+impl Borrow<str> for &AsciiStr {
+    fn borrow(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl Borrow<str> for Box<AsciiStr> {
     fn borrow(&self) -> &str {
         self.as_str()
     }
