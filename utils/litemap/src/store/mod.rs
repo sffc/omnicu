@@ -130,7 +130,7 @@ pub trait StoreMut<K, V>: Store<K, V> {
 }
 
 /// Iterator methods for the LiteMap store.
-pub trait StoreIterable<'a, K: 'a, V: 'a>: Store<K, V> {
+pub trait StoreIterable<'a, K: 'a + ?Sized, V: 'a + ?Sized>: Store<K, V> {
     type KeyValueIter: Iterator<Item = (&'a K, &'a V)> + DoubleEndedIterator + 'a;
 
     /// Returns an iterator over key/value pairs.

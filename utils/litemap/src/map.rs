@@ -278,6 +278,120 @@ where
     }
 }
 
+impl<'a, K: 'a, V: 'a, S> LiteMap<K, V, S>
+where
+    K: Ord,
+    S: Store<K, V>,
+{
+    /// Returns a new [`LiteMap`] with keys and values borrowed from this one.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use litemap::LiteMap;
+    ///
+    /// let mut map: LiteMap<Box<usize>, String> = LiteMap::new_vec();
+    /// map.insert(Box::new(1), "one".to_string());
+    /// map.insert(Box::new(2), "two".to_string());
+    ///
+    /// let borrowed_map: LiteMap<&usize, &str> = map.to_borrowed_keys_values();
+    ///
+    /// assert_eq!(borrowed_map.get(&1), Some(&"one"));
+    /// ```
+    pub fn to_borrowed_keys_values<KB: ?Sized, VB: ?Sized, SB>(
+        &'a self,
+    ) -> LiteMap<&'a KB, &'a VB, SB>
+    where
+        K: Borrow<KB>,
+        V: Borrow<VB>,
+        SB: StoreMut<&'a KB, &'a VB>,
+    {
+        let mut values = SB::lm_with_capacity(self.len());
+        for i in 0..self.len() {
+            #[allow(clippy::unwrap_used)] // iterating over our own length
+            let (k, v) = self.values.lm_get(i).unwrap();
+            values.lm_push(k.borrow(), v.borrow())
+        }
+        LiteMap {
+            values,
+            _key_type: PhantomData,
+            _value_type: PhantomData,
+        }
+    }
+
+    /// Returns a new [`LiteMap`] with keys borrowed from this one and cloned values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use litemap::LiteMap;
+    ///
+    /// let mut map: LiteMap<Box<usize>, String> = LiteMap::new_vec();
+    /// map.insert(Box::new(1), "one".to_string());
+    /// map.insert(Box::new(2), "two".to_string());
+    ///
+    /// let borrowed_map: LiteMap<&usize, String> = map.to_borrowed_keys();
+    ///
+    /// assert_eq!(borrowed_map.get(&1), Some(&"one".to_string()));
+    /// ```
+    pub fn to_borrowed_keys<KB: ?Sized, SB>(
+        &'a self,
+    ) -> LiteMap<&'a KB, V, SB>
+    where
+        K: Borrow<KB>,
+        V: Clone,
+        SB: StoreMut<&'a KB, V>,
+    {
+        let mut values = SB::lm_with_capacity(self.len());
+        for i in 0..self.len() {
+            #[allow(clippy::unwrap_used)] // iterating over our own length
+            let (k, v) = self.values.lm_get(i).unwrap();
+            values.lm_push(k.borrow(), v.clone())
+        }
+        LiteMap {
+            values,
+            _key_type: PhantomData,
+            _value_type: PhantomData,
+        }
+    }
+
+    /// Returns a new [`LiteMap`] with values borrowed from this one and cloned keys.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use litemap::LiteMap;
+    ///
+    /// let mut map: LiteMap<Box<usize>, String> = LiteMap::new_vec();
+    /// map.insert(Box::new(1), "one".to_string());
+    /// map.insert(Box::new(2), "two".to_string());
+    ///
+    /// let borrowed_map: LiteMap<Box<usize>, &str> = map.to_borrowed_values();
+    ///
+    /// assert_eq!(borrowed_map.get(&1), Some(&"one"));
+    /// ```
+    pub fn to_borrowed_values<VB: ?Sized, SB>(
+        &'a self,
+    ) -> LiteMap<K, &'a VB, SB>
+    where
+        K: Clone,
+        V: Borrow<VB>,
+        SB: StoreMut<K, &'a VB>,
+    {
+        let mut values = SB::lm_with_capacity(self.len());
+        for i in 0..self.len() {
+            #[allow(clippy::unwrap_used)] // iterating over our own length
+            let (k, v) = self.values.lm_get(i).unwrap();
+            values.lm_push(k.clone(), v.borrow())
+        }
+        LiteMap {
+            values,
+            _key_type: PhantomData,
+            _value_type: PhantomData,
+        }
+    }
+}
+
 impl<K, V, S> LiteMap<K, V, S>
 where
     S: StoreMut<K, V>,
