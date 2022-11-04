@@ -2,16 +2,16 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use serde::de::Error;
-use alloc::string::String;
-use alloc::vec::Vec;
-use serde::Deserialize;
-use litemap::LiteMap;
-use alloc::boxed::Box;
 use crate::AsciiStr;
-use serde::Deserializer;
 use crate::AsciiTrie;
 use alloc::borrow::Cow;
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
+use litemap::LiteMap;
+use serde::de::Error;
+use serde::Deserialize;
+use serde::Deserializer;
 
 // /// Modified example from https://serde.rs/deserialize-map.html
 // struct AsciiTrieVisitor {
@@ -92,11 +92,11 @@ impl<'de> Deserialize<'de> for &'de AsciiStr {
         D: Deserializer<'de>,
     {
         if deserializer.is_human_readable() {
-        	let s = <&str>::deserialize(deserializer)?;
-        	AsciiStr::try_from_str(s).map_err(|_| D::Error::custom("not an ASCII string"))
+            let s = <&str>::deserialize(deserializer)?;
+            AsciiStr::try_from_str(s).map_err(|_| D::Error::custom("not an ASCII string"))
         } else {
-        	let s = <&[u8]>::deserialize(deserializer)?;
-        	AsciiStr::try_from_bytes(s).map_err(|_| D::Error::custom("not an ASCII string"))
+            let s = <&[u8]>::deserialize(deserializer)?;
+            AsciiStr::try_from_bytes(s).map_err(|_| D::Error::custom("not an ASCII string"))
         }
     }
 }
@@ -107,26 +107,27 @@ impl<'de> Deserialize<'de> for Box<AsciiStr> {
         D: Deserializer<'de>,
     {
         if deserializer.is_human_readable() {
-        	let s = String::deserialize(deserializer)?;
-        	AsciiStr::try_from_boxed_str(s.into_boxed_str()).map_err(|_| D::Error::custom("not an ASCII string"))
+            let s = String::deserialize(deserializer)?;
+            AsciiStr::try_from_boxed_str(s.into_boxed_str())
+                .map_err(|_| D::Error::custom("not an ASCII string"))
         } else {
-        	let s = Vec::<u8>::deserialize(deserializer)?;
-        	AsciiStr::try_from_boxed_bytes(s.into_boxed_slice()).map_err(|_| D::Error::custom("not an ASCII string"))
+            let s = Vec::<u8>::deserialize(deserializer)?;
+            AsciiStr::try_from_boxed_bytes(s.into_boxed_slice())
+                .map_err(|_| D::Error::custom("not an ASCII string"))
         }
     }
 }
 
-impl<'de> Deserialize<'de> for AsciiTrie<Cow<'de, [u8]>>
-{
+impl<'de> Deserialize<'de> for AsciiTrie<Cow<'de, [u8]>> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         if deserializer.is_human_readable() {
-        	let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
-        	let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-        	let trie_vec = AsciiTrie::from_litemap(&lm);
-        	Ok(trie_vec.wrap_bytes_into_cow())
+            let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
+            let lm = lm.to_borrowed_keys::<_, Vec<_>>();
+            let trie_vec = AsciiTrie::from_litemap(&lm);
+            Ok(trie_vec.wrap_bytes_into_cow())
         } else {
             let bytes = <&[u8]>::deserialize(deserializer)?;
             let trie_slice = AsciiTrie::from_bytes(bytes);

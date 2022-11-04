@@ -117,7 +117,9 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     }
 
     /// Assumes that the items are sorted
-    pub(crate) const fn from_sorted_tuple_vec<'a>(items: ConstSlice<(&'a AsciiStr, usize)>) -> Self {
+    pub(crate) const fn from_sorted_tuple_vec<'a>(
+        items: ConstSlice<(&'a AsciiStr, usize)>,
+    ) -> Self {
         let mut result = Self::new();
         let total_size;
         (result, total_size) = result.create_recursive(items, 0);

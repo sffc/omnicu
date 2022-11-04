@@ -16,13 +16,14 @@ fn test_basic() {
     let data = testdata::basic::DATA;
 
     // Check that the builder works
-    let built_trie: AsciiTrie<Vec<u8>> = data
-        .iter()
-        .copied()
-        .collect();
+    let built_trie: AsciiTrie<Vec<u8>> = data.iter().copied().collect();
     assert_eq!(built_trie.as_bytes(), trie);
 
-    assert!(data.iter().copied().map(|(s, v)| (s.to_boxed(), v)).eq(built_trie.iter()));
+    assert!(data
+        .iter()
+        .copied()
+        .map(|(s, v)| (s.to_boxed(), v))
+        .eq(built_trie.iter()));
 }
 
 fn check_ascii_trie<S>(items: &LiteMap<&AsciiStr, usize>, trie: &AsciiTrie<S>)
@@ -32,7 +33,10 @@ where
     for (k, v) in items.iter() {
         assert_eq!(trie.get(k.as_bytes()), Some(*v));
     }
-    assert!(items.iter().map(|(s, v)| (s.to_boxed(), *v)).eq(trie.iter()));
+    assert!(items
+        .iter()
+        .map(|(s, v)| (s.to_boxed(), *v))
+        .eq(trie.iter()));
 }
 
 #[test]

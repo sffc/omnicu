@@ -3,10 +3,10 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 #[cfg(feature = "alloc")]
-use alloc::{boxed::Box};
+use alloc::boxed::Box;
+use core::borrow::Borrow;
 use core::ops::Range;
 use ref_cast::{ref_cast_custom, RefCastCustom};
-use core::borrow::Borrow;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[allow(clippy::exhaustive_structs)] // marker type
@@ -63,7 +63,9 @@ const fn try_ascii_slice_from_bytes(bytes: &[u8]) -> Result<&[AsciiByte], NonAsc
 }
 
 #[cfg(feature = "alloc")]
-fn try_boxed_ascii_slice_from_boxed_bytes(bytes: Box<[u8]>) -> Result<Box<[AsciiByte]>, NonAsciiError> {
+fn try_boxed_ascii_slice_from_boxed_bytes(
+    bytes: Box<[u8]>,
+) -> Result<Box<[AsciiByte]>, NonAsciiError> {
     todo!()
 }
 

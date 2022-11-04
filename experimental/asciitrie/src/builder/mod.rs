@@ -9,9 +9,9 @@ pub(crate) mod const_util;
 mod litemap;
 mod store;
 
+pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;
-pub(crate) use asciistr::AsciiByte;
 
 use super::AsciiTrie;
 use builder::AsciiTrieBuilder;

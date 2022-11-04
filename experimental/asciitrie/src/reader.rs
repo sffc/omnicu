@@ -2,11 +2,11 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::varint::read_varint;
+#[cfg(feature = "alloc")]
+use crate::{builder::AsciiByte, AsciiStr, AsciiTrie};
 #[cfg(feature = "alloc")]
 use alloc::{boxed::Box, vec::Vec};
-#[cfg(feature = "alloc")]
-use crate::{AsciiTrie, AsciiStr, builder::AsciiByte};
-use crate::varint::read_varint;
 use core::ops::Range;
 
 /// Like slice::split_at but returns an Option instead of panicking
@@ -60,7 +60,7 @@ fn get_branch(mut trie: &[u8], i: usize, x: usize) -> Option<&[u8]> {
         p = (p << 8) + debug_get(indices, i)? as usize;
         q = match indices.get(i + 1) {
             Some(x) => (q << 8) + *x as usize,
-            None => trie.len()
+            None => trie.len(),
         };
         h = (h << 8) + 0xff;
         if trie.len() <= h {
@@ -170,11 +170,12 @@ impl<'a> Iterator for AsciiTrieIterator<'a> {
                 let retval = AsciiStr::from_boxed_ascii_slice(string.clone().into_boxed_slice());
                 // Return to this position on the next step
                 self.state.push((trie, string, 0));
-                return Some((retval, x))
+                return Some((retval, x));
             }
             if branch_idx + 1 < x {
                 // Return to this branch node at the next index
-                self.state.push((return_trie, string.clone(), branch_idx + 1));
+                self.state
+                    .push((return_trie, string.clone(), branch_idx + 1));
             }
             (search, trie) = debug_split_at(trie, x)?;
             let ascii = debug_get(search, branch_idx)?;

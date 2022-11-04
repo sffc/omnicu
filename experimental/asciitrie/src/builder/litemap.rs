@@ -2,10 +2,10 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use alloc::boxed::Box;
 use crate::builder::AsciiTrieBuilder;
 use crate::AsciiStr;
 use crate::AsciiTrie;
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 use litemap::LiteMap;
 

@@ -2,14 +2,14 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use alloc::boxed::Box;
+use crate::reader::AsciiTrieIterator;
 use crate::AsciiStr;
 use crate::AsciiTrie;
+use alloc::borrow::Cow;
 use alloc::borrow::ToOwned;
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::borrow::Borrow;
-use crate::reader::AsciiTrieIterator;
-use alloc::borrow::Cow;
 
 // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
 impl Borrow<AsciiTrie<[u8]>> for AsciiTrie<Vec<u8>> {
@@ -76,7 +76,7 @@ where
 impl AsciiTrie<Vec<u8>> {
     pub fn wrap_bytes_into_cow(self) -> AsciiTrie<Cow<'static, [u8]>> {
         AsciiTrie {
-            0: Cow::Owned(self.0)
+            0: Cow::Owned(self.0),
         }
     }
 }
@@ -84,7 +84,7 @@ impl AsciiTrie<Vec<u8>> {
 impl AsciiTrie<[u8]> {
     pub fn wrap_bytes_into_cow<'a>(&'a self) -> AsciiTrie<Cow<'a, [u8]>> {
         AsciiTrie {
-            0: Cow::Borrowed(self.as_bytes())
+            0: Cow::Borrowed(self.as_bytes()),
         }
     }
 }
