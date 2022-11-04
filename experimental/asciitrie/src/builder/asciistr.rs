@@ -3,7 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 #[cfg(feature = "alloc")]
-use alloc::boxed::Box;
+use alloc::{boxed::Box};
 use core::ops::Range;
 use ref_cast::{ref_cast_custom, RefCastCustom};
 use core::borrow::Borrow;
@@ -62,6 +62,11 @@ const fn try_ascii_slice_from_bytes(bytes: &[u8]) -> Result<&[AsciiByte], NonAsc
     Ok(ascii_slice)
 }
 
+#[cfg(feature = "alloc")]
+fn try_boxed_ascii_slice_from_boxed_bytes(bytes: Box<[u8]>) -> Result<Box<[AsciiByte]>, NonAsciiError> {
+    todo!()
+}
+
 const fn ascii_slice_to_bytes(ascii_slice: &[AsciiByte]) -> &[u8] {
     // Safety:
     // - AsciiByte is transparent over u8
@@ -87,6 +92,17 @@ impl AsciiStr {
     pub(crate) fn from_boxed_ascii_slice(ascii_slice: Box<[AsciiByte]>) -> Box<Self> {
         // Safety: same reason ref-cast works on references
         unsafe { core::mem::transmute(ascii_slice) }
+    }
+
+    #[cfg(feature = "alloc")]
+    pub fn try_from_boxed_str(s: Box<str>) -> Result<Box<AsciiStr>, NonAsciiError> {
+        Self::try_from_boxed_bytes(s.into_boxed_bytes())
+    }
+
+    #[cfg(feature = "alloc")]
+    pub fn try_from_boxed_bytes(bytes: Box<[u8]>) -> Result<Box<AsciiStr>, NonAsciiError> {
+        let boxed = try_boxed_ascii_slice_from_boxed_bytes(bytes)?;
+        Ok(Self::from_boxed_ascii_slice(boxed))
     }
 
     pub const fn try_from_bytes(bytes: &[u8]) -> Result<&Self, NonAsciiError> {

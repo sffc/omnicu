@@ -16,6 +16,8 @@ mod alloc_impls;
 mod builder;
 mod reader;
 mod ref_cast;
+#[cfg(feature = "serde")]
+mod serde;
 mod trie;
 mod varint;
 #[cfg(feature = "zerovec")]

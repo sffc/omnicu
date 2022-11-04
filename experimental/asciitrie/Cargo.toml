@@ -33,6 +33,7 @@ denylist = ["bench"]
 zerovec = { path = "../../utils/zerovec", optional = true }
 litemap = { path = "../../utils/litemap", default-features = false, features = ["alloc"], optional = true }
 ref-cast = { version = "1.0.12" }
+serde = { version = "1.0", optional = true }
 
 [dev-dependencies]
 postcard = { version = "1.0", default-features = false, features = ["alloc"] }
@@ -51,6 +52,7 @@ default = []
 bench = []
 alloc = []
 litemap = ["dep:litemap", "alloc"]
+serde = ["dep:serde", "alloc", "litemap/serde"]
 
 [[bench]]
 name = "overview"
