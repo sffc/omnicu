@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use serde::Serializer;
 use crate::AsciiStr;
 use crate::AsciiTrie;
 use alloc::borrow::Cow;
@@ -11,7 +12,9 @@ use alloc::vec::Vec;
 use litemap::LiteMap;
 use serde::de::Error;
 use serde::Deserialize;
+use serde::Serialize;
 use serde::Deserializer;
+use zerovec::ZeroVec;
 
 // /// Modified example from https://serde.rs/deserialize-map.html
 // struct AsciiTrieVisitor {
@@ -86,7 +89,7 @@ use serde::Deserializer;
 //     }
 // }
 
-impl<'de> Deserialize<'de> for &'de AsciiStr {
+impl<'de, 'data> Deserialize<'de> for &'data AsciiStr where 'de: 'data {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -97,6 +100,19 @@ impl<'de> Deserialize<'de> for &'de AsciiStr {
         } else {
             let s = <&[u8]>::deserialize(deserializer)?;
             AsciiStr::try_from_bytes(s).map_err(|_| D::Error::custom("not an ASCII string"))
+        }
+    }
+}
+
+impl<'data> Serialize for &'data AsciiStr {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if serializer.is_human_readable() {
+            self.as_str().serialize(serializer)
+        } else {
+            self.as_bytes().serialize(serializer)
         }
     }
 }
@@ -118,7 +134,20 @@ impl<'de> Deserialize<'de> for Box<AsciiStr> {
     }
 }
 
-impl<'de> Deserialize<'de> for AsciiTrie<Cow<'de, [u8]>> {
+impl Serialize for Box<AsciiStr> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if serializer.is_human_readable() {
+            self.as_str().serialize(serializer)
+        } else {
+            self.as_bytes().serialize(serializer)
+        }
+    }
+}
+
+impl<'de, 'data> Deserialize<'de> for AsciiTrie<Cow<'data, [u8]>> where 'de: 'data {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -133,5 +162,129 @@ impl<'de> Deserialize<'de> for AsciiTrie<Cow<'de, [u8]>> {
             let trie_slice = AsciiTrie::from_bytes(bytes);
             Ok(trie_slice.wrap_bytes_into_cow())
         }
+    }
+}
+
+impl<'data> Serialize for AsciiTrie<Cow<'data, [u8]>> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if serializer.is_human_readable() {
+            let lm = self.to_litemap();
+            lm.serialize(serializer)
+        } else {
+            let bytes = self.as_bytes();
+            bytes.serialize(serializer)
+        }
+    }
+}
+
+#[cfg(feature = "zerovec")]
+impl<'de, 'data> Deserialize<'de> for AsciiTrie<ZeroVec<'data, u8>> where 'de: 'data {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        if deserializer.is_human_readable() {
+            let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
+            let lm = lm.to_borrowed_keys::<_, Vec<_>>();
+            let trie_vec = AsciiTrie::from_litemap(&lm);
+            let zv = ZeroVec::new_owned(trie_vec.0);
+            Ok(AsciiTrie(zv))
+        } else {
+            let bytes = <&[u8]>::deserialize(deserializer)?;
+            let zv = ZeroVec::new_borrowed(bytes);
+            Ok(AsciiTrie(zv))
+        }
+    }
+}
+
+#[cfg(feature = "zerovec")]
+impl<'data> Serialize for AsciiTrie<ZeroVec<'data, u8>> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if serializer.is_human_readable() {
+            let lm = self.to_litemap();
+            lm.serialize(serializer)
+        } else {
+            let bytes = self.as_bytes();
+            bytes.serialize(serializer)
+        }
+    }
+}
+
+#[cfg(test)]
+mod testdata {
+    use crate as asciitrie;
+    include!("../tests/data.rs");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Serialize, Deserialize)]
+    pub struct AsciiTrieCow<'a> {
+        #[serde(borrow)]
+        trie: AsciiTrie<Cow<'a, [u8]>>,
+    }
+
+    #[test]
+    pub fn test_serde_cow() {
+        let trie = AsciiTrie::from_store(Cow::from(testdata::basic::TRIE));
+        let original = AsciiTrieCow {
+            trie
+        };
+        let json_str = serde_json::to_string(&original).unwrap();
+        let bincode_bytes = bincode::serialize(&original).unwrap();
+
+        assert_eq!(json_str, "{\"trie\":{\"ab\":1,\"abc\":2,\"abcd\":3,\"abcdghi\":4,\"abcejk\":5,\"abcfl\":6,\"abcfmn\":7}}");
+        assert_eq!(bincode_bytes, &[28, 0, 0, 0, 0, 0, 0, 0, 97, 98, 129, 99, 130, 195, 100, 101, 102, 0, 5, 8, 131, 103, 104, 105, 132, 106, 107, 133, 194, 108, 109, 0, 1, 134, 110, 135]);
+
+        let json_recovered: AsciiTrieCow = serde_json::from_str(&json_str).unwrap();
+        let bincode_recovered: AsciiTrieCow = bincode::deserialize(&bincode_bytes).unwrap();
+
+        assert_eq!(original.trie, json_recovered.trie);
+        assert_eq!(original.trie, bincode_recovered.trie);
+
+        assert!(matches!(json_recovered.trie.take_store(), Cow::Owned(_)));
+        assert!(matches!(bincode_recovered.trie.take_store(), Cow::Borrowed(_)));
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "zerovec")]
+mod tests_zerovec {
+    use super::*;
+
+    #[derive(Serialize, Deserialize)]
+    pub struct AsciiTrieZeroVec<'a> {
+        #[serde(borrow)]
+        trie: AsciiTrie<ZeroVec<'a, u8>>,
+    }
+
+    #[test]
+    pub fn test_serde_zerovec() {
+        let trie = AsciiTrie::from_store(ZeroVec::new_borrowed(testdata::basic::TRIE));
+        let original = AsciiTrieZeroVec {
+            trie
+        };
+        let json_str = serde_json::to_string(&original).unwrap();
+        let bincode_bytes = bincode::serialize(&original).unwrap();
+
+        assert_eq!(json_str, "{\"trie\":{\"ab\":1,\"abc\":2,\"abcd\":3,\"abcdghi\":4,\"abcejk\":5,\"abcfl\":6,\"abcfmn\":7}}");
+        assert_eq!(bincode_bytes, &[28, 0, 0, 0, 0, 0, 0, 0, 97, 98, 129, 99, 130, 195, 100, 101, 102, 0, 5, 8, 131, 103, 104, 105, 132, 106, 107, 133, 194, 108, 109, 0, 1, 134, 110, 135]);
+
+        let json_recovered: AsciiTrieZeroVec = serde_json::from_str(&json_str).unwrap();
+        let bincode_recovered: AsciiTrieZeroVec = bincode::deserialize(&bincode_bytes).unwrap();
+
+        assert_eq!(original.trie, json_recovered.trie);
+        assert_eq!(original.trie, bincode_recovered.trie);
+
+        assert!(json_recovered.trie.take_store().is_owned());
+        assert!(!bincode_recovered.trie.take_store().is_owned());
     }
 }

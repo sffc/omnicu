@@ -77,12 +77,14 @@ checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
 name = "asciitrie"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "criterion",
  "icu_benchmark_macros",
  "litemap",
  "postcard",
  "ref-cast",
  "serde",
+ "serde_json",
  "zerovec",
 ]
 

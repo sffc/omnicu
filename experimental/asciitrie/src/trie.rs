@@ -5,8 +5,18 @@
 use crate::reader::get;
 
 #[repr(transparent)]
-#[derive(Debug, Default, Clone, Copy, ref_cast::RefCast)]
-pub struct AsciiTrie<S: ?Sized>(pub S);
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
+pub struct AsciiTrie<S: ?Sized>(pub(crate) S);
+
+impl<S> AsciiTrie<S> {
+    pub fn from_store(store: S) -> Self {
+        Self(store)
+    }
+
+    pub fn take_store(self) -> S {
+        self.0
+    }
+}
 
 impl<S> AsciiTrie<S>
 where

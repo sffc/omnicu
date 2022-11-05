@@ -14,6 +14,7 @@ const fn single_byte_match(x: u8) -> u8 {
     x | 0b11000000
 }
 
+#[allow(dead_code)]
 pub mod basic {
     use super::*;
     pub const TRIE: &[u8] = &[

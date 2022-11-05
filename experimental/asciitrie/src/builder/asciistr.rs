@@ -66,7 +66,20 @@ const fn try_ascii_slice_from_bytes(bytes: &[u8]) -> Result<&[AsciiByte], NonAsc
 fn try_boxed_ascii_slice_from_boxed_bytes(
     bytes: Box<[u8]>,
 ) -> Result<Box<[AsciiByte]>, NonAsciiError> {
-    todo!()
+    let mut i = 0;
+    while i < bytes.len() {
+        match AsciiByte::try_from_u8(bytes[i]) {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        };
+        i += 1;
+    }
+    // Safety:
+    // - AsciiByte is transparent over u8
+    // - Therefore, [AsciiByte] is transparent over [u8]
+    // - Therefore, Box<[AsciiByte]> is transparent over Box<[u8]>
+    let boxed_ascii_bytes = unsafe { core::mem::transmute(bytes) };
+    Ok(boxed_ascii_bytes)
 }
 
 const fn ascii_slice_to_bytes(ascii_slice: &[AsciiByte]) -> &[u8] {

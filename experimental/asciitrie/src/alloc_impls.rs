@@ -12,14 +12,14 @@ use alloc::vec::Vec;
 use core::borrow::Borrow;
 
 // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
-impl Borrow<AsciiTrie<[u8]>> for AsciiTrie<Vec<u8>> {
+impl Borrow<AsciiTrie<[u8]>> for AsciiTrie<Box<[u8]>> {
     fn borrow(&self) -> &AsciiTrie<[u8]> {
         self.as_borrowed()
     }
 }
 
 impl ToOwned for AsciiTrie<[u8]> {
-    type Owned = AsciiTrie<Vec<u8>>;
+    type Owned = AsciiTrie<Box<[u8]>>;
     /// This impl allows [`AsciiTrie`] to be used inside of a [`Cow`](std::borrow::Cow).
     ///
     /// Note that it is also possible to use `AsciiTrie<ZeroVec<u8>>` for a similar result.
@@ -37,7 +37,7 @@ impl ToOwned for AsciiTrie<[u8]> {
     /// ```
     fn to_owned(&self) -> Self::Owned {
         AsciiTrie {
-            0: Vec::from(self.0.as_ref()),
+            0: Vec::from(self.0.as_ref()).into_boxed_slice(),
         }
     }
 }
@@ -56,7 +56,7 @@ where
     /// use std::borrow::Cow;
     /// use asciitrie::AsciiTrie;
     ///
-    /// let trie: AsciiTrie<&[u8]> = AsciiTrie(b"abc\x85");
+    /// let trie: &AsciiTrie<[u8]> = AsciiTrie::from_bytes(b"abc\x85");
     /// let owned: AsciiTrie<Vec<u8>> = trie.to_owned();
     ///
     /// assert_eq!(trie.get(b"abc"), Some(5));
