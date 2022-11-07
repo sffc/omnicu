@@ -14,80 +14,9 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
-use zerovec::ZeroVec;
 
-// /// Modified example from https://serde.rs/deserialize-map.html
-// struct AsciiTrieVisitor {
-// }
-
-// impl AsciiTrieVisitor {
-//     fn new() -> Self {
-//         Self {}
-//     }
-// }
-
-// impl<'de> Visitor<'de> for AsciiTrieVisitor
-// where
-//     K: Deserialize<'de> + Ord,
-//     V: Deserialize<'de>,
-//     R: StoreMut<K, V>,
-// {
-//     type Value = AsciiTrie<Cow<'de, [u8]>>;
-
-//     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-//         formatter.write_str("a map produced by LiteMap")
-//     }
-
-//     fn visit_seq<S>(self, mut access: S) -> Result<Self::Value, S::Error>
-//     where
-//         S: SeqAccess<'de>,
-//     {
-//         let mut map = LiteMap::with_capacity(access.size_hint().unwrap_or(0));
-
-//         // While there are entries remaining in the input, add them
-//         // into our map.
-//         while let Some((key, value)) = access.next_element()? {
-//             // Try to append it at the end, hoping for a sorted map.
-//             // If not sorted, insert as usual.
-//             // This allows for arbitrary maps (e.g. from user JSON)
-//             // to be deserialized into LiteMap
-//             // without impacting performance in the case of deserializing
-//             // a serialized map that came from another LiteMap
-//             if let Some((key, value)) = map.try_append(key, value) {
-//                 // Note: this effectively selection sorts the map,
-//                 // which isn't efficient for large maps
-//                 map.insert(key, value);
-//             }
-//         }
-
-//         Ok(map)
-//     }
-
-//     fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
-//     where
-//         M: MapAccess<'de>,
-//     {
-//         let mut map = LiteMap::with_capacity(access.size_hint().unwrap_or(0));
-
-//         // While there are entries remaining in the input, add them
-//         // into our map.
-//         while let Some((key, value)) = access.next_entry()? {
-//             // Try to append it at the end, hoping for a sorted map.
-//             // If not sorted, insert as usual.
-//             // This allows for arbitrary maps (e.g. from user JSON)
-//             // to be deserialized into LiteMap
-//             // without impacting performance in the case of deserializing
-//             // a serialized map that came from another LiteMap
-//             if let Some((key, value)) = map.try_append(key, value) {
-//                 // Note: this effectively selection sorts the map,
-//                 // which isn't efficient for large maps
-//                 map.insert(key, value);
-//             }
-//         }
-
-//         Ok(map)
-//     }
-// }
+#[cfg(feature = "zerovec")]
+use zerovec::{ZeroVec, ZeroSlice};
 
 impl<'de, 'data> Deserialize<'de> for &'data AsciiStr
 where
@@ -202,8 +131,8 @@ where
             let zv = ZeroVec::new_owned(trie_vec.0);
             Ok(AsciiTrie(zv))
         } else {
-            let bytes = <&[u8]>::deserialize(deserializer)?;
-            let zv = ZeroVec::new_borrowed(bytes);
+            let bytes = <&ZeroSlice<u8>>::deserialize(deserializer)?;
+            let zv = bytes.as_zerovec();
             Ok(AsciiTrie(zv))
         }
     }

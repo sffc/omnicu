@@ -232,13 +232,13 @@ impl Borrow<str> for AsciiStr {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl Borrow<str> for &AsciiStr {
     fn borrow(&self) -> &str {
         self.as_str()
     }
 }
 
+#[cfg(feature = "alloc")]
 impl Borrow<str> for Box<AsciiStr> {
     fn borrow(&self) -> &str {
         self.as_str()
