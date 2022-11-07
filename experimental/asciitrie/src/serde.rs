@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use serde::de::Visitor;
 use crate::AsciiStr;
 use crate::AsciiTrie;
 use alloc::borrow::Cow;
@@ -14,9 +15,10 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
+use core::fmt;
 
 #[cfg(feature = "zerovec")]
-use zerovec::{ZeroSlice, ZeroVec};
+use zerovec::ZeroVec;
 
 impl<'de, 'data> Deserialize<'de> for &'data AsciiStr
 where
@@ -79,6 +81,20 @@ impl Serialize for Box<AsciiStr> {
     }
 }
 
+/// To ensure that we use `deserialize_bytes` instead of `deserialize_seq`,
+/// use a helper struct for deserializing the bytes.
+/// <https://github.com/serde-rs/serde/issues/309>
+struct BytesVisitor;
+impl<'de> Visitor<'de> for BytesVisitor {
+    type Value = &'de [u8];
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "a slice of borrowed bytes")
+    }
+    fn visit_borrowed_bytes<E>(self, v: &'de [u8]) -> Result<Self::Value, E> {
+        Ok(v)
+    }
+}
+
 impl<'de, 'data> Deserialize<'de> for AsciiTrie<Cow<'data, [u8]>>
 where
     'de: 'data,
@@ -93,7 +109,7 @@ where
             let trie_vec = AsciiTrie::from_litemap(&lm);
             Ok(trie_vec.wrap_bytes_into_cow())
         } else {
-            let bytes = <&[u8]>::deserialize(deserializer)?;
+            let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
             let trie_slice = AsciiTrie::from_bytes(bytes);
             Ok(trie_slice.wrap_bytes_into_cow())
         }
@@ -131,8 +147,8 @@ where
             let zv = ZeroVec::new_owned(trie_vec.0);
             Ok(AsciiTrie(zv))
         } else {
-            let bytes = <&ZeroSlice<u8>>::deserialize(deserializer)?;
-            let zv = bytes.as_zerovec();
+            let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
+            let zv = ZeroVec::new_borrowed(bytes);
             Ok(AsciiTrie(zv))
         }
     }
