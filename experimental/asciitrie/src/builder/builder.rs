@@ -17,7 +17,7 @@ pub(crate) struct AsciiTrieBuilder<const N: usize> {
 }
 
 impl<const N: usize> AsciiTrieBuilder<N> {
-    #[cfg(feature = "litemap")]
+    #[cfg(feature = "alloc")]
     pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
         let slice = self.data.atbs_as_bytes();
         AsciiTrie(slice.as_slice())
@@ -89,17 +89,8 @@ impl<const N: usize> AsciiTrieBuilder<N> {
         )
     }
 
-    #[cfg(feature = "litemap")]
-    pub fn from_litemap<'a, S>(items: litemap::LiteMap<&'a AsciiStr, usize, S>) -> Self
-    where
-        S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
-    {
-        let items: ConstSlice<(&AsciiStr, usize)> = items.as_slice().into();
-        Self::from_sorted_tuple_vec(items)
-    }
-
     /// Panics if the items are not sorted
-    pub const fn from_tuple_vec<'a>(items: &[(&'a AsciiStr, usize)]) -> Self {
+    pub const fn from_tuple_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Self {
         let items = ConstSlice::from_slice(items);
         let mut prev: Option<&'a AsciiStr> = None;
         const_for_each!(items, (ascii_str, _), {
@@ -113,11 +104,11 @@ impl<const N: usize> AsciiTrieBuilder<N> {
             };
             prev = Some(ascii_str)
         });
-        Self::from_sorted_tuple_vec(items)
+        Self::from_sorted_const_tuple_slice(items)
     }
 
     /// Assumes that the items are sorted
-    pub(crate) const fn from_sorted_tuple_vec<'a>(
+    pub const fn from_sorted_const_tuple_slice<'a>(
         items: ConstSlice<(&'a AsciiStr, usize)>,
     ) -> Self {
         let mut result = Self::new();

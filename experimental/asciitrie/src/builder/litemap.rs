@@ -9,36 +9,6 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use litemap::LiteMap;
 
-impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<Vec<u8>> {
-    /// ***Enable this function with the `"litemap"` feature.***
-    ///
-    /// ```
-    /// use asciitrie::AsciiStr;
-    /// use asciitrie::AsciiTrie;
-    ///
-    /// let trie: AsciiTrie<Vec<u8>> = [
-    ///     ("foo", 1),
-    ///     ("bar", 2),
-    ///     ("bazzoo", 3),
-    ///     ("internationalization", 18),
-    /// ]
-    /// .into_iter()
-    /// .map(AsciiStr::try_from_str_with_value)
-    /// .collect::<Result<_, _>>()
-    /// .unwrap();
-    ///
-    /// assert_eq!(trie.get(b"foo"), Some(1));
-    /// assert_eq!(trie.get(b"bar"), Some(2));
-    /// assert_eq!(trie.get(b"bazzoo"), Some(3));
-    /// assert_eq!(trie.get(b"internationalization"), Some(18));
-    /// assert_eq!(trie.get(b"unknown"), None);
-    /// ```
-    fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
-        let items = LiteMap::<&AsciiStr, usize>::from_iter(iter);
-        Self::from_litemap(&items)
-    }
-}
-
 impl AsciiTrie<Vec<u8>> {
     /// Creates an [`AsciiTrie`] from a [`LiteMap`] mapping from [`AsciiStr`] to `usize`.
     ///
@@ -78,7 +48,7 @@ impl AsciiTrie<Vec<u8>> {
         /// ```
         const _: () = ();
 
-        AsciiTrieBuilder::<2048>::from_litemap(items.as_sliced())
+        AsciiTrieBuilder::<2048>::from_sorted_const_tuple_slice(items.as_slice().into())
             .to_ascii_trie()
             .to_owned()
     }
@@ -111,5 +81,23 @@ where
     /// ```
     pub fn to_litemap(&self) -> LiteMap<Box<AsciiStr>, usize> {
         self.iter().collect()
+    }
+}
+
+impl<'a, S> From<LiteMap<&'a AsciiStr, usize, S>> for AsciiTrie<Vec<u8>>
+    where
+        S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
+{
+    fn from(other: LiteMap<&'a AsciiStr, usize, S>) -> Self {
+        Self::from_litemap(&other)
+    }
+}
+
+impl<'a, S> From<&LiteMap<&'a AsciiStr, usize, S>> for AsciiTrie<Vec<u8>>
+    where
+        S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
+{
+    fn from(other: &LiteMap<&'a AsciiStr, usize, S>) -> Self {
+        Self::from_litemap(other)
     }
 }

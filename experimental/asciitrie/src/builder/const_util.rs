@@ -63,7 +63,7 @@ impl<'a, T> ConstSlice<'a, T> {
         }
     }
 
-    #[cfg(any(test, feature = "litemap"))]
+    #[cfg(any(test, feature = "alloc"))]
     pub fn as_slice(&self) -> &'a [T] {
         &self.full_slice[self.start..self.limit]
     }

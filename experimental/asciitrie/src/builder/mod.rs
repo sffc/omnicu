@@ -8,6 +8,8 @@ pub(crate) mod const_util;
 #[cfg(feature = "litemap")]
 mod litemap;
 mod store;
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
@@ -80,7 +82,7 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     /// ]);
     /// ```
     pub const fn from_asciistr_value_slice(items: &[(&AsciiStr, usize)]) -> Self {
-        AsciiTrieBuilder::<N>::from_tuple_vec(items).into_ascii_trie_or_panic()
+        AsciiTrieBuilder::<N>::from_tuple_slice(items).into_ascii_trie_or_panic()
     }
 
     /// **Const Constructor:** Creates an [`AsciiTrie`] from a sorted slice of keys and values.
@@ -133,5 +135,39 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
             i += 1;
         }
         Self::from_asciistr_value_slice(&asciistr_array)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<Vec<u8>> {
+    /// ***Enable this function with the `"alloc"` feature.***
+    ///
+    /// ```
+    /// use asciitrie::AsciiStr;
+    /// use asciitrie::AsciiTrie;
+    ///
+    /// let trie: AsciiTrie<Vec<u8>> = [
+    ///     ("foo", 1),
+    ///     ("bar", 2),
+    ///     ("bazzoo", 3),
+    ///     ("internationalization", 18),
+    /// ]
+    /// .into_iter()
+    /// .map(AsciiStr::try_from_str_with_value)
+    /// .collect::<Result<_, _>>()
+    /// .unwrap();
+    ///
+    /// assert_eq!(trie.get(b"foo"), Some(1));
+    /// assert_eq!(trie.get(b"bar"), Some(2));
+    /// assert_eq!(trie.get(b"bazzoo"), Some(3));
+    /// assert_eq!(trie.get(b"internationalization"), Some(18));
+    /// assert_eq!(trie.get(b"unknown"), None);
+    /// ```
+    fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
+        let mut items = Vec::<(&AsciiStr, usize)>::from_iter(iter);
+        items.sort();
+        AsciiTrieBuilder::<2048>::from_sorted_const_tuple_slice(items.as_slice().into())
+            .to_ascii_trie()
+            .to_owned()
     }
 }

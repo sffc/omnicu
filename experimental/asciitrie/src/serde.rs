@@ -16,7 +16,7 @@ use serde::Serialize;
 use serde::Serializer;
 
 #[cfg(feature = "zerovec")]
-use zerovec::{ZeroVec, ZeroSlice};
+use zerovec::{ZeroSlice, ZeroVec};
 
 impl<'de, 'data> Deserialize<'de> for &'data AsciiStr
 where
