@@ -2,7 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use serde::Serializer;
 use crate::AsciiStr;
 use crate::AsciiTrie;
 use alloc::borrow::Cow;
@@ -12,8 +11,9 @@ use alloc::vec::Vec;
 use litemap::LiteMap;
 use serde::de::Error;
 use serde::Deserialize;
-use serde::Serialize;
 use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 use zerovec::ZeroVec;
 
 // /// Modified example from https://serde.rs/deserialize-map.html
@@ -89,7 +89,10 @@ use zerovec::ZeroVec;
 //     }
 // }
 
-impl<'de, 'data> Deserialize<'de> for &'data AsciiStr where 'de: 'data {
+impl<'de, 'data> Deserialize<'de> for &'data AsciiStr
+where
+    'de: 'data,
+{
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -147,7 +150,10 @@ impl Serialize for Box<AsciiStr> {
     }
 }
 
-impl<'de, 'data> Deserialize<'de> for AsciiTrie<Cow<'data, [u8]>> where 'de: 'data {
+impl<'de, 'data> Deserialize<'de> for AsciiTrie<Cow<'data, [u8]>>
+where
+    'de: 'data,
+{
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -181,7 +187,10 @@ impl<'data> Serialize for AsciiTrie<Cow<'data, [u8]>> {
 }
 
 #[cfg(feature = "zerovec")]
-impl<'de, 'data> Deserialize<'de> for AsciiTrie<ZeroVec<'data, u8>> where 'de: 'data {
+impl<'de, 'data> Deserialize<'de> for AsciiTrie<ZeroVec<'data, u8>>
+where
+    'de: 'data,
+{
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -235,14 +244,12 @@ mod tests {
     #[test]
     pub fn test_serde_cow() {
         let trie = AsciiTrie::from_store(Cow::from(testdata::basic::TRIE));
-        let original = AsciiTrieCow {
-            trie
-        };
+        let original = AsciiTrieCow { trie };
         let json_str = serde_json::to_string(&original).unwrap();
         let bincode_bytes = bincode::serialize(&original).unwrap();
 
-        assert_eq!(json_str, "{\"trie\":{\"ab\":1,\"abc\":2,\"abcd\":3,\"abcdghi\":4,\"abcejk\":5,\"abcfl\":6,\"abcfmn\":7}}");
-        assert_eq!(bincode_bytes, &[28, 0, 0, 0, 0, 0, 0, 0, 97, 98, 129, 99, 130, 195, 100, 101, 102, 0, 5, 8, 131, 103, 104, 105, 132, 106, 107, 133, 194, 108, 109, 0, 1, 134, 110, 135]);
+        assert_eq!(json_str, testdata::basic::JSON_STR);
+        assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES);
 
         let json_recovered: AsciiTrieCow = serde_json::from_str(&json_str).unwrap();
         let bincode_recovered: AsciiTrieCow = bincode::deserialize(&bincode_bytes).unwrap();
@@ -251,7 +258,10 @@ mod tests {
         assert_eq!(original.trie, bincode_recovered.trie);
 
         assert!(matches!(json_recovered.trie.take_store(), Cow::Owned(_)));
-        assert!(matches!(bincode_recovered.trie.take_store(), Cow::Borrowed(_)));
+        assert!(matches!(
+            bincode_recovered.trie.take_store(),
+            Cow::Borrowed(_)
+        ));
     }
 }
 
@@ -269,14 +279,12 @@ mod tests_zerovec {
     #[test]
     pub fn test_serde_zerovec() {
         let trie = AsciiTrie::from_store(ZeroVec::new_borrowed(testdata::basic::TRIE));
-        let original = AsciiTrieZeroVec {
-            trie
-        };
+        let original = AsciiTrieZeroVec { trie };
         let json_str = serde_json::to_string(&original).unwrap();
         let bincode_bytes = bincode::serialize(&original).unwrap();
 
-        assert_eq!(json_str, "{\"trie\":{\"ab\":1,\"abc\":2,\"abcd\":3,\"abcdghi\":4,\"abcejk\":5,\"abcfl\":6,\"abcfmn\":7}}");
-        assert_eq!(bincode_bytes, &[28, 0, 0, 0, 0, 0, 0, 0, 97, 98, 129, 99, 130, 195, 100, 101, 102, 0, 5, 8, 131, 103, 104, 105, 132, 106, 107, 133, 194, 108, 109, 0, 1, 134, 110, 135]);
+        assert_eq!(json_str, testdata::basic::JSON_STR);
+        assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES);
 
         let json_recovered: AsciiTrieZeroVec = serde_json::from_str(&json_str).unwrap();
         let bincode_recovered: AsciiTrieZeroVec = bincode::deserialize(&bincode_bytes).unwrap();
