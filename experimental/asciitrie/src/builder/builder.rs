@@ -144,30 +144,36 @@ impl<const N: usize> AsciiTrieBuilder<N> {
                 .0
                 .ascii_at_or_panic(prefix_len);
             let mut children = ConstStackChildrenStore::cs_new_empty();
-            while i > 0 {
-                let c = items.get_or_panic(i - 1).0.ascii_at_or_panic(prefix_len);
-                if c.get() != current_ascii.get() {
+            loop {
+                let prev_ascii = current_ascii;
+                let should_recurse = if i == 0 {
+                    true
+                } else {
+                    current_ascii = items.get_or_panic(i - 1).0.ascii_at_or_panic(prefix_len);
+                    current_ascii.get() != prev_ascii.get()
+                };
+                if should_recurse {
                     let size;
                     (self, size) =
                         self.create_recursive(items.get_subslice_or_panic(i, j), prefix_len + 1);
                     total_size += size;
-                    children = children.cs_push(current_ascii, size);
-                    current_ascii = c;
+                    children = children.cs_push(prev_ascii, size);
                     j = i;
                 }
-                i -= 1;
+                if i == 0 {
+                    break;
+                } else {
+                    i -= 1;
+                }
             }
-            let size;
-            (self, size) = self.create_recursive(items.get_subslice_or_panic(i, j), prefix_len + 1);
-            total_size += size;
-            if children.cs_len() == 0 {
+            if children.cs_len() == 1 {
                 // All strings start with same byte
                 let size;
                 (self, size) = self.prepend_ascii(current_ascii);
                 total_size += size;
             } else {
                 // Need to make a branch node
-                children = children.cs_push(current_ascii, size);
+                // children = children.cs_push(current_ascii, size);
                 let size;
                 (self, size) =
                     self.prepend_branch(children.cs_ascii_slice(), children.cs_sizes_slice());
