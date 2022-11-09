@@ -85,8 +85,8 @@ where
 }
 
 impl<'a, S> From<LiteMap<&'a AsciiStr, usize, S>> for AsciiTrie<Vec<u8>>
-    where
-        S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
+where
+    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
 {
     fn from(other: LiteMap<&'a AsciiStr, usize, S>) -> Self {
         Self::from_litemap(&other)
@@ -94,8 +94,8 @@ impl<'a, S> From<LiteMap<&'a AsciiStr, usize, S>> for AsciiTrie<Vec<u8>>
 }
 
 impl<'a, S> From<&LiteMap<&'a AsciiStr, usize, S>> for AsciiTrie<Vec<u8>>
-    where
-        S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
+where
+    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
 {
     fn from(other: &LiteMap<&'a AsciiStr, usize, S>) -> Self {
         Self::from_litemap(other)

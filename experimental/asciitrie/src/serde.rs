@@ -2,20 +2,20 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use serde::de::Visitor;
 use crate::AsciiStr;
 use crate::AsciiTrie;
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::fmt;
 use litemap::LiteMap;
 use serde::de::Error;
+use serde::de::Visitor;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
-use core::fmt;
 
 #[cfg(feature = "zerovec")]
 use zerovec::ZeroVec;
