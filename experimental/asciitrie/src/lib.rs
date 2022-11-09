@@ -15,6 +15,7 @@ extern crate alloc;
 mod alloc_impls;
 mod builder;
 mod reader;
+pub mod reader2;
 mod ref_cast;
 #[cfg(feature = "serde")]
 mod serde;

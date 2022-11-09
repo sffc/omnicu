@@ -14,6 +14,26 @@ const fn single_byte_match(x: u8) -> u8 {
     x | 0b11000000
 }
 
+const fn single_byte_intermediate_value(x: u8) -> u8 {
+    debug_assert!(x <= 0b00001111);
+    x | 0b10000000
+}
+
+const fn single_byte_final_value(x: u8) -> u8 {
+    debug_assert!(x <= 0b00001111);
+    x | 0b10100000
+}
+
+const fn single_byte_branch_equal(x: u8) -> u8 {
+    debug_assert!(x <= 0b00001111);
+    x | 0b11000000
+}
+
+const fn single_byte_branch_greater(x: u8) -> u8 {
+    debug_assert!(x <= 0b00001111);
+    x | 0b11100000
+}
+
 #[allow(dead_code)]
 pub mod basic {
     use super::*;
@@ -55,6 +75,32 @@ pub mod basic {
         // subslice @ 1
         b'n',
         single_byte_value(7),
+    ];
+    pub static TRIE2: &[u8] = &[
+        b'a',
+        b'b',
+        single_byte_intermediate_value(1),
+        b'c',
+        single_byte_intermediate_value(2),
+        single_byte_branch_equal(6),
+        single_byte_branch_greater(3),
+        b'e',
+        b'd',
+        single_byte_intermediate_value(3),
+        b'g',
+        b'h',
+        b'i',
+        single_byte_final_value(4),
+        b'j',
+        b'k',
+        single_byte_final_value(5),
+        b'f',
+        single_byte_branch_equal(2),
+        b'm',
+        b'l',
+        single_byte_final_value(6),
+        b'n',
+        single_byte_final_value(7),
     ];
     pub static DATA: &[(&AsciiStr, usize)] = &[
         (AsciiStr::from_str_or_panic("ab"), 1),

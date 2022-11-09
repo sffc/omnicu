@@ -32,6 +32,28 @@ pub const fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> 
     Some((value, remainder))
 }
 
+pub const fn read_varint2(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
+    let mut value = (start & 0b00001111) as usize;
+    let mut remainder = remainder;
+    if (start & 0b00010000) != 0 {
+        loop {
+            let next;
+            (next, remainder) = match remainder.split_first() {
+                Some(t) => t,
+                None => return None,
+            };
+            // Note: value << 7 could drop high bits. The first addition can't overflow.
+            // The second addition could overflow; in such a case we just inform the
+            // developer via the debug assertion.
+            value = (value << 7) + ((*next & 0b01111111) as usize) + 16;
+            if (*next & 0b10000000) == 0 {
+                break;
+            }
+        }
+    }
+    Some((value, remainder))
+}
+
 // *Upper Bound:* Each trail byte stores 7 bits of data, plus the latent value.
 // Add an extra 1 since the lead byte holds only 5 bits of data.
 const MAX_VARINT_LENGTH: usize = 1 + core::mem::size_of::<usize>() * 8 / 7;
