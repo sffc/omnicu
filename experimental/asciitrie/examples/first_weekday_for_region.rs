@@ -185,7 +185,7 @@ fn black_box<T>(dummy: T) -> T {
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
     icu_benchmark_macros::main_setup!();
 
-    if black_box(&TRIE).get(b"MV") == Some(weekday::FRI) {
+    if asciitrie::reader2::get(black_box(&[]), b"MV") == Some(weekday::FRI) {
         0
     } else {
         1

@@ -40,6 +40,16 @@ where
         .eq(trie.iter()));
 }
 
+fn check_ascii_trie2(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
+    for (k, v) in items.iter() {
+        assert_eq!(asciitrie::reader2::get(trie, k.as_bytes()), Some(*v));
+    }
+    // assert!(items
+    //     .iter()
+    //     .map(|(s, v)| (s.to_boxed(), *v))
+    //     .eq(trie.iter()));
+}
+
 #[test]
 fn test_empty() {
     let trie = AsciiTrie::from_litemap(&LiteMap::new_vec());
@@ -62,6 +72,9 @@ fn test_single_empty_value() {
     assert_eq!(trie.get(b"x"), None);
     let expected_bytes = &[0b10001010];
     assert_eq!(trie.as_bytes(), expected_bytes);
+
+    let expected_bytes2 = &[0b10101010];
+    check_ascii_trie2(&litemap, expected_bytes2);
 }
 
 #[test]
@@ -78,6 +91,9 @@ fn test_single_byte_string() {
     check_ascii_trie(&litemap, &trie);
     let expected_bytes = &[b'x', 0b10001010];
     assert_eq!(trie.as_bytes(), expected_bytes);
+
+    let expected_bytes2 = &[b'x', 0b10101010];
+    check_ascii_trie2(&litemap, expected_bytes2);
 }
 
 #[test]
@@ -96,6 +112,9 @@ fn test_single_string() {
     check_ascii_trie(&litemap, &trie);
     let expected_bytes = &[b'x', b'y', b'z', 0b10001010];
     assert_eq!(trie.as_bytes(), expected_bytes);
+
+    let expected_bytes2 = &[b'x', b'y', b'z', 0b10101010];
+    check_ascii_trie2(&litemap, expected_bytes2);
 }
 
 #[test]
@@ -113,6 +132,9 @@ fn test_prefix_strings() {
     check_ascii_trie(&litemap, &trie);
     let expected_bytes = &[b'x', 0b10000000, b'y', 0b10000001];
     assert_eq!(trie.as_bytes(), expected_bytes);
+
+    let expected_bytes2 = &[b'x', 0b10000000, b'y', 0b10100001];
+    check_ascii_trie2(&litemap, expected_bytes2);
 }
 
 #[test]
@@ -130,6 +152,9 @@ fn test_single_byte_branch() {
     check_ascii_trie(&litemap, &trie);
     let expected_bytes = &[0b11000010, b'x', b'y', 0, 1, 0b10000000, 0b10000001];
     assert_eq!(trie.as_bytes(), expected_bytes);
+
+    let expected_bytes2 = &[0b11000010, b'y', b'x', 0b10100000, 0b10100001];
+    check_ascii_trie2(&litemap, expected_bytes2);
 }
 
 #[test]
@@ -151,6 +176,11 @@ fn test_multi_byte_branch() {
         b'a', 0b11000010, b'x', b'y', 0, 2, b'b', 0b10000000, b'c', 0b10000001,
     ];
     assert_eq!(trie.as_bytes(), expected_bytes);
+
+    let expected_bytes2 = &[
+        b'a', 0b11000011, b'y', b'x', b'b', 0b10100000, b'c', 0b10100001,
+    ];
+    check_ascii_trie2(&litemap, expected_bytes2);
 }
 
 #[test]
@@ -170,6 +200,9 @@ fn test_linear_varint_values() {
     check_ascii_trie(&litemap, &trie);
     let expected_bytes = &[0xA0, 0x44, b'x', 0xA3, 0x54, b'y', b'z', 0xA0, 0x86, 0x68];
     assert_eq!(trie.as_bytes(), expected_bytes);
+
+    let expected_bytes2 = &[0x90, 0x54, b'x', 0x93, 0x64, b'y', b'z', 0xB0, 0x96, 0x78];
+    check_ascii_trie2(&litemap, expected_bytes2);
 }
 
 #[test]
