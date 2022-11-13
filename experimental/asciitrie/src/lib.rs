@@ -26,4 +26,5 @@ mod zerovec;
 
 pub use builder::AsciiStr;
 pub use builder::NonAsciiError;
+pub use builder::make2_litemap;
 pub use trie::AsciiTrie;

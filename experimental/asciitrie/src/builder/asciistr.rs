@@ -192,6 +192,19 @@ impl AsciiStr {
         self.0[index]
     }
 
+    pub(crate) const fn prefix_eq(&self, other: &AsciiStr, prefix_len: usize) -> bool {
+        assert!(prefix_len <= self.len());
+        assert!(prefix_len <= other.len());
+        let mut i = 0;
+        while i < prefix_len {
+            if self.0[i].get() != other.0[i].get() {
+                return false;
+            }
+            i += 1;
+        }
+        return true;
+    }
+
     pub fn as_bytes(&self) -> &[u8] {
         ascii_slice_to_bytes(&self.0)
     }

@@ -85,6 +85,33 @@ pub(crate) const fn write_varint(value: usize) -> ConstArrayBuilder<MAX_VARINT_L
     ConstArrayBuilder::from_manual_slice(result, i, MAX_VARINT_LENGTH)
 }
 
+pub(crate) const fn write_varint2(value: usize) -> ConstArrayBuilder<MAX_VARINT_LENGTH, u8> {
+    let mut result = [0; MAX_VARINT_LENGTH];
+    let mut i = MAX_VARINT_LENGTH - 1;
+    let mut value = value;
+    let mut last = true;
+    loop {
+        if value < 16 {
+            result[i] = value as u8;
+            if !last {
+                result[i] |= 0b00010000;
+            }
+            break;
+        }
+        value -= 16;
+        result[i] = (value as u8) & 0b01111111;
+        if !last {
+            result[i] |= 0b10000000;
+        } else {
+            last = false;
+        }
+        value >>= 7;
+        i -= 1;
+    }
+    // The bytes are from i to the end.
+    ConstArrayBuilder::from_manual_slice(result, i, MAX_VARINT_LENGTH)
+}
+
 /// A secondary implementation that separates the latent value while computing the varint.
 #[cfg(test)]
 pub(crate) const fn write_varint_reference(

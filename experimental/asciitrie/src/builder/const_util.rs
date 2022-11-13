@@ -49,6 +49,14 @@ impl<'a, T> ConstSlice<'a, T> {
         }
     }
 
+    pub const fn last(&self) -> Option<&T> {
+        if self.len() == 0 {
+            None
+        } else {
+            Some(self.get_or_panic(self.len() - 1))
+        }
+    }
+
     pub const fn get_subslice_or_panic(
         &self,
         new_start: usize,

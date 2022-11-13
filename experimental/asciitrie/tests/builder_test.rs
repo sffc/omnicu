@@ -74,6 +74,8 @@ fn test_single_empty_value() {
     assert_eq!(trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[0b10101010];
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2, expected_bytes2);
     check_ascii_trie2(&litemap, expected_bytes2);
 }
 
@@ -93,6 +95,8 @@ fn test_single_byte_string() {
     assert_eq!(trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[b'x', 0b10101010];
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2, expected_bytes2);
     check_ascii_trie2(&litemap, expected_bytes2);
 }
 
@@ -114,6 +118,8 @@ fn test_single_string() {
     assert_eq!(trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[b'x', b'y', b'z', 0b10101010];
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2, expected_bytes2);
     check_ascii_trie2(&litemap, expected_bytes2);
 }
 
@@ -134,6 +140,8 @@ fn test_prefix_strings() {
     assert_eq!(trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[b'x', 0b10000000, b'y', 0b10100001];
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2, expected_bytes2);
     check_ascii_trie2(&litemap, expected_bytes2);
 }
 
@@ -154,6 +162,8 @@ fn test_single_byte_branch() {
     assert_eq!(trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[0b11000010, b'y', b'x', 0b10100000, 0b10100001];
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2, expected_bytes2);
     check_ascii_trie2(&litemap, expected_bytes2);
 }
 

@@ -2,7 +2,9 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use alloc::borrow::ToOwned;
 use crate::builder::AsciiTrieBuilder;
+use crate::builder::builder2::AsciiTrieBuilder2;
 use crate::AsciiStr;
 use crate::AsciiTrie;
 use alloc::boxed::Box;
@@ -100,4 +102,14 @@ where
     fn from(other: &LiteMap<&'a AsciiStr, usize, S>) -> Self {
         Self::from_litemap(other)
     }
+}
+
+
+pub fn make2_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>
+where
+    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
+{
+    AsciiTrieBuilder2::<1000>::from_sorted_const_tuple_slice(items.as_slice().into())
+    .as_bytes()
+    .to_owned()
 }
