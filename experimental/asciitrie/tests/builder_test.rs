@@ -190,6 +190,8 @@ fn test_multi_byte_branch() {
     let expected_bytes2 = &[
         b'a', 0b11000011, b'y', b'x', b'b', 0b10100000, b'c', 0b10100001,
     ];
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2, expected_bytes2);
     check_ascii_trie2(&litemap, expected_bytes2);
 }
 
@@ -212,6 +214,8 @@ fn test_linear_varint_values() {
     assert_eq!(trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[0x90, 0x54, b'x', 0x93, 0x64, b'y', b'z', 0xB0, 0x96, 0x78];
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2, expected_bytes2);
     check_ascii_trie2(&litemap, expected_bytes2);
 }
 

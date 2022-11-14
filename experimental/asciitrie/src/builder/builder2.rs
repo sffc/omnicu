@@ -180,13 +180,17 @@ impl<const N: usize> AsciiTrieBuilder2<N> {
                     break;
                 }
                 let candidate = all_items.get_or_panic(new_i - 1).0;
-                if candidate.len() == prefix_len {
-                    new_i -= 1;
+                if candidate.len() < prefix_len {
+                    // Too short
                     break;
                 }
                 if item_i.0.prefix_eq(candidate, prefix_len) {
                     new_i -= 1;
                 } else {
+                    break;
+                }
+                if candidate.len() == prefix_len {
+                    // A string of length prefix_len can't be preceded by another with that prefix
                     break;
                 }
                 let candidate = candidate.ascii_at_or_panic(prefix_len);
@@ -201,14 +205,17 @@ impl<const N: usize> AsciiTrieBuilder2<N> {
                     break;
                 }
                 let candidate = all_items.get_or_panic(new_j).0;
-                if candidate.len() == prefix_len {
-                    new_j += 1;
+                if candidate.len() < prefix_len {
+                    // Too short
                     break;
                 }
                 if item_j.0.prefix_eq(candidate, prefix_len) {
                     new_j += 1;
                 } else {
                     break;
+                }
+                if candidate.len() == prefix_len {
+                    panic!("A shorter string should be earlier in the sequence");
                 }
                 let candidate = candidate.ascii_at_or_panic(prefix_len);
                 if candidate != ascii_j {
