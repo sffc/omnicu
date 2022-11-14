@@ -265,6 +265,210 @@ fn test_varint_branch() {
         0xA0, 15, 0xA0, 16, 0xA0, 17, 0xA0, 18, 0xA0, 19,
     ];
     assert_eq!(trie.as_bytes(), expected_bytes);
+
+    let expected_bytes2 = &[
+        0xd0, // branch equal varint
+        0x4a, // branch equal 90
+        0xe2, // branch greater 2
+        b'a', // ascii
+        0xd0, // branch equal varint
+        0x17, // branch equal 39 
+        0xe1, // branch greater 1
+        b'N', // ascii
+        0xd0, // branch equal varint
+        0x01, // branch equal 17
+        0xe1, // branch greater 1
+        b'G', // ascii
+        0xc8, // branch equal 8
+        0xe1, // branch greater 1
+        b'D', // ascii
+        0xc2, // branch equal 2
+        0xe1, // branch greater 1
+        b'B', // ascii
+        b'A', // ascii
+        0xa0, // final value 0
+        0xa1, // final value 1
+        b'C', // ascii
+        0xa2, // final value 2
+        0xa3, // final value 3
+        0xc2, // branch equal 2
+        b'F', // ascii
+        b'E', // ascii
+        0xa4, // final value 4
+        0xa5, // final value 5
+        0xa6, // final value 6
+        0xc8, // branch equal 8
+        0xe1, // branch greater 1
+        b'K', // ascii
+        0xc2, // branch equal 2
+        0xe1, // branch greater 1
+        b'I', // ascii
+        b'H', // ascii
+        0xa7, // final value 7
+        0xa8, // final value 8
+        b'J', // ascii
+        0xa9, // final value 9
+        0xaa, // final value 10
+        0xc2, // branch equal 2
+        b'M', // ascii
+        b'L', // ascii
+        0xab, // final value 11
+        0xac, // final value 12
+        0xad, // final value 13
+        0xd0, // branch equal varint
+        0x05, // branch equal 21
+        0xe2, // branch greater 2
+        b'U', // ascii
+        0xc9, // branch equal 9
+        0xe2, // branch greater 2
+        b'R', // ascii
+        0xc2, // branch equal 2
+        0xe1, // branch greater 1
+        b'P', // ascii
+        b'O', // ascii
+        0xae, // final value 14
+        0xaf, // final value 15
+        b'Q', // ascii
+        0xb0, // final value varint
+        0x00, // final value 16
+        0xb0, // final value varint
+        0x01, // final value 17
+        0xc3, // branch equal 3
+        b'T', // ascii
+        b'S', // ascii
+        0xb0, // final value varint
+        0x02, // final value 18
+        0xb0, // final value varint
+        0x03, // final value 19
+        0xb0, // final value varint
+        0x04, // final value 20
+        0xc7, // branch equal 7
+        0xe2, // branch greater 2
+        b'X', // ascii
+        0xc3, // branch equal 3
+        b'W', // ascii
+        b'V', // ascii
+        0xb0, // final value varint
+        0x05, // final value 21
+        0xb0, // final value varint
+        0x06, // final value 22
+        0xb0, // final value varint
+        0x07, // final value 23
+        0xc3, // branch equal 3
+        b'Z', // ascii
+        b'Y', // ascii
+        0xb0, // final value varint
+        0x08, // final value 24
+        0xb0, // final value varint
+        0x09, // final value 25
+        0xb0, // final value varint
+        0x0a, // final value 26
+        0xd0, // branch equal varint
+        0x20, // branch equal 48
+        0xe2, // branch greater 2
+        b'n', // ascii
+        0xd0, // branch equal varint
+        0x07, // branch equal 23
+        0xe2, // branch greater 2
+        b'h', // ascii
+        0xcb, // branch equal 12
+        0xe2, // branch greater 2
+        b'e', // ascii
+        0xc3, // branch equal 3
+        0xe2, // branch greater 2
+        b'c', // ascii
+        b'b', // ascii
+        0xb0, // final value varint
+        0x0b, // final value 27
+        0xb0, // final value varint
+        0x0c, // final value 28
+        b'd', // ascii
+        0xb0, // final value varint
+        0x0d, // final value 29
+        0xb0, // final value varint
+        0x0e, // final value 30
+        0xc3, // branch equal 3
+        b'g', // ascii
+        b'f', // ascii
+        0xb0, // final value varint
+        0x0f, // final value 31
+        0xb0, // final value varint
+        0x10, // final value 32
+        0xb0, // final value varint
+        0x11, // final value 33
+        0xc7, // branch equal 7
+        0xe2, // branch greater 2
+        b'k', // ascii
+        0xc3, // branch equal 3
+        b'j', // ascii
+        b'i', // ascii
+        0xb0, // final value varint
+        0x12, // final value 34
+        0xb0, // final value varint
+        0x13, // final value 35
+        0xb0, // final value varint
+        0x14, // final value 36
+        0xc3, // branch equal 3
+        b'm', // ascii
+        b'l', // ascii
+        0xb0, // final value varint
+        0x15, // final value 37
+        0xb0, // final value varint
+        0x16, // final value 38
+        0xb0, // final value varint
+        0x17, // final value 39
+        0xd0, // branch equal varint
+        0x07, // branch equal 23
+        0xe2, // branch greater 2
+        b'u', // ascii
+        0xcb, // branch equal b
+        0xe2, // branch greater 2
+        b'r', // ascii
+        0xc3, // branch equal 3
+        0xe2, // branch greater 2
+        b'p', // ascii
+        b'o', // ascii
+        0xb0, // final value varint
+        0x18, // final value 40
+        0xb0, // final value varint
+        0x19, // final value 41
+        b'q', // ascii
+        0xb0, // final value varint
+        0x1a, // final value 42
+        0xb0, // final value varint
+        0x1b, // final value 43
+        0xc3, // branch equal 3
+        b't', // ascii
+        b's', // ascii
+        0xb0, // final value varint
+        0x1c, // final value 44
+        0xb0, // final value varint
+        0x1d, // final value 45
+        0xb0, // final value varint
+        0x1e, // final value 46
+        0xc7, // branch equal 7
+        0xe2, // branch greater 2
+        b'x', // ascii
+        0xc3, // branch equal 3
+        b'w', // ascii
+        b'v', // ascii
+        0xb0, // final value varint
+        0x1f, // final value 47
+        0xb0, // final value varint
+        0x20, // final value 48
+        0xb0, // final value varint
+        0x21, // final value 49
+        0xc3, // branch equal 3
+        b'z', // ascii
+        b'y', // ascii
+        0xb0, // final value varint
+        0x22, // final value 50
+        0xb0, // final value varint
+        0x23, // final value 51
+    ];
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, expected_bytes2);
 }
 
 #[test]

@@ -100,7 +100,8 @@ impl<const N: usize> AsciiTrieBuilder2<N> {
     }
 
     #[must_use]
-    const fn prepend_branch(self, value: usize, is_greater: bool) -> (Self, usize) {
+    fn prepend_branch(self, value: usize, is_greater: bool) -> (Self, usize) {
+        std::println!("PB: {} {}", value, is_greater);
         let mut data = self.data;
         let varint_array = varint::write_varint2(value);
         data = data.atbs_extend_front(varint_array.as_const_slice());
@@ -240,12 +241,13 @@ impl<const N: usize> AsciiTrieBuilder2<N> {
             match branch_position {
                 BranchPosition::Lesser(count) => {
                     let len;
-                    (self, len) = self.prepend_ascii(ascii_i);
+                    (self, len) = self.prepend_ascii(key_ascii);
                     current_len += len;
                     let mut k = 0;
                     while k < count {
                         let (branch_type, size);
                         (lengths_stack, (branch_type, size)) = lengths_stack.pop_or_panic();
+                        std::println!("POP: {:?} {:?}", branch_type, size);
                         match branch_type {
                             BranchType::Equal2(ascii) => {
                                 let len;
@@ -257,34 +259,39 @@ impl<const N: usize> AsciiTrieBuilder2<N> {
                             BranchType::Equal3(ascii) => {
                                 let (branch_type_g, size_g);
                                 (lengths_stack, (branch_type_g, size_g)) = lengths_stack.pop_or_panic();
+                                std::println!("XPP: {:?} {:?}", branch_type_g, size_g);
                                 assert!(matches!(branch_type_g, BranchType::Greater));
                                 let len;
                                 (self, len) = self.prepend_ascii(ascii);
-                                let len2;
-                                (self, len2) = self.prepend_branch(current_len, false);
                                 let len3;
                                 (self, len3) = self.prepend_branch(size, true);
+                                let len2;
+                                (self, len2) = self.prepend_branch(current_len, false);
                                 current_len += len + len2 + len3 + size + size_g;
                             },
                             BranchType::Greater => unreachable!(),
                         }
                         k += 1;
                     }
+                    std::println!("PUSH: BranchGreater {:?}", current_len);
                     lengths_stack = lengths_stack.push(BranchType::Greater, current_len);
                     current_len = 0;
                 },
                 BranchPosition::Equal2 => {
+                    std::println!("PUSH: Equal2 {:?}", current_len);
                     lengths_stack = lengths_stack.push(BranchType::Equal2(key_ascii), current_len);
                     current_len = 0;
                 },
                 BranchPosition::Equal3 => {
-                    lengths_stack = lengths_stack.push(BranchType::Equal2(key_ascii), current_len);
+                    std::println!("PUSH: Equal3 {:?}", current_len);
+                    lengths_stack = lengths_stack.push(BranchType::Equal3(key_ascii), current_len);
                     current_len = 0;
                 },
                 BranchPosition::Greater => {
                     let len;
-                    (self, len) = self.prepend_ascii(ascii_i);
+                    (self, len) = self.prepend_ascii(key_ascii);
                     current_len += len;
+                    std::println!("PUSH: Greater {:?}", current_len);
                     lengths_stack = lengths_stack.push(BranchType::Greater, current_len);
                     current_len = 0;
                 }

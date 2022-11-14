@@ -78,7 +78,7 @@ impl ConstStackChildrenStore {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum BranchType {
     Equal2(AsciiByte),
     Equal3(AsciiByte),
