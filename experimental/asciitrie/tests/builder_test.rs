@@ -877,6 +877,45 @@ fn test_everything() {
         0b10001000, // value 8
     ];
     assert_eq!(trie.as_bytes(), expected_bytes);
+
+    let expected_bytes2 = &[
+        0x80, // intermediate value 0
+        0xCD, // branch equal 13 (to the 2nd 'x')
+        b'b', //
+        b'a', //
+        0xC4, // branch equal 4 (to the 'c')
+        0xE2, // branch greater 2 (to the 'z')
+        b'y', //
+        b'x', //
+        b'b', //
+        0xB0, // final value varint
+        0x54, // final value 100
+        b'c', //
+        0xA2, // final value 2
+        b'z', //
+        b'd', //
+        0xA3, // final value 3
+        b'x', //
+        b'e', //
+        0x84, // intermediate value 4
+        0xC7, // branch equal 7 (to intermediate value 7)
+        b'i', //
+        b'f', //
+        0xC3, // branch equal 3 (to final value 6)
+        b'h', //
+        b'g', //
+        0xB3, // final value varint
+        0x64, // final value 500
+        0xA6, // final value 6
+        0x87, // intermediate value 7
+        b'k', //
+        b'l', //
+        0xA8, // final value 8
+    ];
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2, expected_bytes2);
+    assert_eq!(trie2.len(), 32);
+    check_ascii_trie2(&litemap, expected_bytes2);
 }
 
 // fn strings_to_litemap<'a>(strings: &[&'a str]) -> Result<LiteMap<&'a AsciiStr, usize>, NonAsciiError> {
