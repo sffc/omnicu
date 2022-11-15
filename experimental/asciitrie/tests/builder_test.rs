@@ -468,6 +468,7 @@ fn test_varint_branch() {
     ];
     let trie2 = asciitrie::make2_litemap(&litemap);
     assert_eq!(trie2, expected_bytes2);
+    assert_eq!(trie2.len(), 198);
     check_ascii_trie2(&litemap, expected_bytes2);
 }
 
@@ -559,6 +560,68 @@ fn test_below_wide() {
         0x8A,
     ];
     assert_eq!(trie.as_bytes(), expected_bytes);
+
+    #[rustfmt::skip]
+    let expected_bytes2 = &[
+        0b11010000, // 'f' branch equal varint
+        0b01111111, // 'f' branch equal 143 (to linear sequence starting with 'g')
+        0b11110000, // 'f' branch greater varint
+        0b00001010, // 'f' branch greater 26 (to 'i' branch)
+        b'f',
+        0b11010000, // 'c' branch equal varint
+        0b00101000, // 'c' branch equal 56 (to 1st linear sequence starting with 'd')
+        0b11110000, // 'c' branch greater varint
+        0b00001010, // 'c' branch greater 26 (to 'e' branch)
+        b'c',
+        0b11010000, // 'b' branch equal varint
+        0b00001011, // 'b' branch equal 27 (to linear sequence starting with 'c')
+        b'b',
+        b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm',
+        b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+        0xA1, // final value 1
+        b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
+        b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
+        0xA2, // final value 2
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
+        0xA3, // final value 3
+        0b11010000, // 'e' branch equal varint
+        0b00001011, // 'e' branch equal 27 (to linear sequence starting with 'f')
+        b'e',
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c',
+        0xA4, // final value 4
+        b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r',
+        b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd',
+        0xA5, // final value 5
+        b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's',
+        b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
+        0xA6, // final value 6
+        0b11010000, // 'i' branch equal varint
+        0b00101000, // 'i' branch equal 56 (to 1st linear sequence starting with 'j')
+        0b11110000, // 'i' branch greater varint
+        0b00001010, // 'i' branch greater 26 (to 2nd linear sequence starting with 'j')
+        b'i',
+        0b11010000, // 'h' branch equal varint
+        0b00001011, // 'h' branch equal 27 (to linear sequence starting with 'i')
+        b'h',
+        b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's',
+        b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
+        0xA7, // final value 7
+        b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u',
+        b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g',
+        0xA8, // final value 8
+        b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v',
+        b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h',
+        0xA9, // final value 9
+        b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v',
+        b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd',
+        0xAA, // final value 10
+    ];
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2, expected_bytes2);
+    assert_eq!(trie2.len(), 283);
+    check_ascii_trie2(&litemap, expected_bytes2);
 }
 
 #[test]
