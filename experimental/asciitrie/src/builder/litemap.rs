@@ -109,7 +109,7 @@ pub fn make2_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>
 where
     S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
 {
-    AsciiTrieBuilder2::<1000>::from_sorted_const_tuple_slice(items.as_slice().into())
+    AsciiTrieBuilder2::<10000>::from_sorted_const_tuple_slice(items.as_slice().into())
     .as_bytes()
     .to_owned()
 }

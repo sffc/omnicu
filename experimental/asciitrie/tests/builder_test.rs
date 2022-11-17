@@ -2,7 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-// use asciitrie::NonAsciiError;
+use asciitrie::NonAsciiError;
 use asciitrie::AsciiStr;
 use asciitrie::AsciiTrie;
 use litemap::LiteMap;
@@ -918,13 +918,15 @@ fn test_everything() {
     check_ascii_trie2(&litemap, expected_bytes2);
 }
 
-// fn strings_to_litemap<'a>(strings: &[&'a str]) -> Result<LiteMap<&'a AsciiStr, usize>, NonAsciiError> {
-//     strings.iter().copied().map(AsciiStr::try_from_str).map(|s| s.map(|s| (s, 0))).collect()
-// }
+fn strings_to_litemap<'a>(strings: &[&'a str]) -> Result<LiteMap<&'a AsciiStr, usize>, NonAsciiError> {
+    strings.iter().copied().map(AsciiStr::try_from_str).map(|s| s.map(|s| (s, 0))).collect()
+}
 
-// #[test]
-// fn test_short_subtags() {
-//     let lm = strings_to_litemap(testdata::short_subtags::STRINGS).unwrap();
-//     let trie = AsciiTrie::from_litemap(&lm);
-//     assert_eq!(trie.as_bytes(), testdata::short_subtags::TRIE);
-// }
+#[test]
+fn test_short_subtags() {
+    let litemap = strings_to_litemap(testdata::short_subtags::STRINGS).unwrap();
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    assert_eq!(trie2.len(), 6504);
+    check_ascii_trie2(&litemap, &trie2);
+    // assert_eq!(trie.as_bytes(), testdata::short_subtags::TRIE);
+}
