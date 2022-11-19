@@ -105,7 +105,11 @@ impl<const N: usize> ConstLengthsStack<N> {
     #[must_use]
     pub const fn push(mut self, branch_type: BranchType, length: usize) -> Self {
         if self.idx >= N {
-            panic!(concat!("AsciiTrie Builder: Need more stack (max ", stringify!(N), ")"));
+            panic!(concat!(
+                "AsciiTrie Builder: Need more stack (max ",
+                stringify!(N),
+                ")"
+            ));
         }
         self.data[self.idx] = (Some(branch_type), length);
         self.idx += 1;

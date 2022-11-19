@@ -12,10 +12,10 @@ mod store;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
+pub use self::litemap::make2_litemap;
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;
-pub use self::litemap::make2_litemap;
 
 use super::AsciiTrie;
 use builder::AsciiTrieBuilder;
