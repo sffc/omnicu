@@ -119,10 +119,7 @@ fn get_subtags_bench(c: &mut Criterion) {
     });
 
     g.bench_function("HashMap", |b| {
-        let hm: HashMap<&[u8], usize> = litemap
-            .iter()
-            .map(|(a, b)| (a.as_bytes(), *b))
-            .collect();
+        let hm: HashMap<&[u8], usize> = litemap.iter().map(|(a, b)| (a.as_bytes(), *b)).collect();
         b.iter(|| {
             for key in black_box(strings) {
                 let actual = black_box(&hm).get(key.as_bytes());

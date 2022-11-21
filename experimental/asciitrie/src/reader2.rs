@@ -3,6 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::varint::read_varint2;
+use core::cmp::Ordering;
 
 extern crate std;
 
@@ -27,6 +28,19 @@ enum ByteType {
     BranchGreater,
 }
 
+impl core::fmt::Debug for ByteType {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        use ByteType::*;
+        f.write_str(match *self {
+            Ascii => "a",
+            IntermediateValue => "i",
+            FinalValue => "f\n",
+            BranchEqual => "e",
+            BranchGreater => "g",
+        })
+    }
+}
+
 #[inline]
 fn byte_type(b: u8) -> ByteType {
     match b & 0b11100000 {
@@ -39,8 +53,8 @@ fn byte_type(b: u8) -> ByteType {
 }
 
 pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
-    let mut branch_eq = None;
-    let mut branch_gt = None;
+    let mut branch_eq = 0;
+    let mut branch_gt = 0;
     loop {
         let (b, x);
         (b, trie) = trie.split_first()?;
@@ -53,38 +67,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             match byte_type {
                 ByteType::Ascii => {
                     match branch_eq {
-                        Some(branch_eq_x) => {
-                            // Evaluating with branch metadata
-                            if c < b {
-                                // Proceed to the next node
-                                branch_eq = None;
-                                branch_gt = None;
-                                continue;
-                            } else if c == b {
-                                // Proceed to branch_eq
-                                (_, trie) = debug_split_at(trie, branch_eq_x)?;
-                                branch_eq = None;
-                                branch_gt = None;
-                                ascii = temp;
-                                continue;
-                            } else {
-                                match branch_gt {
-                                    Some(branch_gt_x) => {
-                                        // Proceed to branch_gt
-                                        (_, trie) =
-                                            debug_split_at(trie, branch_eq_x + branch_gt_x)?;
-                                        branch_eq = None;
-                                        branch_gt = None;
-                                        continue;
-                                    }
-                                    None => {
-                                        // Failed to match at branch node
-                                        return None;
-                                    }
-                                }
-                            }
-                        }
-                        None => {
+                        0 => {
                             if c == b {
                                 // Matched a byte (note: high bit of ASCII is expected to be 0)
                                 ascii = temp;
@@ -93,6 +76,24 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                                 // Byte that doesn't match
                                 return None;
                             }
+                        }
+                        branch_eq_x => {
+                            match (c.cmp(b), branch_gt) {
+                                (Ordering::Less, _) => (),
+                                (Ordering::Equal, _) => {
+                                    (_, trie) = debug_split_at(trie, branch_eq_x)?;
+                                    ascii = temp;
+                                }
+                                (Ordering::Greater, 0) => {
+                                    return None;
+                                }
+                                (Ordering::Greater, branch_gt_x) => {
+                                    (_, trie) = debug_split_at(trie, branch_eq_x + branch_gt_x)?;
+                                }
+                            };
+                            branch_eq = 0;
+                            branch_gt = 0;
+                            continue;
                         }
                     }
                 }
@@ -106,12 +107,12 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 }
                 ByteType::BranchEqual => {
                     // Branch node metadata
-                    branch_eq = Some(x);
+                    branch_eq = x;
                     continue;
                 }
                 ByteType::BranchGreater => {
                     // Branch node metadata
-                    branch_gt = Some(x);
+                    branch_gt = x;
                     continue;
                 }
             }

@@ -76,6 +76,17 @@ enum ByteType {
     Match,
 }
 
+impl core::fmt::Debug for ByteType {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        use ByteType::*;
+        f.write_str(match *self {
+            Ascii => "a",
+            Value => "v",
+            Match => "m",
+        })
+    }
+}
+
 #[inline]
 fn byte_type(b: u8) -> ByteType {
     match b & 0b11000000 {
