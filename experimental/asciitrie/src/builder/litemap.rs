@@ -114,7 +114,7 @@ where
 }
 
 pub fn make2_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Vec<u8> {
-    AsciiTrieBuilder2::<10000>::from_sorted_const_tuple_slice(items.into())
+    AsciiTrieBuilder2::<10000>::from_tuple_slice(items.into())
         .as_bytes()
         .to_owned()
 }

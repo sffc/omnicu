@@ -65,6 +65,7 @@ impl<const N: usize> AsciiTrieBuilder2<N> {
     //     AsciiTrie(slice.as_slice())
     // }
 
+    #[cfg(feature = "alloc")]
     pub fn as_bytes(&self) -> &[u8] {
         self.data.atbs_as_bytes().as_slice()
     }

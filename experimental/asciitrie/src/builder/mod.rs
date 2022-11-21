@@ -12,8 +12,8 @@ mod store;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
-pub use self::litemap::make2_litemap;
-pub use self::litemap::make2_slice;
+#[cfg(feature = "litemap")]
+pub use self::litemap::{make2_litemap, make2_slice};
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;

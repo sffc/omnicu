@@ -24,8 +24,8 @@ mod varint;
 #[cfg(feature = "zerovec")]
 mod zerovec;
 
-pub use builder::make2_litemap;
-pub use builder::make2_slice;
+#[cfg(feature = "litemap")]
+pub use builder::{make2_litemap, make2_slice};
 pub use builder::AsciiStr;
 pub use builder::NonAsciiError;
 pub use trie::AsciiTrie;
