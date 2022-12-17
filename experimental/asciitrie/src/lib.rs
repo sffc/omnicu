@@ -21,9 +21,12 @@ mod ref_cast;
 #[cfg(feature = "serde")]
 mod serde;
 mod trie;
-mod varint;
+mod varinta;
+mod varintx;
 #[cfg(feature = "zerovec")]
 mod zerovec;
+
+pub(crate) use varintx as varint;
 
 #[cfg(feature = "litemap")]
 pub use builder::{make2_litemap, make2_slice, make3_litemap, make3_slice};
