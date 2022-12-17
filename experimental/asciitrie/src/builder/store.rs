@@ -126,3 +126,51 @@ impl<const N: usize> ConstLengthsStack<N> {
         (self, (option.unwrap(), len))
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum BranchType3 {
+    EqualGreater(AsciiByte),
+    EqualGreaterFinal(AsciiByte),
+}
+
+pub(crate) struct ConstLengthsStack3<const N: usize> {
+    data: [(Option<BranchType3>, usize); N],
+    idx: usize,
+}
+
+impl<const N: usize> ConstLengthsStack3<N> {
+    pub const fn new() -> Self {
+        Self {
+            data: [(None, 0); N],
+            idx: 0,
+        }
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.idx == 0
+    }
+
+    #[must_use]
+    pub const fn push(mut self, branch_type: BranchType3, length: usize) -> Self {
+        if self.idx >= N {
+            panic!(concat!(
+                "AsciiTrie Builder: Need more stack (max ",
+                stringify!(N),
+                ")"
+            ));
+        }
+        self.data[self.idx] = (Some(branch_type), length);
+        self.idx += 1;
+        self
+    }
+
+    #[must_use]
+    pub fn pop_or_panic(mut self) -> (Self, (BranchType3, usize)) {
+        if self.idx == 0 {
+            panic!("AsciiTrie Builder: Attempted to pop from an empty stack");
+        }
+        self.idx -= 1;
+        let (option, len) = self.data[self.idx];
+        (self, (option.unwrap(), len))
+    }
+}

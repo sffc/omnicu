@@ -5,6 +5,7 @@
 mod asciistr;
 mod builder;
 mod builder2;
+mod builder3;
 pub(crate) mod const_util;
 #[cfg(feature = "litemap")]
 mod litemap;
@@ -13,7 +14,7 @@ mod store;
 use alloc::vec::Vec;
 
 #[cfg(feature = "litemap")]
-pub use self::litemap::{make2_litemap, make2_slice};
+pub use self::litemap::{make2_litemap, make2_slice, make3_litemap, make3_slice};
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;

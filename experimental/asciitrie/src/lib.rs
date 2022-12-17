@@ -16,6 +16,7 @@ mod alloc_impls;
 mod builder;
 pub mod reader;
 pub mod reader2;
+pub mod reader3;
 mod ref_cast;
 #[cfg(feature = "serde")]
 mod serde;
@@ -25,7 +26,7 @@ mod varint;
 mod zerovec;
 
 #[cfg(feature = "litemap")]
-pub use builder::{make2_litemap, make2_slice};
+pub use builder::{make2_litemap, make2_slice, make3_litemap, make3_slice};
 pub use builder::AsciiStr;
 pub use builder::NonAsciiError;
 pub use trie::AsciiTrie;
