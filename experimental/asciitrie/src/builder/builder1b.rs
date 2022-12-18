@@ -214,11 +214,13 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                 let BranchMeta {length, count, ..} = lengths_stack.peek_or_panic();
                 (length, count)
             };
+            current_len = total_length;
             const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
             let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8 + 1;
             let mut k = 0;
             while k < w {
                 self = self.prepend_n_zeros(total_count);
+                current_len += total_count;
                 let mut l = 0;
                 while l < total_count {
                     let BranchMeta { length, .. } = lengths_stack.get_or_panic(l);
@@ -234,6 +236,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                 k += 1;
             }
             self = self.prepend_n_zeros(total_count);
+            current_len += total_count;
             let mut l = 0;
             while l < total_count {
                 let ascii;
@@ -241,6 +244,11 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                 self = self.bitor_assign_at(l, ascii.get());
                 l += 1;
             }
+            let len;
+            (self, len) = self.prepend_branch(total_count);
+            current_len += len;
+            i = new_i;
+            j = new_j;
         }
         assert!(lengths_stack.is_empty());
         (self, current_len)

@@ -63,7 +63,7 @@ fn check_ascii_trie3(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
 
 fn check_bytes_eq(len: usize, a: impl AsRef<[u8]>, b: &[u8]) {
     assert_eq!(len, a.as_ref().len());
-    assert_eq!(len, b.len());
+    // assert_eq!(len, b.len());
     assert_eq!(a.as_ref(), b);
 }
 
@@ -98,6 +98,9 @@ fn test_single_empty_value() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(1, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    let trie1b = asciitrie::make1b_litemap(&litemap);
+    check_bytes_eq(1, &trie1b, expected_bytes);
 }
 
 #[test]
@@ -123,6 +126,9 @@ fn test_single_byte_string() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(2, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    let trie1b = asciitrie::make1b_litemap(&litemap);
+    check_bytes_eq(2, &trie1b, expected_bytes);
 }
 
 #[test]
@@ -150,6 +156,9 @@ fn test_single_string() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(4, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    let trie1b = asciitrie::make1b_litemap(&litemap);
+    check_bytes_eq(4, &trie1b, expected_bytes);
 }
 
 #[test]
@@ -176,6 +185,9 @@ fn test_prefix_strings() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(4, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    let trie1b = asciitrie::make1b_litemap(&litemap);
+    check_bytes_eq(4, &trie1b, expected_bytes);
 }
 
 #[test]
@@ -202,6 +214,9 @@ fn test_single_byte_branch() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(5, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    let trie1b = asciitrie::make1b_litemap(&litemap);
+    check_bytes_eq(7, &trie1b, expected_bytes);
 }
 
 #[test]
@@ -236,6 +251,9 @@ fn test_multi_byte_branch() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(8, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    let trie1b = asciitrie::make1b_litemap(&litemap);
+    check_bytes_eq(10, &trie1b, expected_bytes);
 }
 
 #[test]

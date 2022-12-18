@@ -29,7 +29,7 @@ mod zerovec;
 pub(crate) use varinta as varint;
 
 #[cfg(feature = "litemap")]
-pub use builder::{make2_litemap, make2_slice, make3_litemap, make3_slice};
+pub use builder::{make2_litemap, make2_slice, make3_litemap, make3_slice, make1b_litemap, make1b_slice};
 pub use builder::AsciiStr;
 pub use builder::NonAsciiError;
 pub use trie::AsciiTrie;
