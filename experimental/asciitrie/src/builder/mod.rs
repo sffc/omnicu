@@ -4,6 +4,7 @@
 
 mod asciistr;
 mod builder;
+mod builder1b;
 mod builder2;
 mod builder3;
 pub(crate) mod const_util;

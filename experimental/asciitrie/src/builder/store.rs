@@ -174,3 +174,66 @@ impl<const N: usize> ConstLengthsStack3<N> {
         (self, (option.unwrap(), len))
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct BranchMeta {
+    pub ascii: AsciiByte,
+    pub length: usize,
+    pub count: usize,
+}
+
+pub(crate) struct ConstLengthsStack1b<const N: usize> {
+    data: [Option<BranchMeta>; N],
+    idx: usize,
+}
+
+impl<const N: usize> ConstLengthsStack1b<N> {
+    pub const fn new() -> Self {
+        Self {
+            data: [None; N],
+            idx: 0,
+        }
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.idx == 0
+    }
+
+    #[must_use]
+    pub const fn push(mut self, meta: BranchMeta) -> Self {
+        if self.idx >= N {
+            panic!(concat!(
+                "AsciiTrie Builder: Need more stack (max ",
+                stringify!(N),
+                ")"
+            ));
+        }
+        self.data[self.idx] = Some(meta);
+        self.idx += 1;
+        self
+    }
+
+    #[must_use]
+    pub fn pop_or_panic(mut self) -> (Self, BranchMeta) {
+        if self.idx == 0 {
+            panic!("AsciiTrie Builder: Attempted to pop from an empty stack");
+        }
+        self.idx -= 1;
+        let value = self.data[self.idx].unwrap();
+        (self, value)
+    }
+
+    pub fn peek_or_panic(&self) -> BranchMeta {
+        if self.idx == 0 {
+            panic!("AsciiTrie Builder: Attempted to peek from an empty stack");
+        }
+        self.get_or_panic(0)
+    }
+
+    pub fn get_or_panic(&self, index: usize) -> BranchMeta {
+        if self.idx <= index {
+            panic!("AsciiTrie Builder: Attempted to get too deep in a stack");
+        }
+        self.data[self.idx - index - 1].unwrap()
+    }
+}

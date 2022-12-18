@@ -3,7 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::builder::builder2::AsciiTrieBuilder2;
-use crate::builder::builder3    ::AsciiTrieBuilder3 ;
+use crate::builder::builder3::AsciiTrieBuilder3 ;
 use crate::builder::AsciiTrieBuilder;
 use crate::AsciiStr;
 use crate::AsciiTrie;
