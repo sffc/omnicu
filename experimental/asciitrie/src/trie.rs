@@ -42,3 +42,12 @@ where
         self.0.as_ref()
     }
 }
+
+impl<S> AsRef<[u8]> for AsciiTrie<S>
+where
+    S: AsRef<[u8]> + ?Sized,
+{
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}

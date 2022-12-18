@@ -61,6 +61,12 @@ fn check_ascii_trie3(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
     //     .eq(trie.iter()));
 }
 
+fn check_bytes_eq(len: usize, a: impl AsRef<[u8]>, b: &[u8]) {
+    assert_eq!(len, a.as_ref().len());
+    assert_eq!(len, b.len());
+    assert_eq!(a.as_ref(), b);
+}
+
 #[test]
 fn test_empty() {
     let trie = AsciiTrie::from_litemap(&LiteMap::new_vec());
@@ -78,7 +84,6 @@ fn test_single_empty_value() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 1);
     assert_eq!(trie.get(b""), Some(10));
     assert_eq!(trie.get(b"x"), None);
     let expected_bytes = &[0b10001010];
@@ -86,13 +91,13 @@ fn test_single_empty_value() {
 
     let expected_bytes2 = &[0b10101010];
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2, expected_bytes2);
-    check_ascii_trie2(&litemap, expected_bytes2);
+    check_bytes_eq(1, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
 
     let expected_bytes3 = &[0b10101010];
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3, expected_bytes3);
-    check_ascii_trie3(&litemap, expected_bytes3);
+    check_bytes_eq(1, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
 }
 
 #[test]
@@ -103,22 +108,21 @@ fn test_single_byte_string() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 2);
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"xy"), None);
     check_ascii_trie(&litemap, &trie);
     let expected_bytes = &[b'x', 0b10001010];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(2, trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[b'x', 0b10101010];
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2, expected_bytes2);
-    check_ascii_trie2(&litemap, expected_bytes2);
+    check_bytes_eq(2, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
 
     let expected_bytes3 = &[b'x', 0b10101010];
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3, expected_bytes3);
-    check_ascii_trie3(&litemap, expected_bytes3);
+    check_bytes_eq(2, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
 }
 
 #[test]
@@ -129,24 +133,23 @@ fn test_single_string() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 4);
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"x"), None);
     assert_eq!(trie.get(b"xy"), None);
     assert_eq!(trie.get(b"xyzz"), None);
     check_ascii_trie(&litemap, &trie);
     let expected_bytes = &[b'x', b'y', b'z', 0b10001010];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(4, trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[b'x', b'y', b'z', 0b10101010];
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2, expected_bytes2);
-    check_ascii_trie2(&litemap, expected_bytes2);
+    check_bytes_eq(4, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
 
     let expected_bytes3 = &[b'x', b'y', b'z', 0b10101010];
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3, expected_bytes3);
-    check_ascii_trie3(&litemap, expected_bytes3);
+    check_bytes_eq(4, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
 }
 
 #[test]
@@ -158,22 +161,21 @@ fn test_prefix_strings() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 4);
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"xyz"), None);
     check_ascii_trie(&litemap, &trie);
     let expected_bytes = &[b'x', 0b10000000, b'y', 0b10000001];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(4, trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[b'x', 0b10000000, b'y', 0b10100001];
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2, expected_bytes2);
-    check_ascii_trie2(&litemap, expected_bytes2);
+    check_bytes_eq(4, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
 
     let expected_bytes3 = &[b'x', 0b10000000, b'y', 0b10100001];
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3, expected_bytes3);
-    check_ascii_trie3(&litemap, expected_bytes3);
+    check_bytes_eq(4, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
 }
 
 #[test]
@@ -185,22 +187,21 @@ fn test_single_byte_branch() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 7);
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"xy"), None);
     check_ascii_trie(&litemap, &trie);
     let expected_bytes = &[0b11000010, b'x', b'y', 0, 1, 0b10000000, 0b10000001];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(7, trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[0b11000010, b'y', b'x', 0b10100000, 0b10100001];
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2, expected_bytes2);
-    check_ascii_trie2(&litemap, expected_bytes2);
+    check_bytes_eq(5, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
 
     let expected_bytes3 = &[0b11100010, b'y', b'x', 0b10100000, 0b10100001];
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3, expected_bytes3);
-    check_ascii_trie3(&litemap, expected_bytes3);
+    check_bytes_eq(5, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
 }
 
 #[test]
@@ -212,7 +213,6 @@ fn test_multi_byte_branch() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 10);
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"a"), None);
     assert_eq!(trie.get(b"ax"), None);
@@ -221,21 +221,21 @@ fn test_multi_byte_branch() {
     let expected_bytes = &[
         b'a', 0b11000010, b'x', b'y', 0, 2, b'b', 0b10000000, b'c', 0b10000001,
     ];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(10, trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[
         b'a', 0b11000011, b'y', b'x', b'b', 0b10100000, b'c', 0b10100001,
     ];
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2, expected_bytes2);
-    check_ascii_trie2(&litemap, expected_bytes2);
+    check_bytes_eq(8, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
 
     let expected_bytes3 = &[
         b'a', 0b11100011, b'y', b'x', b'b', 0b10100000, b'c', 0b10100001,
     ];
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3, expected_bytes3);
-    check_ascii_trie3(&litemap, expected_bytes3);
+    check_bytes_eq(8, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
 }
 
 #[test]
@@ -248,23 +248,22 @@ fn test_linear_varint_values() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 10);
     assert_eq!(trie.get(b"xy"), None);
     assert_eq!(trie.get(b"xz"), None);
     assert_eq!(trie.get(b"xyzz"), None);
     check_ascii_trie(&litemap, &trie);
     let expected_bytes = &[0xA0, 0x44, b'x', 0xA3, 0x54, b'y', b'z', 0xA0, 0x86, 0x68];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(10, trie.as_bytes(), expected_bytes);
 
     let expected_bytes2 = &[0x90, 0x54, b'x', 0x93, 0x64, b'y', b'z', 0xB0, 0x96, 0x78];
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2, expected_bytes2);
-    check_ascii_trie2(&litemap, expected_bytes2);
+    check_bytes_eq(10, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
 
     let expected_bytes3 = &[0x90, 0x54, b'x', 0x93, 0x64, b'y', b'z', 0xB0, 0x96, 0x78];
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3, expected_bytes3);
-    check_ascii_trie3(&litemap, expected_bytes3);
+    check_bytes_eq(10, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
 }
 
 #[test]
@@ -275,7 +274,6 @@ fn test_varint_branch() {
         .map(|i| (chars.substring(i..i + 1).unwrap(), i))
         .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 178);
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"ax"), None);
     assert_eq!(trie.get(b"ay"), None);
@@ -312,7 +310,7 @@ fn test_varint_branch() {
         0xA0, 10, 0xA0, 11, 0xA0, 12, 0xA0, 13, 0xA0, 14,
         0xA0, 15, 0xA0, 16, 0xA0, 17, 0xA0, 18, 0xA0, 19,
     ];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(178, trie, expected_bytes);
 
     let expected_bytes2 = &[
         0xd0, // branch equal varint
@@ -515,9 +513,8 @@ fn test_varint_branch() {
         0x23, // final value 51
     ];
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2, expected_bytes2);
-    assert_eq!(trie2.len(), 198);
-    check_ascii_trie2(&litemap, expected_bytes2);
+    check_bytes_eq(198, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
 
     let expected_bytes3 = &[
         0xd0, // branch varint
@@ -751,9 +748,8 @@ fn test_varint_branch() {
         0x23,
     ];
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3, expected_bytes3);
-    assert_eq!(trie3.len(), 229);
-    check_ascii_trie3(&litemap, expected_bytes3);
+    check_bytes_eq(229, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
 }
 
 #[test]
@@ -800,7 +796,6 @@ fn test_below_wide() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 276);
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"abc"), None);
     check_ascii_trie(&litemap, &trie);
@@ -843,7 +838,7 @@ fn test_below_wide() {
         b'x', b'y', b'z', b'a', b'b', b'c', b'd',
         0x8A,
     ];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(276, trie, expected_bytes);
 
     #[rustfmt::skip]
     let expected_bytes2 = &[
@@ -903,9 +898,8 @@ fn test_below_wide() {
         0xAA, // final value 10
     ];
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2, expected_bytes2);
-    assert_eq!(trie2.len(), 283);
-    check_ascii_trie2(&litemap, expected_bytes2);
+    check_bytes_eq(283, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
 
     #[rustfmt::skip]
     let expected_bytes3 = &[
@@ -968,9 +962,8 @@ fn test_below_wide() {
         0xaa, // final value 10
     ];
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3, expected_bytes3);
-    assert_eq!(trie3.len(), 288);
-    check_ascii_trie3(&litemap, expected_bytes3);
+    check_bytes_eq(288, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
 }
 
 #[test]
@@ -1020,7 +1013,6 @@ fn test_at_wide() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 287);
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"abc"), None);
     check_ascii_trie(&litemap, &trie);
@@ -1064,7 +1056,7 @@ fn test_at_wide() {
         b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
         0x8A,
     ];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(287, trie, expected_bytes);
 }
 
 #[test]
@@ -1114,7 +1106,6 @@ fn test_at_wide_plus() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 288);
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"abc"), None);
     check_ascii_trie(&litemap, &trie);
@@ -1158,7 +1149,7 @@ fn test_at_wide_plus() {
         b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
         0x8A,
     ];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(288, trie, expected_bytes);
 }
 
 #[test]
@@ -1177,7 +1168,6 @@ fn test_everything() {
     .into_iter()
     .collect();
     let trie = AsciiTrie::from_litemap(&litemap.as_sliced());
-    assert_eq!(trie.byte_len(), 40);
     assert_eq!(trie.get(b""), Some(0));
     assert_eq!(trie.get(b"a"), None);
     assert_eq!(trie.get(b"ax"), None);
@@ -1225,7 +1215,7 @@ fn test_everything() {
         b'l',       //
         0b10001000, // value 8
     ];
-    assert_eq!(trie.as_bytes(), expected_bytes);
+    check_bytes_eq(40, trie, expected_bytes);
 
     let expected_bytes2 = &[
         0x80, // intermediate value 0
@@ -1262,9 +1252,8 @@ fn test_everything() {
         0xA8, // final value 8
     ];
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2, expected_bytes2);
-    assert_eq!(trie2.len(), 32);
-    check_ascii_trie2(&litemap, expected_bytes2);
+    check_bytes_eq(32, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
 
     let expected_bytes3 = &[
         0x80, // intermediate value 0
@@ -1302,9 +1291,8 @@ fn test_everything() {
         0xa8, // final value 8
     ];
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3, expected_bytes3);
-    assert_eq!(trie3.len(), 33);
-    check_ascii_trie3(&litemap, expected_bytes3);
+    check_bytes_eq(33, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
 }
 
 #[test]

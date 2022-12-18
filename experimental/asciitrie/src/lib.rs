@@ -26,7 +26,7 @@ mod varintx;
 #[cfg(feature = "zerovec")]
 mod zerovec;
 
-pub(crate) use varintx as varint;
+pub(crate) use varinta as varint;
 
 #[cfg(feature = "litemap")]
 pub use builder::{make2_litemap, make2_slice, make3_litemap, make3_slice};
