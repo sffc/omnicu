@@ -54,6 +54,9 @@ pub const fn read_varint2(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])>
     Some((value, remainder))
 }
 
+#[cfg(test)]
+const MAX_VARINT: usize = usize::MAX;
+
 // *Upper Bound:* Each trail byte stores 7 bits of data, plus the latent value.
 // Add an extra 1 since the lead byte holds only 5 bits of data.
 const MAX_VARINT_LENGTH: usize = 1 + core::mem::size_of::<usize>() * 8 / 7;
@@ -327,9 +330,22 @@ mod tests {
     }
 
     #[test]
+    fn test_roundtrip() {
+        let mut i = 0usize;
+        while i < MAX_VARINT as usize {
+            let bytes = write_varint(i);
+            let recovered = read_varint(bytes.as_slice()[0], &bytes.as_slice()[1..]);
+            assert!(recovered.is_some(), "{:?}", i);
+            assert_eq!(i, recovered.unwrap().0, "{:?}", bytes.as_slice());
+            i <<= 1;
+            i += 1;
+        }
+    }
+
+    #[test]
     fn test_max() {
-        let reference_bytes = write_varint_reference(usize::MAX);
-        let write_bytes = write_varint(usize::MAX);
+        let reference_bytes = write_varint_reference(MAX_VARINT);
+        let write_bytes = write_varint(MAX_VARINT);
         assert_eq!(reference_bytes.len(), MAX_VARINT_LENGTH);
         assert_eq!(reference_bytes.as_slice(), write_bytes.as_slice());
         let subarray = write_bytes
@@ -341,7 +357,7 @@ mod tests {
         )
         .unwrap();
         assert!(remainder.is_empty());
-        assert_eq!(recovered_value, usize::MAX);
+        assert_eq!(recovered_value, MAX_VARINT);
         assert_eq!(
             write_bytes.as_slice(),
             &[
