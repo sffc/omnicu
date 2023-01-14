@@ -1335,19 +1335,19 @@ fn test_short_subtags_10pct() {
     let litemap = strings_to_litemap(&testdata::short_subtags_10pct::STRINGS).unwrap();
 
     let trie = AsciiTrie::from_litemap(&litemap);
-    assert_eq!(trie.byte_len(), 918);
+    assert_eq!(trie.byte_len(), 1077);
     check_ascii_trie(&litemap, &trie);
 
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2.len(), 836);
+    assert_eq!(trie2.len(), 1017);
     check_ascii_trie2(&litemap, &trie2);
 
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3.len(), 932);
+    assert_eq!(trie3.len(), 1110);
     check_ascii_trie3(&litemap, &trie3);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
-    check_bytes_eq(918, &trie1b, trie.as_bytes());
+    check_bytes_eq(1077, &trie1b, trie.as_bytes());
 }
 
 #[test]
@@ -1355,15 +1355,15 @@ fn test_short_subtags() {
     let litemap = strings_to_litemap(testdata::short_subtags::STRINGS).unwrap();
 
     let trie2 = asciitrie::make2_litemap(&litemap);
-    assert_eq!(trie2.len(), 6504);
+    assert_eq!(trie2.len(), 8424);
     check_ascii_trie2(&litemap, &trie2);
 
     let litemap = strings_to_litemap(testdata::short_subtags::STRINGS).unwrap();
     let trie3 = asciitrie::make3_litemap(&litemap);
-    assert_eq!(trie3.len(), 7349);
+    assert_eq!(trie3.len(), 9289);
     check_ascii_trie3(&litemap, &trie3);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
-    assert_eq!(trie1b.len(), 7313);
+    assert_eq!(trie1b.len(), 9204);
     check_ascii_trie(&litemap, AsciiTrie::from_bytes(&trie1b));
 }

@@ -55,7 +55,8 @@ pub fn strings_to_litemap<'a>(
         .iter()
         .copied()
         .map(AsciiStr::try_from_str)
-        .map(|s| s.map(|s| (s, 0)))
+        .enumerate()
+        .map(|(i, s)| s.map(|s| (s, i)))
         .collect()
 }
 
