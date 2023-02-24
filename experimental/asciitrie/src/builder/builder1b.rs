@@ -4,9 +4,9 @@
 
 use super::const_util::const_for_each;
 use super::const_util::ConstSlice;
+use super::store::BranchMeta;
 use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstLengthsStack1b;
-use super::store::BranchMeta;
 use super::AsciiByte;
 use super::AsciiStr;
 use crate::varint;
@@ -197,10 +197,18 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
             }
             // Branch
             if diff_j == 0 {
-                lengths_stack = lengths_stack.push(BranchMeta { ascii: key_ascii, length: current_len, count: 1 });
+                lengths_stack = lengths_stack.push(BranchMeta {
+                    ascii: key_ascii,
+                    length: current_len,
+                    count: 1,
+                });
             } else {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
-                lengths_stack = lengths_stack.push(BranchMeta { ascii: key_ascii, length: length + current_len, count: count + 1 });
+                lengths_stack = lengths_stack.push(BranchMeta {
+                    ascii: key_ascii,
+                    length: length + current_len,
+                    count: count + 1,
+                });
             }
             if diff_i != 0 {
                 j = i;
@@ -211,7 +219,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
             }
             // Branch (first)
             let (total_length, total_count) = {
-                let BranchMeta {length, count, ..} = lengths_stack.peek_or_panic();
+                let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
                 (length, count)
             };
             current_len = total_length;

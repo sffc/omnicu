@@ -28,14 +28,14 @@ fn get_branch_position(diff_i: usize, diff_j: usize) -> BranchPosition {
     loop {
         let width = j - i;
         if width == 1 {
-            return BranchPosition::Lesser(levels)
+            return BranchPosition::Lesser(levels);
         }
         let mid = i + width / 2;
         if width == 2 {
             if mid == diff_i {
-                return BranchPosition::EqualGreater
+                return BranchPosition::EqualGreater;
             } else {
-                return BranchPosition::Lesser(levels + 1)
+                return BranchPosition::Lesser(levels + 1);
             }
         }
         if mid <= diff_i {
@@ -250,11 +250,13 @@ impl<const N: usize> AsciiTrieBuilder3<N> {
                         }
                         k += 1;
                     }
-                    lengths_stack = lengths_stack.push(BranchType3::EqualGreater(key_ascii), current_len);
+                    lengths_stack =
+                        lengths_stack.push(BranchType3::EqualGreater(key_ascii), current_len);
                     current_len = 0;
                 }
                 BranchPosition::EqualGreater => {
-                    lengths_stack = lengths_stack.push(BranchType3::EqualGreaterFinal(key_ascii), current_len);
+                    lengths_stack =
+                        lengths_stack.push(BranchType3::EqualGreaterFinal(key_ascii), current_len);
                     current_len = 0;
                 }
             }

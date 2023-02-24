@@ -81,7 +81,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                             match (c.cmp(b), branch_final) {
                                 (Ordering::Less, _) => {
                                     // Continue forward
-                                },
+                                }
                                 (_, false) => {
                                     // Jump forward
                                     (_, trie) = debug_split_at(trie, branch_jump_x)?;

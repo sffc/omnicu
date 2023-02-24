@@ -143,7 +143,7 @@ mod tests {
             assert_eq!(recovered, (cas.value, cas.remainder), "{:?}", cas);
             let write_bytes = write_varint(cas.value);
             assert_eq!(
-                &cas.bytes[0..(cas.bytes.len()-cas.remainder.len())],
+                &cas.bytes[0..(cas.bytes.len() - cas.remainder.len())],
                 write_bytes.as_slice(),
                 "{:?}",
                 cas
