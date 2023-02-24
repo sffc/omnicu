@@ -1167,10 +1167,25 @@ fn test_everything() {
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(40, &trie1b, expected_bytes);
 
+    let zhm: zerovec::ZeroMap<[u8], usize> =
+        litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
+    let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
+    assert_eq!(zhm_buf.len(), 75);
+
+    let zhm: zerovec::ZeroMap<[u8], u8> =
+        litemap.iter().map(|(a, b)| (a.as_bytes(), *b as u8)).collect();
+    let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
+    assert_eq!(zhm_buf.len(), 65);
+
     let zhm: zerovec::ZeroHashMap<[u8], usize> =
         litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 148);
+
+    let zhm: zerovec::ZeroHashMap<[u8], u8> =
+        litemap.iter().map(|(a, b)| (a.as_bytes(), *b as u8)).collect();
+    let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
+    assert_eq!(zhm_buf.len(), 138);
 }
 
 #[test]
@@ -1192,10 +1207,25 @@ fn test_short_subtags_10pct() {
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(1077, &trie1b, trie.as_bytes());
 
+    let zhm: zerovec::ZeroMap<[u8], usize> =
+        litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
+    let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
+    assert_eq!(zhm_buf.len(), 1331);
+
+    let zhm: zerovec::ZeroMap<[u8], u8> =
+        litemap.iter().map(|(a, b)| (a.as_bytes(), *b as u8)).collect();
+    let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
+    assert_eq!(zhm_buf.len(), 1330);
+
     let zhm: zerovec::ZeroHashMap<[u8], usize> =
         litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 2837);
+
+    let zhm: zerovec::ZeroHashMap<[u8], u8> =
+        litemap.iter().map(|(a, b)| (a.as_bytes(), *b as u8)).collect();
+    let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
+    assert_eq!(zhm_buf.len(), 2836);
 }
 
 #[test]
@@ -1215,8 +1245,23 @@ fn test_short_subtags() {
     assert_eq!(trie1b.len(), 9204);
     check_ascii_trie(&litemap, AsciiTrie::from_bytes(&trie1b));
 
+    let zhm: zerovec::ZeroMap<[u8], usize> =
+        litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
+    let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
+    assert_eq!(zhm_buf.len(), 15182);
+
+    let zhm: zerovec::ZeroMap<[u8], u8> =
+        litemap.iter().map(|(a, b)| (a.as_bytes(), *b as u8)).collect();
+    let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
+    assert_eq!(zhm_buf.len(), 13304);
+
     let zhm: zerovec::ZeroHashMap<[u8], usize> =
         litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 30200);
+
+    let zhm: zerovec::ZeroHashMap<[u8], u8> =
+        litemap.iter().map(|(a, b)| (a.as_bytes(), *b as u8)).collect();
+    let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
+    assert_eq!(zhm_buf.len(), 28322);
 }

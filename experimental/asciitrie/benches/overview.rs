@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use litemap::LiteMap;
 use asciitrie::AsciiTrie;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use std::collections::HashMap;
@@ -108,14 +109,29 @@ fn get_basic_bench(c: &mut Criterion) {
     });
 }
 
-fn get_subtags_bench(c: &mut Criterion) {
-    let mut g = c.benchmark_group("get/subtags");
+fn get_subtags_bench_medium(c: &mut Criterion) {
+    let g = c.benchmark_group("get/subtags_10pct");
 
     let strings = testdata::short_subtags_10pct::STRINGS;
     let litemap = testdata::strings_to_litemap(&strings).unwrap();
 
+    get_subtags_bench_helper(g, strings, litemap);
+}
+
+fn get_subtags_bench_large(c: &mut Criterion) {
+    let g = c.benchmark_group("get/subtags_full");
+
+    let strings = testdata::short_subtags::STRINGS;
+    let litemap = testdata::strings_to_litemap(&strings).unwrap();
+
+    get_subtags_bench_helper(g, strings, litemap);
+}
+
+fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(mut g: criterion::BenchmarkGroup<M>, strings: &[&str], litemap: LiteMap<&asciitrie::AsciiStr, usize>) {
+
     g.bench_function("AsciiTrie", |b| {
-        let trie = AsciiTrie::from_litemap(&litemap);
+        let trie1b = asciitrie::make1b_litemap(&litemap);
+        let trie = AsciiTrie::from_bytes(&trie1b);
         b.iter(|| {
             for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = black_box(&trie).get(key.as_bytes());
@@ -198,7 +214,9 @@ fn get_subtags_bench(c: &mut Criterion) {
             }
         });
     });
+
+    g.finish();
 }
 
-criterion_group!(benches, get_basic_bench, get_subtags_bench);
+criterion_group!(benches, get_basic_bench, get_subtags_bench_medium, get_subtags_bench_large);
 criterion_main!(benches);
