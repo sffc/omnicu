@@ -181,3 +181,17 @@ pub struct LikelySubtagsV1<'data> {
     /// Undefined.
     pub und: (Language, Script, Region),
 }
+
+impl Default for LikelySubtagsV1<'_> {
+    fn default() -> Self {
+        Self {
+            language_script: Default::default(),
+            language_region: Default::default(),
+            language: Default::default(),
+            script_region: Default::default(),
+            script: Default::default(),
+            region: Default::default(),
+            und: (Language::UND, icu_locid::subtags_script!("Latn"), icu_locid::subtags_region!("US")),
+        }
+    }
+}

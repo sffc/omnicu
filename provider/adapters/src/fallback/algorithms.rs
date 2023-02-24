@@ -8,6 +8,7 @@ use icu_locid::subtags::Language;
 use icu_locid::LanguageIdentifier;
 use icu_provider::FallbackPriority;
 
+use super::expander_adapter::ExpanderAdapter;
 use super::*;
 
 const SUBDIVISION_KEY: Key = key!("sd");
@@ -15,35 +16,36 @@ const SUBDIVISION_KEY: Key = key!("sd");
 impl<'a> LocaleFallbackerWithConfig<'a> {
     pub(crate) fn normalize(&self, locale: &mut DataLocale) {
         let language = locale.language();
+        let mut default_script = None;
         // 1. Populate the region (required for region fallback only)
         if self.config.priority == FallbackPriority::Region && locale.region().is_none() {
             // 1a. First look for region based on language+script
             if let Some(script) = locale.script() {
-                locale.set_region(
-                    self.likely_subtags
-                        .ls2r
-                        .get_2d(&language.into(), &script.into())
-                        .copied(),
-                );
+                locale.set_region(self.likely_subtags.ls2r(language.into(), script.into()));
             }
             // 1b. If that fails, try language only
             if locale.region().is_none() {
-                locale.set_region(self.likely_subtags.l2r.get(&language.into()).copied());
+                let (option_script, option_region) = self.likely_subtags.l2sr(language.into());
+                default_script =
+                    Some(option_script.unwrap_or(self.likely_subtags.default_script()));
+                locale.set_region(option_region);
             }
         }
         // 2. Remove the script if it is implied by the other subtags
         if let Some(script) = locale.script() {
-            let default_script = self
-                .likely_subtags
-                .l2s
-                .get_copied(&language.into())
-                .unwrap_or(DEFAULT_SCRIPT);
+            let default_script = match default_script {
+                Some(script) => script,
+                None => self
+                    .likely_subtags
+                    .l2sr(language.into())
+                    .0
+                    .unwrap_or(self.likely_subtags.default_script()),
+            };
             if let Some(region) = locale.region() {
                 if script
                     == self
                         .likely_subtags
-                        .lr2s
-                        .get_copied_2d(&language.into(), &region.into())
+                        .lr2s(language, region)
                         .unwrap_or(default_script)
                 {
                     locale.set_script(None);
@@ -119,11 +121,7 @@ impl<'a, 'b> LocaleFallbackIteratorInner<'a, 'b> {
         if locale.script().is_none() {
             if let Some(region) = locale.region() {
                 let language = locale.language();
-                if let Some(script) = self
-                    .likely_subtags
-                    .lr2s
-                    .get_copied_2d(&language.into(), &region.into())
-                {
+                if let Some(script) = self.likely_subtags.lr2s(language, region) {
                     locale.set_script(Some(script));
                     self.restore_extensions_variants(locale);
                     return;

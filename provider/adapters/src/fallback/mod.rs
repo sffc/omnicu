@@ -43,6 +43,8 @@
 //! assert_eq!(fallback_iterator.get(), &DataLocale::from(locale!("und")));
 //! ```
 
+use core::fmt::Debug;
+
 use icu_locid::extensions::unicode::{Key, Value};
 use icu_locid::subtags::Variants;
 use icu_provider::prelude::*;
@@ -51,11 +53,15 @@ use icu_provider::FallbackSupplement;
 
 mod adapter;
 mod algorithms;
+mod expander_adapter;
 pub mod provider;
 
 pub use adapter::LocaleFallbackProvider;
+pub use expander_adapter::ExpanderAdapter;
 
+use icu_locid_transform::provider::*;
 use provider::*;
+use yoke::trait_hack::YokeTraitHack;
 
 /// Configuration settings for a particular fallback operation.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -222,27 +228,71 @@ pub struct LocaleFallbackConfig {
 /// Entry type for locale fallbacking.
 ///
 /// See the module-level documentation for an example.
-#[derive(Debug, Clone, PartialEq)]
-pub struct LocaleFallbacker {
-    likely_subtags: DataPayload<LocaleFallbackLikelySubtagsV1Marker>,
+pub struct LocaleFallbacker<M = LocaleFallbackLikelySubtagsV1Marker>
+where
+    M: DataMarker,
+{
+    likely_subtags: DataPayload<M>,
     parents: DataPayload<LocaleFallbackParentsV1Marker>,
     collation_supplement: Option<DataPayload<CollationFallbackSupplementV1Marker>>,
+}
+
+impl<M: DataMarker> Debug for LocaleFallbacker<M> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        todo!()
+    }
+}
+
+impl<M: DataMarker> Clone for LocaleFallbacker<M> {
+    fn clone(&self) -> Self {
+        todo!()
+    }
+}
+
+impl<M: DataMarker> PartialEq for LocaleFallbacker<M> {
+    fn eq(&self, other: &Self) -> bool {
+        todo!()
+    }
 }
 
 /// Intermediate type for spawning locale fallback iterators based on a specific configuration.
 ///
 /// See the module-level documentation for an example.
-#[derive(Debug, Clone, PartialEq)]
-pub struct LocaleFallbackerWithConfig<'a> {
-    likely_subtags: &'a LocaleFallbackLikelySubtagsV1<'a>,
+pub struct LocaleFallbackerWithConfig<'a, M = LocaleFallbackLikelySubtagsV1Marker>
+where
+    M: DataMarker,
+{
+    likely_subtags: &'a <<M as DataMarker>::Yokeable as yoke::Yokeable<'a>>::Output,
     parents: &'a LocaleFallbackParentsV1<'a>,
     supplement: Option<&'a LocaleFallbackSupplementV1<'a>>,
     config: LocaleFallbackConfig,
 }
 
+impl<'a, M: DataMarker> Debug for LocaleFallbackerWithConfig<'a, M> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        todo!()
+    }
+}
+
+impl<'a, M: DataMarker> Clone for LocaleFallbackerWithConfig<'a, M> {
+    fn clone(&self) -> Self {
+        todo!()
+    }
+}
+
+impl<'a, M: DataMarker> PartialEq for LocaleFallbackerWithConfig<'a, M> {
+    fn eq(&self, other: &Self) -> bool {
+        todo!()
+    }
+}
+
 /// Inner iteration type. Does not own the item under fallback.
-struct LocaleFallbackIteratorInner<'a, 'b> {
-    likely_subtags: &'a LocaleFallbackLikelySubtagsV1<'a>,
+struct LocaleFallbackIteratorInner<'a, 'b, M = LocaleFallbackLikelySubtagsV1Marker>
+where
+    M: DataMarker,
+    for<'y> &'y <<M as DataMarker>::Yokeable as yoke::Yokeable<'y>>::Output: ExpanderAdapter,
+{
+    likely_subtags: &'a <<M as DataMarker>::Yokeable as yoke::Yokeable<'a>>::Output,
     parents: &'a LocaleFallbackParentsV1<'a>,
     supplement: Option<&'a LocaleFallbackSupplementV1<'a>>,
     config: &'b LocaleFallbackConfig,
@@ -260,7 +310,7 @@ pub struct LocaleFallbackIterator<'a, 'b> {
     inner: LocaleFallbackIteratorInner<'a, 'b>,
 }
 
-impl LocaleFallbacker {
+impl LocaleFallbacker<LocaleFallbackLikelySubtagsV1Marker> {
     /// Creates a [`LocaleFallbacker`] with fallback data (likely subtags and parent locales).
     ///
     /// [📚 Help choosing a constructor](icu_provider::constructors)
@@ -296,7 +346,13 @@ impl LocaleFallbacker {
     }
 
     icu_provider::gen_any_buffer_constructors!(locale: skip, options: skip, error: DataError);
+}
 
+impl<M> LocaleFallbacker<M>
+where
+    M: DataMarker,
+    <M as DataMarker>::Yokeable: Default,
+{
     /// Creates a [`LocaleFallbacker`] without fallback data. Using this constructor may result in
     /// surprising behavior, especially in multi-script languages.
     pub fn new_without_data() -> Self {
@@ -306,9 +362,14 @@ impl LocaleFallbacker {
             collation_supplement: None,
         }
     }
+}
 
+impl<M> LocaleFallbacker<M>
+where
+    M: DataMarker,
+{
     /// Creates the intermediate [`LocaleFallbackerWithConfig`] with configuration options.
-    pub fn for_config(&self, config: LocaleFallbackConfig) -> LocaleFallbackerWithConfig {
+    pub fn for_config(&self, config: LocaleFallbackConfig) -> LocaleFallbackerWithConfig<M> {
         let supplement = match config.fallback_supplement {
             Some(FallbackSupplement::Collation) => {
                 self.collation_supplement.as_ref().map(|p| p.get())
@@ -364,7 +425,7 @@ impl LocaleFallbacker {
     /// ```
     ///
     /// [`DataRequestMetadata`]: icu_provider::DataRequestMetadata
-    pub fn for_key(&self, data_key: DataKey) -> LocaleFallbackerWithConfig {
+    pub fn for_key(&self, data_key: DataKey) -> LocaleFallbackerWithConfig<M> {
         let priority = data_key.metadata().fallback_priority;
         let extension_key = data_key.metadata().extension_key;
         let fallback_supplement = data_key.metadata().fallback_supplement;
