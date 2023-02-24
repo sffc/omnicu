@@ -64,8 +64,8 @@ pub enum DataErrorKind {
     MissingSourceData,
 
     /// An error indicating that the desired buffer format is not available. This usually
-    /// means that a required feature was not enabled
-    #[displaydoc("Unavailable buffer format: {0:?} (does icu_provider need to be compiled with an additional feature?)")]
+    /// means that a required Cargo feature was not enabled
+    #[displaydoc("Unavailable buffer format: {0:?} (does icu_provider need to be compiled with an additional Cargo feature?)")]
     UnavailableBufferFormat(BufferFormat),
 }
 
@@ -110,10 +110,10 @@ impl fmt::Display for DataError {
             write!(f, ": {}", self.kind)?;
         }
         if let Some(key) = self.key {
-            write!(f, " (key: {})", key)?;
+            write!(f, " (key: {key})")?;
         }
         if let Some(str_context) = self.str_context {
-            write!(f, ": {}", str_context)?;
+            write!(f, ": {str_context}")?;
         }
         Ok(())
     }
@@ -196,7 +196,7 @@ impl DataError {
 
     /// Logs the data error with the given request, returning an error containing the resource key.
     ///
-    /// If the "log_error_context" feature is enabled, this logs the whole request. Either way,
+    /// If the "log_error_context" Cargo feature is enabled, this logs the whole request. Either way,
     /// it returns an error with the resource key portion of the request as context.
     #[cfg_attr(not(feature = "log_error_context"), allow(unused_variables))]
     pub fn with_req(self, key: DataKey, req: DataRequest) -> Self {
@@ -210,7 +210,7 @@ impl DataError {
 
     /// Logs the data error with the given context, then return self.
     ///
-    /// This does not modify the error, but if the "log_error_context" feature is enabled,
+    /// This does not modify the error, but if the "log_error_context" Cargo feature is enabled,
     /// it will print out the context.
     #[cfg(feature = "std")]
     #[cfg_attr(not(feature = "log_error_context"), allow(unused_variables))]
@@ -222,7 +222,7 @@ impl DataError {
 
     /// Logs the data error with the given context, then return self.
     ///
-    /// This does not modify the error, but if the "log_error_context" feature is enabled,
+    /// This does not modify the error, but if the "log_error_context" Cargo feature is enabled,
     /// it will print out the context.
     #[cfg_attr(not(feature = "log_error_context"), allow(unused_variables))]
     #[inline]
@@ -234,7 +234,7 @@ impl DataError {
 
     /// Logs the data error with the given context, then return self.
     ///
-    /// This does not modify the error, but if the "log_error_context" feature is enabled,
+    /// This does not modify the error, but if the "log_error_context" Cargo feature is enabled,
     /// it will print out the context.
     #[cfg_attr(not(feature = "log_error_context"), allow(unused_variables))]
     #[inline]

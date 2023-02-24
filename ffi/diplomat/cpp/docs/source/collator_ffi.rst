@@ -31,7 +31,7 @@
         See the `Rust documentation for compare <https://unicode-org.github.io/icu4x-docs/doc/icu/collator/struct.Collator.html#method.compare>`__ for more information.
 
 
-    .. cpp:function:: ICU4XOrdering compare_utf16(const diplomat::span<uint16_t> left, const diplomat::span<uint16_t> right) const
+    .. cpp:function:: ICU4XOrdering compare_utf16(const diplomat::span<const uint16_t> left, const diplomat::span<const uint16_t> right) const
 
         Compare potentially ill-formed UTF-16 strings, with unpaired surrogates compared as REPLACEMENT CHARACTER.
 
@@ -145,14 +145,3 @@
     .. cpp:enumerator:: Quaternary
 
     .. cpp:enumerator:: Identical
-
-.. cpp:enum-struct:: ICU4XOrdering
-
-    See the `Rust documentation for Ordering <https://unicode-org.github.io/icu4x-docs/doc/core/cmp/enum.Ordering.html>`__ for more information.
-
-
-    .. cpp:enumerator:: Less
-
-    .. cpp:enumerator:: Equal
-
-    .. cpp:enumerator:: Greater

@@ -11,6 +11,7 @@ pub mod binary {
         #[serde(skip)]
         pub short_name: String,
         pub ranges: Vec<(u32, u32)>,
+        pub strings: Option<Vec<String>>,
     }
 
     #[derive(serde::Deserialize)]
@@ -34,9 +35,19 @@ pub mod enumerated {
     }
 
     #[derive(serde::Deserialize)]
+    pub struct EnumeratedPropertyValue {
+        pub discr: u16,
+        pub long: String,
+        pub short: Option<String>,
+        #[serde(default)]
+        pub aliases: Vec<String>,
+    }
+
+    #[derive(serde::Deserialize)]
     pub struct EnumeratedPropertyMap {
         pub long_name: String,
         pub short_name: String,
+        pub values: Vec<EnumeratedPropertyValue>,
         pub ranges: Vec<EnumeratedPropertyMapRange>,
         pub code_point_trie: super::CodePointTrieToml,
     }

@@ -21,7 +21,11 @@ impl DataMarker for BufferMarker {
 ///
 /// Generally, these bytes are expected to be deserializable with Serde. To get an object
 /// implementing [`DataProvider`] via Serde, use [`as_deserializing()`], which requires
-/// enabling at least one of the Serde features.
+/// enabling at least one of the deserialization Cargo features:
+///
+/// - `deserialize_json`
+/// - `deserialize_postcard_1`
+/// - `deserialize_bincode_1`
 ///
 /// Along with [`DataProvider`], this is one of the two foundational traits in this crate.
 ///
@@ -34,21 +38,46 @@ impl DataMarker for BufferMarker {
 /// use icu_locid::locale;
 /// use icu_provider::hello_world::*;
 /// use icu_provider::prelude::*;
+/// use std::borrow::Cow;
 ///
 /// let buffer_provider = HelloWorldProvider.into_json_provider();
 ///
-/// let data_provider = buffer_provider.as_deserializing();
+/// let req = DataRequest {
+///     locale: &locale!("de").into(),
+///     metadata: Default::default(),
+/// };
 ///
-/// let german_hello_world: DataPayload<HelloWorldV1Marker> = data_provider
-///     .load(DataRequest {
-///         locale: &locale!("de").into(),
-///         metadata: Default::default(),
-///     })
-///     .expect("Loading should succeed")
-///     .take_payload()
-///     .expect("Data should be present");
+/// // Deserializing manually
+/// assert_eq!(
+///     serde_json::from_slice::<HelloWorldV1>(
+///         buffer_provider
+///             .load_buffer(HelloWorldV1Marker::KEY, req)
+///             .expect("load should succeed")
+///             .take_payload()
+///             .unwrap()
+///             .get()
+///     )
+///     .expect("should deserialize"),
+///     HelloWorldV1 {
+///         message: Cow::Borrowed("Hallo Welt"),
+///     },
+/// );
 ///
-/// assert_eq!("Hallo Welt", german_hello_world.get().message);
+/// // Deserialize automatically
+/// let deserializing_provider: &dyn DataProvider<HelloWorldV1Marker> =
+///     &buffer_provider.as_deserializing();
+///
+/// assert_eq!(
+///     deserializing_provider
+///         .load(req)
+///         .expect("load should succeed")
+///         .take_payload()
+///         .unwrap()
+///         .get(),
+///     &HelloWorldV1 {
+///         message: Cow::Borrowed("Hallo Welt"),
+///     },
+/// );
 /// # }
 /// ```
 ///

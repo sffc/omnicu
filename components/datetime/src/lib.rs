@@ -71,15 +71,15 @@
 //! let formatted_date = dtf.format(&date).expect("Calendars should match");
 //! let typed_formatted_date = typed_dtf.format(&typed_date);
 //!
-//! assert_writeable_eq!(formatted_date, "Sep 12, 2020, 12:34 PM");
-//! assert_writeable_eq!(typed_formatted_date, "Sep 12, 2020, 12:34 PM");
+//! assert_writeable_eq!(formatted_date, "Sep 12, 2020, 12:34 PM");
+//! assert_writeable_eq!(typed_formatted_date, "Sep 12, 2020, 12:34 PM");
 //!
 //! let formatted_date_string =
 //!     dtf.format_to_string(&date).expect("Calendars should match");
 //! let typed_formatted_date_string = typed_dtf.format_to_string(&typed_date);
 //!
-//! assert_eq!(formatted_date_string, "Sep 12, 2020, 12:34 PM");
-//! assert_eq!(typed_formatted_date_string, "Sep 12, 2020, 12:34 PM");
+//! assert_eq!(formatted_date_string, "Sep 12, 2020, 12:34 PM");
+//! assert_eq!(typed_formatted_date_string, "Sep 12, 2020, 12:34 PM");
 //! ```
 //!
 //! The options can be created more ergonomically using the `Into` trait to automatically
@@ -149,7 +149,7 @@ pub mod provider;
 pub(crate) mod raw;
 #[doc(hidden)]
 #[allow(clippy::exhaustive_structs, clippy::exhaustive_enums)] // private-ish module
-#[cfg(feature = "experimental_skeleton_matching")]
+#[cfg(any(feature = "datagen", feature = "experimental"))]
 pub mod skeleton;
 pub mod time_zone;
 mod zoned_datetime;

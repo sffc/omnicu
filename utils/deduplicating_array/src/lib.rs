@@ -100,8 +100,7 @@ where
                     // which makes the assume_init_ref safe
                     if j >= i {
                         return Err(D::Error::custom(format!(
-                            "Illegal forward fallback {}->{}",
-                            i, j
+                            "Illegal forward fallback {i}->{j}",
                         )));
                     }
                     #[allow(clippy::indexing_slicing)] // j < i in 0..N by enumerate
@@ -123,8 +122,7 @@ where
                     // which makes the assume_init_ref safe
                     if j >= i {
                         return Err(D::Error::custom(format!(
-                            "Illegal forward fallback {}->{}",
-                            i, j
+                            "Illegal forward fallback {i}->{j}",
                         )));
                     }
                     #[allow(clippy::indexing_slicing)] // j < i in 0..N by enumerate
@@ -286,7 +284,7 @@ mod test {
             1, // [2] => [0]
         ];
 
-        assert_eq!(postcard::to_stdvec(&STRUCT).unwrap(), bytes);
+        assert_eq!(postcard::to_allocvec(&STRUCT).unwrap(), bytes);
 
         let de_struct = postcard::from_bytes::<TestStruct>(bytes).unwrap();
 

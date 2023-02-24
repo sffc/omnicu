@@ -16,6 +16,7 @@
 )]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::needless_lifetimes)]
+#![allow(clippy::result_unit_err)]
 
 //! This crate contains the source of truth for the [Diplomat](https://github.com/rust-diplomat/diplomat)-generated
 //! FFI bindings. This generates the C, C++, JavaScript, and TypeScript bindings. This crate also contains the `extern "C"`
@@ -43,12 +44,10 @@ extern crate std as rust_std;
 
 extern crate alloc;
 
-#[macro_use]
-mod utils;
-
 pub mod bidi;
 pub mod calendar;
 pub mod collator;
+pub mod common;
 pub mod data_struct;
 pub mod date;
 pub mod datetime;

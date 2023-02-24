@@ -51,10 +51,10 @@ pub struct DataResponseMetadata {
 /// To transform a [`DataPayload`] to a different type backed by the same data store (cart), use
 /// [`DataPayload::map_project()`] or one of its sister methods.
 ///
-/// # `sync` feature
+/// # Cargo feature: `sync`
 ///
 /// By default, the payload uses non-concurrent reference counting internally, and hence is neither
-/// [`Sync`] nor [`Send`]; if these traits are required, the `sync` feature can be enabled.
+/// [`Sync`] nor [`Send`]; if these traits are required, the `sync` Cargo feature can be enabled.
 ///
 /// # Examples
 ///
@@ -86,7 +86,7 @@ pub struct Cart(SelectedRc<Box<[u8]>>);
 impl Deref for Cart {
     type Target = Box<[u8]>;
     fn deref(&self) -> &Self::Target {
-        &*self.0
+        &self.0
     }
 }
 // Safe because both Rc and Arc are StableDeref, and our impl delegates.
@@ -95,13 +95,13 @@ unsafe impl stable_deref_trait::StableDeref for Cart {}
 unsafe impl yoke::CloneableCart for Cart {}
 
 impl Cart {
-    /// Creates a Yoke<Y, Option<Cart>> from owned bytes by applying f.
+    /// Creates a `Yoke<Y, Option<Cart>>` from owned bytes by applying `f`.
     pub fn try_make_yoke<Y, F, E>(cart: Box<[u8]>, f: F) -> Result<Yoke<Y, Option<Self>>, E>
     where
         for<'a> Y: Yokeable<'a>,
         F: FnOnce(&[u8]) -> Result<<Y as Yokeable>::Output, E>,
     {
-        Yoke::try_attach_to_cart(SelectedRc::new(cart), |b| f(&*b))
+        Yoke::try_attach_to_cart(SelectedRc::new(cart), |b| f(b))
             // Safe because the cart is only wrapped
             .map(|yoke| unsafe { yoke.replace_cart(Cart) })
             .map(Yoke::wrap_cart_in_option)
@@ -631,5 +631,5 @@ fn test_debug() {
             message: Cow::Borrowed("foo"),
         })),
     };
-    assert_eq!("DataResponse { metadata: DataResponseMetadata { locale: None, buffer_format: None }, payload: Some(HelloWorldV1 { message: \"foo\" }) }", format!("{:?}", resp));
+    assert_eq!("DataResponse { metadata: DataResponseMetadata { locale: None, buffer_format: None }, payload: Some(HelloWorldV1 { message: \"foo\" }) }", format!("{resp:?}"));
 }

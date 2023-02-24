@@ -43,6 +43,7 @@ use crate::helpers::result_is_err_missing_data_options;
 ///     "こんにちは世界",
 /// );
 /// ```
+#[derive(Clone)]
 pub struct LocaleFallbackProvider<P> {
     inner: P,
     fallbacker: LocaleFallbacker,
@@ -159,6 +160,11 @@ impl<P> LocaleFallbackProvider<P> {
     /// Returns a reference to the inner provider, bypassing fallback.
     pub fn inner(&self) -> &P {
         &self.inner
+    }
+
+    /// Returns a mutable reference to the inner provider.
+    pub fn inner_mut(&mut self) -> &mut P {
+        &mut self.inner
     }
 
     /// Returns ownership of the inner provider to the caller.

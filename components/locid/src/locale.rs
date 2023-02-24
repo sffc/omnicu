@@ -4,9 +4,8 @@
 
 use crate::ordering::SubtagOrderingResult;
 use crate::parser::{
-    get_subtag_iterator, parse_locale,
-    parse_locale_with_single_variant_single_keyword_unicode_keyword_extension, ParserError,
-    ParserMode,
+    parse_locale, parse_locale_with_single_variant_single_keyword_unicode_keyword_extension,
+    ParserError, ParserMode, SubtagIterator,
 };
 use crate::{extensions, subtags, LanguageIdentifier};
 use alloc::string::String;
@@ -100,12 +99,12 @@ fn test_sizes() {
     assert_eq!(core::mem::size_of::<extensions::transform::Fields>(), 24);
 
     assert_eq!(core::mem::size_of::<extensions::unicode::Attributes>(), 24);
-    assert_eq!(core::mem::size_of::<extensions::unicode::Keywords>(), 48);
+    assert_eq!(core::mem::size_of::<extensions::unicode::Keywords>(), 40);
     assert_eq!(core::mem::size_of::<Vec<extensions::other::Other>>(), 24);
     assert_eq!(core::mem::size_of::<extensions::private::Private>(), 24);
-    assert_eq!(core::mem::size_of::<extensions::Extensions>(), 192);
+    assert_eq!(core::mem::size_of::<extensions::Extensions>(), 184);
 
-    assert_eq!(core::mem::size_of::<Locale>(), 240);
+    assert_eq!(core::mem::size_of::<Locale>(), 232);
 }
 
 impl Locale {
@@ -282,7 +281,7 @@ impl Locale {
             };
         }
 
-        let mut iter = get_subtag_iterator(other.as_bytes());
+        let mut iter = SubtagIterator::new(other.as_bytes());
         if !subtag_matches!(subtags::Language, iter, self.id.language) {
             return false;
         }
@@ -313,7 +312,7 @@ impl Locale {
                 }
             }
         }
-        iter.next() == None
+        iter.next().is_none()
     }
 
     #[doc(hidden)]

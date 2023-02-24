@@ -5,24 +5,16 @@
 #[diplomat::bridge]
 pub mod ffi {
     use alloc::boxed::Box;
-    use diplomat_runtime::DiplomatResult;
     use icu_collator::{Collator, CollatorOptions};
 
     use crate::{
-        errors::ffi::ICU4XError, locale::ffi::ICU4XLocale, provider::ffi::ICU4XDataProvider,
+        common::ffi::ICU4XOrdering, errors::ffi::ICU4XError, locale::ffi::ICU4XLocale,
+        provider::ffi::ICU4XDataProvider,
     };
 
     #[diplomat::opaque]
     #[diplomat::rust_link(icu::collator::Collator, Struct)]
     pub struct ICU4XCollator(pub Collator);
-
-    #[diplomat::enum_convert(core::cmp::Ordering)]
-    #[diplomat::rust_link(core::cmp::Ordering, Enum)]
-    pub enum ICU4XOrdering {
-        Less = -1,
-        Equal = 0,
-        Greater = 1,
-    }
 
     #[diplomat::rust_link(icu::collator::CollatorOptions, Struct)]
     #[diplomat::rust_link(icu::collator::CollatorOptions::new, FnInStruct, hidden)]
@@ -98,14 +90,15 @@ pub mod ffi {
             provider: &ICU4XDataProvider,
             locale: &ICU4XLocale,
             options: ICU4XCollatorOptionsV1,
-        ) -> DiplomatResult<Box<ICU4XCollator>, ICU4XError> {
+        ) -> Result<Box<ICU4XCollator>, ICU4XError> {
             let locale = locale.to_datalocale();
             let options = CollatorOptions::from(options);
 
-            Collator::try_new_unstable(&provider.0, &locale, options)
-                .map(|o| Box::new(ICU4XCollator(o)))
-                .map_err(Into::into)
-                .into()
+            Ok(Box::new(ICU4XCollator(Collator::try_new_unstable(
+                &provider.0,
+                &locale,
+                options,
+            )?)))
         }
 
         /// Compare potentially ill-formed UTF-8 strings.
