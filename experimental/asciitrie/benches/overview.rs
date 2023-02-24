@@ -5,6 +5,7 @@
 use asciitrie::AsciiTrie;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use std::collections::HashMap;
+use zerovec::ZeroHashMap;
 use zerovec::ZeroMap;
 
 mod testdata {
@@ -80,6 +81,31 @@ fn get_basic_bench(c: &mut Criterion) {
             }
         });
     });
+
+    g.bench_function("ZeroHashMap/usize", |b| {
+        let zhm: ZeroHashMap<[u8], usize> = data
+            .iter()
+            .copied()
+            .collect();
+        b.iter(|| {
+            for (key, expected) in black_box(data) {
+                let actual = black_box(&zhm).get(key.as_bytes());
+                // No get_copied on ZHM so we need to do it manually
+                let actual = actual.map(|x| <zerovec::vecs::FlexZeroSlice as zerovec::maps::ZeroVecLike<usize>>::zvl_get_as_t(x, |y| *y));
+                assert_eq!(Some(*expected as usize), actual);
+            }
+        });
+    });
+
+    g.bench_function("ZeroHashMap/u8", |b| {
+        let zhm: ZeroHashMap<[u8], u8> = data.iter().map(|(k, v)| (*k, *v as u8)).collect();
+        b.iter(|| {
+            for (key, expected) in black_box(data) {
+                let actual = black_box(&zhm).get(key.as_bytes()).copied();
+                assert_eq!(Some(*expected as u8), actual);
+            }
+        });
+    });
 }
 
 fn get_subtags_bench(c: &mut Criterion) {
@@ -91,9 +117,9 @@ fn get_subtags_bench(c: &mut Criterion) {
     g.bench_function("AsciiTrie", |b| {
         let trie = AsciiTrie::from_litemap(&litemap);
         b.iter(|| {
-            for key in black_box(strings) {
+            for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = black_box(&trie).get(key.as_bytes());
-                assert_eq!(Some(0), actual);
+                assert_eq!(Some(i), actual);
             }
         });
     });
@@ -101,9 +127,9 @@ fn get_subtags_bench(c: &mut Criterion) {
     g.bench_function("AsciiTrie2", |b| {
         let trie2 = asciitrie::make2_litemap(&litemap);
         b.iter(|| {
-            for key in black_box(strings) {
+            for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = asciitrie::reader2::get(black_box(&trie2), key.as_bytes());
-                assert_eq!(Some(0), actual);
+                assert_eq!(Some(i), actual);
             }
         });
     });
@@ -111,9 +137,9 @@ fn get_subtags_bench(c: &mut Criterion) {
     g.bench_function("AsciiTrie3", |b| {
         let trie3 = asciitrie::make3_litemap(&litemap);
         b.iter(|| {
-            for key in black_box(strings) {
+            for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = asciitrie::reader3::get(black_box(&trie3), key.as_bytes());
-                assert_eq!(Some(0), actual);
+                assert_eq!(Some(i), actual);
             }
         });
     });
@@ -121,9 +147,9 @@ fn get_subtags_bench(c: &mut Criterion) {
     g.bench_function("ZeroMap/usize", |b| {
         let zm: ZeroMap<[u8], usize> = litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
         b.iter(|| {
-            for key in black_box(strings) {
+            for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = black_box(&zm).get_copied(key.as_bytes());
-                assert_eq!(Some(0), actual);
+                assert_eq!(Some(i), actual);
             }
         });
     });
@@ -131,9 +157,9 @@ fn get_subtags_bench(c: &mut Criterion) {
     g.bench_function("ZeroMap/u8", |b| {
         let zm: ZeroMap<[u8], u8> = litemap.iter().map(|(k, v)| (*k, *v as u8)).collect();
         b.iter(|| {
-            for key in black_box(strings) {
+            for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = black_box(&zm).get_copied(key.as_bytes());
-                assert_eq!(Some(0), actual);
+                assert_eq!(Some(i as u8), actual);
             }
         });
     });
@@ -141,9 +167,34 @@ fn get_subtags_bench(c: &mut Criterion) {
     g.bench_function("HashMap", |b| {
         let hm: HashMap<&[u8], usize> = litemap.iter().map(|(a, b)| (a.as_bytes(), *b)).collect();
         b.iter(|| {
-            for key in black_box(strings) {
+            for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = black_box(&hm).get(key.as_bytes());
-                assert_eq!(Some(&0), actual);
+                assert_eq!(Some(&i), actual);
+            }
+        });
+    });
+
+    g.bench_function("ZeroHashMap/usize", |b| {
+        let zhm: ZeroHashMap<[u8], usize> = litemap
+            .iter()
+            .map(|(a, b)| (a.as_bytes(), b))
+            .collect();
+        b.iter(|| {
+            for (i, key) in black_box(strings).iter().enumerate() {
+                let actual = black_box(&zhm).get(key.as_bytes());
+                // No get_copied on ZHM so we need to do it manually
+                let actual = actual.map(|x| <zerovec::vecs::FlexZeroSlice as zerovec::maps::ZeroVecLike<usize>>::zvl_get_as_t(x, |y| *y));
+                assert_eq!(Some(i), actual);
+            }
+        });
+    });
+
+    g.bench_function("ZeroHashMap/u8", |b| {
+        let zhm: ZeroHashMap<[u8], u8> = litemap.iter().map(|(k, v)| (*k, *v as u8)).collect();
+        b.iter(|| {
+            for (i, key) in black_box(strings).iter().enumerate() {
+                let actual = black_box(&zhm).get(key.as_bytes()).copied();
+                assert_eq!(Some(i as u8), actual);
             }
         });
     });
