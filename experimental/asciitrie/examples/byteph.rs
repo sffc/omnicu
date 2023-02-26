@@ -20,28 +20,54 @@ fn black_box<T>(dummy: T) -> T {
 }
 
 fn f1(byte: u8, p: u8, n: usize) -> usize {
-    (byte as usize + p as usize) % n
+    // (byte as usize + p as usize) % n
+
     // ((byte ^ p) as usize) % n
+
     // (byte as usize * p as usize) % n
+
     // ((byte as usize) ^ (byte as usize >> (p as usize + 1))) % n
+
     // let mut x = byte as usize;
     // for _ in 0..p {
     //     x = x.wrapping_mul(257);
     // }
     // x % n
+
+    if p == 0 { byte as usize % n } else {
+
+    use core::hash::{Hasher, Hash};
+    let mut hasher = t1ha::T1haHasher::with_seed(p as u64);
+    [byte].hash(&mut hasher);
+    hasher.finish() as usize % n
+
+
+    // const K: usize = 0x517cc1b727220a95;
+    // (((p as usize) << 5) ^ (byte as usize)).wrapping_mul(K) % n
+
+    }
 }
 
 fn f2(byte: u8, q: u8, n: usize) -> usize {
     // (byte as usize + q as usize) % n
-    // ((byte ^ q) as usize) % n
+
+    ((byte ^ q) as usize) % n
+
     // (byte as usize * (q as usize + 1)) % n
+
     // ((byte as usize ^ (n - 1)) + q as usize) % n
-    let mut x = byte as usize;
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
-    x ^= q as usize;
-    x % n
+
+    // let mut x = byte as usize;
+    // x ^= x << 13;
+    // x ^= x >> 17;
+    // x ^= x << 5;
+    // x ^= q as usize;
+    // x % n
+
+    // use core::hash::{Hasher, Hash};
+    // let mut hasher = t1ha::T1haHasher::with_seed(q as u64);
+    // [byte].hash(&mut hasher);
+    // hasher.finish() as usize % n
 }
 
 fn print_byte_to_stdout(byte: u8) {
@@ -67,7 +93,7 @@ fn find_ph(bytes: &[u8]) -> Result<(u8, Vec<u8>), &'static str> {
             buckets[f1(*byte, p, N)].1.push(*byte);
         }
         buckets.sort_by_key(|(_, v)| -(v.len() as isize));
-        println!("New P: p={p:?}, buckets={buckets:?}");
+        // println!("New P: p={p:?}, buckets={buckets:?}");
         let mut i = 0;
         let mut bqs = vec![0u8; N];
         let mut seen = vec![false; N];
@@ -95,6 +121,7 @@ fn find_ph(bytes: &[u8]) -> Result<(u8, Vec<u8>), &'static str> {
                         }
                         println!("!!! reached max Q!");
                         bqs[i] = 0;
+                        i = 0; // !!!
                         if i == 0 {
                             if p == u8::MAX {
                                 println!("Could not solve PHF function");
@@ -115,7 +142,7 @@ fn find_ph(bytes: &[u8]) -> Result<(u8, Vec<u8>), &'static str> {
                     seen[f2(*byte, bqs[i], N)] = true;
                 }
             }
-            println!("Found Q: i={i:?}, q={:?}", bqs[i]);
+            // println!("Found Q: i={i:?}, q={:?}", bqs[i]);
             i += 1;
         }
     }
@@ -135,16 +162,19 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 
     // let bytes = b"abdeghi";
     // let bytes = b"abdeghklmopuvxz";
-    let bytes = b"qwertyuiopasdfgh";
+    // let bytes = b"qwertyuiopasdfgh";
     // let bytes = b"qwrtuipadgklzxcbmQWRUOPADHKZVM";
 
-    // for len in 1..32 {
-    //     for seed in 0..32 {
-    //         let bytes = random_alphanums(seed, len);
-    //         println!("{len} {seed}");
-    //         find_ph(bytes.as_slice()).unwrap();
-    //     }
-    // }
+    let mut p_distr = vec![0; 256];
+    for len in 1..32 {
+        for seed in 0..32 {
+            let bytes = random_alphanums(seed, len);
+            println!("{len} {seed}");
+            let (p, _) = find_ph(bytes.as_slice()).unwrap();
+            p_distr[p as usize] += 1;
+        }
+    }
+    println!("p_distr: {p_distr:?}");
 
     let bytes = random_alphanums(0, 16);
 

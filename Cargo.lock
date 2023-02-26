@@ -75,6 +75,7 @@ dependencies = [
  "ref-cast",
  "serde",
  "serde_json",
+ "t1ha",
  "zerovec",
 ]
 
