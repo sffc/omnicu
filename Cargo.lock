@@ -70,6 +70,8 @@ dependencies = [
  "icu_benchmark_macros",
  "litemap",
  "postcard",
+ "rand",
+ "rand_pcg",
  "ref-cast",
  "serde",
  "serde_json",
