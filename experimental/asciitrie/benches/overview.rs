@@ -2,9 +2,9 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use litemap::LiteMap;
 use asciitrie::AsciiTrie;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use litemap::LiteMap;
 use std::collections::HashMap;
 use zerovec::ZeroHashMap;
 use zerovec::ZeroMap;
@@ -127,8 +127,11 @@ fn get_subtags_bench_large(c: &mut Criterion) {
     get_subtags_bench_helper(g, strings, litemap);
 }
 
-fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(mut g: criterion::BenchmarkGroup<M>, strings: &[&str], litemap: LiteMap<&asciitrie::AsciiStr, usize>) {
-
+fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(
+    mut g: criterion::BenchmarkGroup<M>,
+    strings: &[&str],
+    litemap: LiteMap<&asciitrie::AsciiStr, usize>,
+) {
     g.bench_function("AsciiTrie", |b| {
         let trie1b = asciitrie::make1b_litemap(&litemap);
         let trie = AsciiTrie::from_bytes(&trie1b);
@@ -218,5 +221,10 @@ fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(mut g: crite
     g.finish();
 }
 
-criterion_group!(benches, get_basic_bench, get_subtags_bench_medium, get_subtags_bench_large);
+criterion_group!(
+    benches,
+    get_basic_bench,
+    get_subtags_bench_medium,
+    get_subtags_bench_large
+);
 criterion_main!(benches);
