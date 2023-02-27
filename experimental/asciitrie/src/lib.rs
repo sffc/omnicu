@@ -14,6 +14,7 @@ extern crate alloc;
 #[cfg(feature = "alloc")]
 mod alloc_impls;
 mod builder;
+pub mod byte_phf;
 pub mod reader;
 pub mod reader2;
 pub mod reader3;
