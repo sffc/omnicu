@@ -47,8 +47,6 @@ bincode = "1.0"
 rand = "0.8"
 rand_pcg = "0.3"
 t1ha = "0.1"
-fxhash = "0.2"
-fnv = "1"
 wyhash = "0.5"
 
 [lib]

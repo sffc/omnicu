@@ -5,7 +5,6 @@
 // This example demonstrates the use of AsciiTrie to look up data based on a region code.
 
 #![no_main] // https://github.com/unicode-org/icu4x/issues/395
-
 #![allow(unused_labels)]
 #![allow(dead_code)]
 
@@ -19,72 +18,30 @@ fn black_box<T>(dummy: T) -> T {
     }
 }
 
+/// To speed up the search algorithm, we limit the number of times the level-2 parameter (q)
+/// can hit its max value of 255 before we try the next level-1 parameter (p). In practice,
+/// this has a small impact on the resulting perfect hash, resulting in about 1 in 10000
+/// hash maps that fall back to the slow path.
+const MAX_L2_SEARCH_MISSES: usize = 24;
+
 fn f1(byte: u8, p: u8, n: usize) -> usize {
-    // (byte as usize + p as usize) % n
-
-    // ((byte ^ p) as usize) % n
-
-    // (byte as usize * p as usize) % n
-
-    // ((byte as usize) ^ (byte as usize >> (p as usize + 1))) % n
-
-    // let mut x = byte as usize;
-    // for _ in 0..p {
-    //     x = x.wrapping_mul(257);
-    // }
-    // x % n
-
-    if p == 0 { byte as usize % n } else {
-
-    use core::hash::{Hasher, Hash};
-    // let mut hasher = t1ha::T1haHasher::with_seed(p as u64);
-    // let mut hasher = t1ha::T1haHasher::default();
-    // let mut hasher = fnv::FnvHasher::with_key(p as u64);
-    // let mut hasher = fnv::FnvHasher::default();
-    let mut hasher = wyhash::WyHash::with_seed(p as u64);
-    // let mut hasher = wyhash::WyHash::default();
-    // [byte].hash(&mut hasher);
-    // hasher.write_u8(p);
-    hasher.write_u8(byte);
-    hasher.finish() as usize % n
-
-    // use core::hash::{Hasher, Hash};
-    // let mut hasher = t1ha::T1haHasher::default();
-    // [byte, p].hash(&mut hasher);
-    // hasher.finish() as usize % n
-
-
-    // const K: usize = 0x517cc1b727220a95;
-    // (((p as usize) << 5) ^ (byte as usize)).wrapping_mul(K) % n
-
-    // use core::hash::{Hasher, Hash};
-    // let mut hasher = fxhash::FxHasher32::default();
-    // [byte, p].hash(&mut hasher);
-    // hasher.finish() as usize % n
-
+    if p == 0 {
+        byte as usize % n
+    } else {
+        use core::hash::Hasher;
+        // let mut hasher = t1ha::T1haHasher::with_seed(p as u64);
+        // let mut hasher = t1ha::T1haHasher::default();
+        let mut hasher = wyhash::WyHash::with_seed(p as u64);
+        // let mut hasher = wyhash::WyHash::default();
+        core::hash::Hash::hash(&[byte], &mut hasher);
+        // hasher.write_u8(p);
+        // hasher.write_u8(byte);
+        hasher.finish() as usize % n
     }
 }
 
 fn f2(byte: u8, q: u8, n: usize) -> usize {
-    // (byte as usize + q as usize) % n
-
     ((byte ^ q) as usize) % n
-
-    // (byte as usize * (q as usize + 1)) % n
-
-    // ((byte as usize ^ (n - 1)) + q as usize) % n
-
-    // let mut x = byte as usize;
-    // x ^= x << 13;
-    // x ^= x >> 17;
-    // x ^= x << 5;
-    // x ^= q as usize;
-    // x % n
-
-    // use core::hash::{Hasher, Hash};
-    // let mut hasher = t1ha::T1haHasher::with_seed(q as u64);
-    // [byte].hash(&mut hasher);
-    // hasher.finish() as usize % n
 }
 
 fn print_byte_to_stdout(byte: u8) {
@@ -104,6 +61,9 @@ fn find_ph(bytes: &[u8]) -> Result<(u8, Vec<u8>), &'static str> {
     let mut p = 0u8;
     let mut qq = vec![0u8; N];
 
+    let mut bqs = vec![0u8; N];
+    let mut seen = vec![false; N];
+
     'p_loop: loop {
         let mut buckets: Vec<(usize, Vec<u8>)> = (0..N).map(|i| (i, vec![])).collect();
         for byte in bytes {
@@ -112,14 +72,18 @@ fn find_ph(bytes: &[u8]) -> Result<(u8, Vec<u8>), &'static str> {
         buckets.sort_by_key(|(_, v)| -(v.len() as isize));
         // println!("New P: p={p:?}, buckets={buckets:?}");
         let mut i = 0;
-        let mut bqs = vec![0u8; N];
-        let mut seen = vec![false; N];
+        let mut num_max_q = 0;
+        bqs.fill(0);
+        seen.fill(false);
         'q_loop: loop {
             if i == buckets.len() {
                 for (local_j, real_j) in buckets.iter().map(|(j, _)| *j).enumerate() {
                     qq[real_j] = bqs[local_j];
                 }
-                println!("Success: p={p:?}, bqs={bqs:?}, qq={qq:?}");
+                // println!("Success: p={p:?}, num_max_q={num_max_q:?}, bqs={bqs:?}, qq={qq:?}");
+                if num_max_q > 0 {
+                    println!("num_max_q={num_max_q:?}");
+                }
                 return Ok((p, qq));
             }
             let mut bucket = buckets[i].1.as_slice();
@@ -136,10 +100,9 @@ fn find_ph(bytes: &[u8]) -> Result<(u8, Vec<u8>), &'static str> {
                             bqs[i] += 1;
                             continue 'q_loop;
                         }
-                        println!("!!! reached max Q!");
+                        num_max_q += 1;
                         bqs[i] = 0;
-                        i = 0; // !!!
-                        if i == 0 {
+                        if i == 0 || num_max_q > MAX_L2_SEARCH_MISSES {
                             if p == u8::MAX {
                                 println!("Could not solve PHF function");
                                 return Err("Could not solve PHF function");
@@ -166,8 +129,8 @@ fn find_ph(bytes: &[u8]) -> Result<(u8, Vec<u8>), &'static str> {
 }
 
 fn random_alphanums(seed: u64, len: usize) -> Vec<u8> {
-    use rand::SeedableRng;
     use rand::seq::SliceRandom;
+    use rand::SeedableRng;
     const BYTES: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let mut rng = rand_pcg::Lcg64Xsh32::seed_from_u64(seed);
     BYTES.choose_multiple(&mut rng, len).copied().collect()
@@ -186,7 +149,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     for len in 0..256 {
         for seed in 0..100 {
             let bytes = random_alphanums(seed, len);
-            println!("{len} {seed}");
+            // println!("{len} {seed}");
             let (p, _) = find_ph(bytes.as_slice()).unwrap();
             p_distr[p as usize] += 1;
         }
