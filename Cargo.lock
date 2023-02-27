@@ -67,6 +67,8 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "criterion",
+ "fnv",
+ "fxhash",
  "icu_benchmark_macros",
  "litemap",
  "postcard",
@@ -76,6 +78,7 @@ dependencies = [
  "serde",
  "serde_json",
  "t1ha",
+ "wyhash",
  "zerovec",
 ]
 
@@ -1075,6 +1078,15 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
+]
+
+[[package]]
+name = "fxhash"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
+dependencies = [
+ "byteorder",
 ]
 
 [[package]]
@@ -4386,6 +4398,15 @@ dependencies = [
  "criterion",
  "icu_benchmark_macros",
  "rand",
+]
+
+[[package]]
+name = "wyhash"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baf6e163c25e3fac820b4b453185ea2dea3b6a3e0a721d4d23d75bd33734c295"
+dependencies = [
+ "rand_core",
 ]
 
 [[package]]

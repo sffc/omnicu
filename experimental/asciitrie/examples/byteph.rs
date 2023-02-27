@@ -37,13 +37,30 @@ fn f1(byte: u8, p: u8, n: usize) -> usize {
     if p == 0 { byte as usize % n } else {
 
     use core::hash::{Hasher, Hash};
-    let mut hasher = t1ha::T1haHasher::with_seed(p as u64);
-    [byte].hash(&mut hasher);
+    // let mut hasher = t1ha::T1haHasher::with_seed(p as u64);
+    // let mut hasher = t1ha::T1haHasher::default();
+    // let mut hasher = fnv::FnvHasher::with_key(p as u64);
+    // let mut hasher = fnv::FnvHasher::default();
+    let mut hasher = wyhash::WyHash::with_seed(p as u64);
+    // let mut hasher = wyhash::WyHash::default();
+    // [byte].hash(&mut hasher);
+    // hasher.write_u8(p);
+    hasher.write_u8(byte);
     hasher.finish() as usize % n
+
+    // use core::hash::{Hasher, Hash};
+    // let mut hasher = t1ha::T1haHasher::default();
+    // [byte, p].hash(&mut hasher);
+    // hasher.finish() as usize % n
 
 
     // const K: usize = 0x517cc1b727220a95;
     // (((p as usize) << 5) ^ (byte as usize)).wrapping_mul(K) % n
+
+    // use core::hash::{Hasher, Hash};
+    // let mut hasher = fxhash::FxHasher32::default();
+    // [byte, p].hash(&mut hasher);
+    // hasher.finish() as usize % n
 
     }
 }
@@ -166,8 +183,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     // let bytes = b"qwrtuipadgklzxcbmQWRUOPADHKZVM";
 
     let mut p_distr = vec![0; 256];
-    for len in 1..32 {
-        for seed in 0..32 {
+    for len in 0..256 {
+        for seed in 0..100 {
             let bytes = random_alphanums(seed, len);
             println!("{len} {seed}");
             let (p, _) = find_ph(bytes.as_slice()).unwrap();
