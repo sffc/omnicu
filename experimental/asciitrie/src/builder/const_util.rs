@@ -164,33 +164,35 @@ impl<const N: usize> ConstArrayBuilder<N, u8> {
         });
         self
     }
-    pub fn swap_ranges(mut self, start: usize, mid: usize, limit: usize) -> Self {
-        // println!("Top: {start:?} {mid:?} {limit:?}");
-        if start == mid || mid == limit {
-            return self;
-        }
+    pub fn swap_ranges(mut self, mut start: usize, mut mid: usize, mut limit: usize) -> Self {
         if start > mid || mid > limit {
             panic!("Invalid args to swap(): start > mid || mid > limit");
         }
         if start < self.start || self.start + limit > self.limit {
             panic!("Invalid args to swap(): start or limit out of range");
         }
-        let len0 = mid - start;
-        let len1 = limit - mid;
-        let mut i = self.start + start;
-        let mut j = self.start + limit - core::cmp::min(len0, len1);
-        while j < self.start + limit {
-            // println!("Swap: {i:?} {j:?}");
-            let temp = self.full_array[i];
-            self.full_array[i] = self.full_array[j];
-            self.full_array[j] = temp;
-            i += 1;
-            j += 1;
-        }
-        if len0 < len1 {
-            return self.swap_ranges(start, start + len0, limit - len0);
-        } else {
-            return self.swap_ranges(start + len1, limit - len1, limit);
+        loop {
+            if start == mid || mid == limit {
+                return self;
+            }
+            let len0 = mid - start;
+            let len1 = limit - mid;
+            let mut i = self.start + start;
+            let mut j = self.start + limit - core::cmp::min(len0, len1);
+            while j < self.start + limit {
+                let temp = self.full_array[i];
+                self.full_array[i] = self.full_array[j];
+                self.full_array[j] = temp;
+                i += 1;
+                j += 1;
+            }
+            if len0 < len1 {
+                mid = start + len0;
+                limit -= len0;
+            } else {
+                start += len1;
+                mid = limit - len1;
+            }
         }
     }
 }
