@@ -11,6 +11,19 @@ use alloc::vec;
 /// hash maps that fall back to the slow path.
 const MAX_L2_SEARCH_MISSES: usize = 24;
 
+/// Like slice::split_at but returns an Option instead of panicking
+#[inline]
+fn debug_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
+    if mid > slice.len() {
+        debug_assert!(false, "debug_split_at: index expected to be in range");
+        None
+    } else {
+        // Note: We're trusting the compiler to inline this and remove the assertion
+        // hiding on the top of slice::split_at: `assert(mid <= self.len())`
+        Some(slice.split_at(mid))
+    }
+}
+
 pub fn f1(byte: u8, p: u8, n: usize) -> usize {
     if p == 0 {
         byte as usize % n
@@ -106,9 +119,43 @@ pub fn find(bytes: &[u8]) -> Result<(u8, Vec<u8>), &'static str> {
     }
 }
 
+pub fn create_standard_layout(keys: &[u8]) -> Result<Vec<u8>, &'static str> {
+    let n = keys.len();
+    let (p, mut qq) = find(keys)?;
+    let mut keys_permuted = vec![0; n];
+    for key in keys {
+        let l1 = f1(*key, p, n);
+        let q = qq[l1];
+        let l2 = f2(*key, q, n);
+        keys_permuted[l2] = *key;
+    }
+    let mut result = Vec::with_capacity(n*2+1);
+    result.push(p);
+    result.append(&mut qq);
+    result.append(&mut keys_permuted);
+    Ok(result)
+}
+
+/// Standard layout: P, N bytes of Q, N bytes of expected keys
+pub fn get_from_standard_layout(buffer: &[u8], key: u8) -> Option<usize> {
+    let (p, buffer) = buffer.split_first()?;
+    let n = buffer.len() / 2;
+    let (qq, eks) = debug_split_at(buffer, n)?;
+    debug_assert_eq!(qq.len(), eks.len());
+    let q = qq[f1(key, *p, n)];
+    let l2 = f2(key, q, n);
+    let ek = eks[l2];
+    if ek == key {
+        Some(l2)
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
+    extern crate std;
 
 	fn random_alphanums(seed: u64, len: usize) -> Vec<u8> {
 	    use rand::seq::SliceRandom;
@@ -137,4 +184,42 @@ mod tests {
 	        }
 	    }
 	}
+
+    #[test]
+    fn test_build_read_small() {
+        struct TestCase<'a> {
+            bytes: &'a [u8],
+            expected: &'a [u8],
+        }
+        let cases = [
+            TestCase {
+                bytes: b"abc",
+                expected: &[0, 0, 0, 0, b'c', b'a', b'b']
+            },
+            TestCase {
+                bytes: b"abd",
+                expected: &[0, 0, 1, 3, b'a', b'b', b'd']
+            },
+            TestCase {
+                bytes: b"def",
+                expected: &[0, 0, 0, 0, b'f', b'd', b'e']
+            },
+            TestCase {
+                bytes: b"lm",
+                expected: &[0, 0, 0, b'l', b'm']
+            },
+        ];
+        for cas in cases {
+            let n = cas.bytes.len();
+            let computed = create_standard_layout(cas.bytes).unwrap();
+            assert_eq!(computed, cas.expected);
+            let mut seen = vec![false; n];
+            for key in cas.bytes {
+                let i = get_from_standard_layout(&computed, *key).expect(&std::format!("{key}"));
+                assert!(!seen[i], "{key}");
+                seen[i] = true;
+            }
+            assert!(get_from_standard_layout(&computed, b'_').is_none());
+        }
+    }
 }

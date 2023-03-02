@@ -18,6 +18,7 @@ pub mod byte_phf;
 pub mod reader;
 pub mod reader2;
 pub mod reader3;
+pub mod reader4;
 mod ref_cast;
 #[cfg(feature = "serde")]
 mod serde;
