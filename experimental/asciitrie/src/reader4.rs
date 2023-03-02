@@ -4,7 +4,7 @@
 
 use crate::varint::read_varint;
 use core::ops::Range;
-use crate::byte_phf;
+use crate::byte_phf::PerfectByteHashMap;
 
 /// Like slice::split_at but returns an Option instead of panicking
 #[inline]
@@ -122,7 +122,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 return None;
             }
             (search, trie) = debug_split_at(trie, x*2+1)?;
-            i = byte_phf::get_from_standard_layout(search, *c)?;
+            i = PerfectByteHashMap::from_store(search).get(*c)?;
             trie = get_branch(trie, i, x)?;
             ascii = temp;
             continue;
