@@ -142,6 +142,9 @@ impl<S> PerfectByteHashMap<S> where S: AsRef<[u8]> + ?Sized {
     pub fn get(&self, key: u8) -> Option<usize> {
         let (p, buffer) = self.0.as_ref().split_first()?;
         let n = buffer.len() / 2;
+        if n == 0 {
+            return None;
+        }
         let (qq, eks) = debug_split_at(buffer, n)?;
         debug_assert_eq!(qq.len(), eks.len());
         let q = qq[f1(key, *p, n)];
@@ -153,12 +156,35 @@ impl<S> PerfectByteHashMap<S> where S: AsRef<[u8]> + ?Sized {
             None
         }
     }
+    pub fn len(&self) -> usize {
+        self.0.as_ref().len() / 2
+    }
     pub fn keys(&self) -> &[u8] {
-        let n = self.0.as_ref().len() / 2;
+        let n = self.len();
         debug_split_at(self.0.as_ref(), 1 + n).map(|s| s.1).unwrap_or(&[])
     }
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_ref()
+    }
+    #[cfg(test)]
+    pub fn check(&self) -> Result<(), (&'static str, u8)> {
+        let len = self.len();
+        let mut seen = vec![false; len];
+        for b in 0..=255u8 {
+            let get_result = self.get(b);
+            if self.keys().contains(&b) {
+                let i = get_result.ok_or(("expected to find", b))?;
+                if seen[i] {
+                    return Err(("seen", b));
+                }
+                seen[i] = true;
+            } else {
+                if get_result.is_some() {
+                    return Err(("did not expect to find", b));
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -198,8 +224,9 @@ mod tests {
 	fn test_smaller() {
 	    for len in 0..32 {
 	        for seed in 0..50 {
-	            let bytes = random_alphanums(seed, len);
-	            find(bytes.as_slice()).unwrap();
+	            let keys = random_alphanums(seed, len);
+                let computed = PerfectByteHashMap::try_new(&keys).unwrap();
+                computed.check().expect(std::str::from_utf8(&keys).unwrap());
 	        }
 	    }
 	}
@@ -208,8 +235,9 @@ mod tests {
 	fn test_larger() {
 	    for len in 32..256 {
 	        for seed in 0..2 {
-	            let bytes = random_alphanums(seed, len);
-	            find(bytes.as_slice()).unwrap();
+	            let keys = random_alphanums(seed, len);
+                let computed = PerfectByteHashMap::try_new(&keys).unwrap();
+                computed.check().expect(std::str::from_utf8(&keys).unwrap());
 	        }
 	    }
 	}
@@ -258,17 +286,10 @@ mod tests {
             },
         ];
         for cas in cases {
-            let n = cas.keys.len();
             let computed = PerfectByteHashMap::try_new(cas.keys).unwrap();
             assert_eq!(computed.as_bytes(), cas.expected);
             assert_eq!(computed.keys(), cas.reordered_keys);
-            let mut seen = vec![false; n];
-            for key in cas.keys {
-                let i = computed.get(*key).expect(&std::format!("{key}"));
-                assert!(!seen[i], "{key}");
-                seen[i] = true;
-            }
-            assert!(computed.get(b'_').is_none());
+            computed.check().expect(std::str::from_utf8(cas.keys).unwrap());
         }
     }
 }
