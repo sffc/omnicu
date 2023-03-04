@@ -2,8 +2,8 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use alloc::vec::Vec;
 use alloc::vec;
+use alloc::vec::Vec;
 
 /// To speed up the search algorithm, we limit the number of times the level-2 parameter (q)
 /// can hit its max value of 255 before we try the next level-1 parameter (p). In practice,
@@ -14,7 +14,7 @@ const MAX_L2_SEARCH_MISSES: usize = 24;
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum Error {
-    CouldNotSolve
+    CouldNotSolve,
 }
 
 /// Like slice::split_at but returns an Option instead of panicking
@@ -138,7 +138,10 @@ impl<S> PerfectByteHashMap<S> {
     }
 }
 
-impl<S> PerfectByteHashMap<S> where S: AsRef<[u8]> + ?Sized {
+impl<S> PerfectByteHashMap<S>
+where
+    S: AsRef<[u8]> + ?Sized,
+{
     pub fn get(&self, key: u8) -> Option<usize> {
         let (p, buffer) = self.0.as_ref().split_first()?;
         let n = buffer.len() / 2;
@@ -161,7 +164,9 @@ impl<S> PerfectByteHashMap<S> where S: AsRef<[u8]> + ?Sized {
     }
     pub fn keys(&self) -> &[u8] {
         let n = self.len();
-        debug_split_at(self.0.as_ref(), 1 + n).map(|s| s.1).unwrap_or(&[])
+        debug_split_at(self.0.as_ref(), 1 + n)
+            .map(|s| s.1)
+            .unwrap_or(&[])
     }
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_ref()
@@ -199,7 +204,7 @@ impl PerfectByteHashMap<Vec<u8>> {
             let l2 = f2(*key, q, n);
             keys_permuted[l2] = *key;
         }
-        let mut result = Vec::with_capacity(n*2+1);
+        let mut result = Vec::with_capacity(n * 2 + 1);
         result.push(p);
         result.append(&mut qq);
         result.append(&mut keys_permuted);
@@ -209,38 +214,38 @@ impl PerfectByteHashMap<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+    use super::*;
     extern crate std;
 
-	fn random_alphanums(seed: u64, len: usize) -> Vec<u8> {
-	    use rand::seq::SliceRandom;
-	    use rand::SeedableRng;
-	    const BYTES: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-	    let mut rng = rand_pcg::Lcg64Xsh32::seed_from_u64(seed);
-	    BYTES.choose_multiple(&mut rng, len).copied().collect()
-	}
+    fn random_alphanums(seed: u64, len: usize) -> Vec<u8> {
+        use rand::seq::SliceRandom;
+        use rand::SeedableRng;
+        const BYTES: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let mut rng = rand_pcg::Lcg64Xsh32::seed_from_u64(seed);
+        BYTES.choose_multiple(&mut rng, len).copied().collect()
+    }
 
-	#[test]
-	fn test_smaller() {
-	    for len in 0..32 {
-	        for seed in 0..50 {
-	            let keys = random_alphanums(seed, len);
+    #[test]
+    fn test_smaller() {
+        for len in 0..32 {
+            for seed in 0..50 {
+                let keys = random_alphanums(seed, len);
                 let computed = PerfectByteHashMap::try_new(&keys).unwrap();
                 computed.check().expect(std::str::from_utf8(&keys).unwrap());
-	        }
-	    }
-	}
+            }
+        }
+    }
 
-	#[test]
-	fn test_larger() {
-	    for len in 32..256 {
-	        for seed in 0..2 {
-	            let keys = random_alphanums(seed, len);
+    #[test]
+    fn test_larger() {
+        for len in 32..256 {
+            for seed in 0..2 {
+                let keys = random_alphanums(seed, len);
                 let computed = PerfectByteHashMap::try_new(&keys).unwrap();
                 computed.check().expect(std::str::from_utf8(&keys).unwrap());
-	        }
-	    }
-	}
+            }
+        }
+    }
 
     #[test]
     fn test_build_read_small() {
@@ -289,7 +294,9 @@ mod tests {
             let computed = PerfectByteHashMap::try_new(cas.keys).unwrap();
             assert_eq!(computed.as_bytes(), cas.expected);
             assert_eq!(computed.keys(), cas.reordered_keys);
-            computed.check().expect(std::str::from_utf8(cas.keys).unwrap());
+            computed
+                .check()
+                .expect(std::str::from_utf8(cas.keys).unwrap());
         }
     }
 }

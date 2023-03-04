@@ -35,5 +35,6 @@ pub use builder::NonAsciiError;
 #[cfg(feature = "litemap")]
 pub use builder::{
     make1b_litemap, make1b_slice, make2_litemap, make2_slice, make3_litemap, make3_slice,
+    make4_litemap, make4_slice,
 };
 pub use trie::AsciiTrie;

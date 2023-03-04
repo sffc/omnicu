@@ -5,6 +5,7 @@
 use crate::builder::builder1b::AsciiTrieBuilder1b;
 use crate::builder::builder2::AsciiTrieBuilder2;
 use crate::builder::builder3::AsciiTrieBuilder3;
+use crate::builder::builder4::AsciiTrieBuilder4;
 use crate::builder::AsciiTrieBuilder;
 use crate::AsciiStr;
 use crate::AsciiTrie;
@@ -147,6 +148,21 @@ where
 
 pub fn make1b_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Vec<u8> {
     AsciiTrieBuilder1b::<10000>::from_tuple_slice(items.into())
+        .as_bytes()
+        .to_owned()
+}
+
+pub fn make4_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>
+where
+    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
+{
+    AsciiTrieBuilder4::<10000>::from_sorted_const_tuple_slice(items.as_slice().into())
+        .as_bytes()
+        .to_owned()
+}
+
+pub fn make4_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Vec<u8> {
+    AsciiTrieBuilder4::<10000>::from_tuple_slice(items.into())
         .as_bytes()
         .to_owned()
 }

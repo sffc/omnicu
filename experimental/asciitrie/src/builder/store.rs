@@ -6,6 +6,7 @@
 
 use super::const_util::ConstArrayBuilder;
 use super::const_util::ConstSlice;
+use super::const_util::const_for_each;
 use super::AsciiByte;
 
 pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
@@ -36,6 +37,10 @@ impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
     }
     pub const fn atbs_bitor_assign(mut self, index: usize, other: u8) -> Self {
         self.data = self.data.const_bitor_assign(index, other);
+        self
+    }
+    pub fn atbs_swap_ranges(mut self, start: usize, mid: usize, limit: usize) -> Self {
+        self.data = self.data.swap_ranges(start, mid, limit);
         self
     }
     pub const fn take_or_panic(self) -> [u8; N] {
@@ -182,6 +187,16 @@ pub(crate) struct BranchMeta {
     pub count: usize,
 }
 
+impl BranchMeta {
+    pub const fn const_default() -> Self {
+        BranchMeta {
+            ascii: AsciiByte::nul(),
+            length: 0,
+            count: 0,
+        }
+    }
+}
+
 pub(crate) struct ConstLengthsStack1b<const N: usize> {
     data: [Option<BranchMeta>; N],
     idx: usize,
@@ -235,5 +250,25 @@ impl<const N: usize> ConstLengthsStack1b<N> {
             panic!("AsciiTrie Builder: Attempted to get too deep in a stack");
         }
         self.data[self.idx - index - 1].unwrap()
+    }
+
+    pub fn pop_many_or_panic(&mut self, len: usize) -> ConstArrayBuilder<256, BranchMeta> {
+        let mut result = ConstArrayBuilder::new_empty([BranchMeta::const_default(); 256], 256);
+        for i in (0..len).rev() {
+            result = result.push_front(self.data[i].unwrap());
+        }
+        self.idx -= len;
+        result
+    }
+}
+
+impl<const N: usize> ConstArrayBuilder<N, BranchMeta> {
+    pub fn map_to_ascii_bytes(&self) -> ConstArrayBuilder<N, u8> {
+        let mut result = ConstArrayBuilder::new_empty([0; N], N);
+        let self_as_slice = self.as_const_slice();
+        const_for_each!(self_as_slice, value, {
+            result = result.const_push_front(value.ascii.get());
+        });
+        result
     }
 }

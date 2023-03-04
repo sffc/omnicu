@@ -2,9 +2,9 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::byte_phf::PerfectByteHashMap;
 use crate::varint::read_varint;
 use core::ops::Range;
-use crate::byte_phf::PerfectByteHashMap;
 
 /// Like slice::split_at but returns an Option instead of panicking
 #[inline]
@@ -121,7 +121,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 debug_assert!(false, "there should be 2 or more branches");
                 return None;
             }
-            (search, trie) = debug_split_at(trie, x*2+1)?;
+            (search, trie) = debug_split_at(trie, x * 2 + 1)?;
             i = PerfectByteHashMap::from_store(search).get(*c)?;
             trie = get_branch(trie, i, x)?;
             ascii = temp;

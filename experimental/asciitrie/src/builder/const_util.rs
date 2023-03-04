@@ -164,6 +164,23 @@ impl<const N: usize> ConstArrayBuilder<N, u8> {
         });
         self
     }
+}
+
+impl<const N: usize, T: Copy> ConstArrayBuilder<N, T> {
+    pub const fn push_front(mut self, value: T) -> Self {
+        if self.start == 0 {
+            panic!("AsciiTrieBuilder buffer out of capacity");
+        }
+        self.start -= 1;
+        self.full_array[self.start] = value;
+        self
+    }
+    pub fn swap_or_panic(mut self, i: usize, j: usize) -> Self {
+        let temp = self.full_array[self.start + i];
+        self.full_array[self.start + i] = self.full_array[self.start + j];
+        self.full_array[self.start + j] = temp;
+        self
+    }
     pub fn swap_ranges(mut self, mut start: usize, mut mid: usize, mut limit: usize) -> Self {
         if start > mid || mid > limit {
             panic!("Invalid args to swap(): start > mid || mid > limit");
