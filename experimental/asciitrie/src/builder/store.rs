@@ -184,6 +184,7 @@ impl<const N: usize> ConstLengthsStack3<N> {
 pub(crate) struct BranchMeta {
     pub ascii: AsciiByte,
     pub length: usize,
+    pub local_length: usize,
     pub count: usize,
 }
 
@@ -192,6 +193,7 @@ impl BranchMeta {
         BranchMeta {
             ascii: AsciiByte::nul(),
             length: 0,
+            local_length: 0,
             count: 0,
         }
     }

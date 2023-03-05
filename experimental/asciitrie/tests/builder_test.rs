@@ -61,6 +61,16 @@ fn check_ascii_trie3(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
     //     .eq(trie.iter()));
 }
 
+fn check_ascii_trie4(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
+    for (k, v) in items.iter() {
+        assert_eq!(asciitrie::reader4::get(trie, k.as_bytes()), Some(*v));
+    }
+    // assert!(items
+    //     .iter()
+    //     .map(|(s, v)| (s.to_boxed(), *v))
+    //     .eq(trie.iter()));
+}
+
 fn check_bytes_eq(len: usize, a: impl AsRef<[u8]>, b: &[u8]) {
     assert_eq!(len, a.as_ref().len());
     assert_eq!(a.as_ref(), b);
@@ -98,6 +108,11 @@ fn test_single_empty_value() {
     check_bytes_eq(1, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
 
+    let expected_bytes4 = &[0b10001010];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(1, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
+
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(1, &trie1b, expected_bytes);
 }
@@ -125,6 +140,11 @@ fn test_single_byte_string() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(2, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    let expected_bytes4 = &[b'x', 0b10001010];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(2, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(2, &trie1b, expected_bytes);
@@ -156,6 +176,11 @@ fn test_single_string() {
     check_bytes_eq(4, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
 
+    let expected_bytes4 = &[b'x', b'y', b'z', 0b10001010];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(4, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
+
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(4, &trie1b, expected_bytes);
 }
@@ -185,6 +210,11 @@ fn test_prefix_strings() {
     check_bytes_eq(4, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
 
+    let expected_bytes4 = &[b'x', 0b10000000, b'y', 0b10000001];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(4, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
+
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(4, &trie1b, expected_bytes);
 }
@@ -213,6 +243,11 @@ fn test_single_byte_branch() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(5, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    let expected_bytes4 = &[0b11000010, 0, 0, 0, b'x', b'y', 0, 1, 0b10000000, 0b10000001];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(10, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(7, &trie1b, expected_bytes);

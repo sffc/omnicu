@@ -183,10 +183,10 @@ impl<const N: usize, T: Copy> ConstArrayBuilder<N, T> {
     }
     pub fn swap_ranges(mut self, mut start: usize, mut mid: usize, mut limit: usize) -> Self {
         if start > mid || mid > limit {
-            panic!("Invalid args to swap(): start > mid || mid > limit");
+            panic!("Invalid args to swap_ranges(): start > mid || mid > limit");
         }
-        if start < self.start || self.start + limit > self.limit {
-            panic!("Invalid args to swap(): start or limit out of range");
+        if limit > self.len() {
+            panic!("Invalid args to swap_ranges(): limit out of range: {limit} > {}", self.len());
         }
         loop {
             if start == mid || mid == limit {

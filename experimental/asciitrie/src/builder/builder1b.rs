@@ -200,6 +200,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                 lengths_stack = lengths_stack.push(BranchMeta {
                     ascii: key_ascii,
                     length: current_len,
+                    local_length: current_len,
                     count: 1,
                 });
             } else {
@@ -207,6 +208,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                 lengths_stack = lengths_stack.push(BranchMeta {
                     ascii: key_ascii,
                     length: length + current_len,
+                    local_length: current_len,
                     count: count + 1,
                 });
             }

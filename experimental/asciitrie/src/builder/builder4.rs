@@ -219,6 +219,7 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                 lengths_stack = lengths_stack.push(BranchMeta {
                     ascii: key_ascii,
                     length: current_len,
+                    local_length: current_len,
                     count: 1,
                 });
             } else {
@@ -226,6 +227,7 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                 lengths_stack = lengths_stack.push(BranchMeta {
                     ascii: key_ascii,
                     length: length + current_len,
+                    local_length: current_len,
                     count: count + 1,
                 });
             }
@@ -255,12 +257,12 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                     let a_idx = phf_vec.keys().iter().position(|x| x == &a.ascii.get()).unwrap();
                     let b_idx = phf_vec.keys().iter().position(|x| x == &b.ascii.get()).unwrap();
                     if a_idx > b_idx {
-                        self = self.swap_ranges(start, start + a.length, start + a.length + b.length);
+                        self = self.swap_ranges(start, start + a.local_length, start + a.local_length + b.local_length);
                         branch_metas = branch_metas.swap_or_panic(l-1, l);
-                        start += b.length;
+                        start += b.local_length;
                         changes += 1;
                     } else {
-                        start += a.length;
+                        start += a.local_length;
                     }
                     l += 1;
                 }
@@ -292,6 +294,7 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
             }
             // Write out the lookup table
             self = self.prepend_slice(ConstSlice::from_slice(phf_vec.as_bytes()));
+            current_len += phf_vec.as_bytes().len();
             /*
             self = self.prepend_n_zeros(total_count);
             current_len += total_count;
