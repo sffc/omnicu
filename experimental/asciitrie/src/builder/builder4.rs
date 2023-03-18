@@ -247,13 +247,14 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
             let keys = branch_metas.map_to_ascii_bytes();
             let phf_vec = PerfectByteHashMap::try_new(keys.as_const_slice().as_slice()).unwrap();
             // Put everything in order via bubble sort
+            // Note: branch_metas is stored in reverse order (0 = last element)
             loop {
-                let mut l = 1;
+                let mut l = total_count - 1;
                 let mut changes = 0;
                 let mut start = 0;
-                while l < total_count {
-                    let a = *branch_metas.as_const_slice().get_or_panic(l-1);
-                    let b = *branch_metas.as_const_slice().get_or_panic(l);
+                while l > 0 {
+                    let a = *branch_metas.as_const_slice().get_or_panic(l);
+                    let b = *branch_metas.as_const_slice().get_or_panic(l-1);
                     let a_idx = phf_vec.keys().iter().position(|x| x == &a.ascii.get()).unwrap();
                     let b_idx = phf_vec.keys().iter().position(|x| x == &b.ascii.get()).unwrap();
                     if a_idx > b_idx {
@@ -261,10 +262,11 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                         branch_metas = branch_metas.swap_or_panic(l-1, l);
                         start += b.local_length;
                         changes += 1;
+                        // FIXME: fix the `length` field
                     } else {
                         start += a.local_length;
                     }
-                    l += 1;
+                    l -= 1;
                 }
                 if changes == 0 {
                     break;
@@ -279,9 +281,11 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                 self = self.prepend_n_zeros(total_count);
                 current_len += total_count;
                 let mut l = 0;
+                let mut length_to_write = 0;
                 while l < total_count {
-                    let BranchMeta { length, .. } = *branch_metas.as_const_slice().get_or_panic(l);
-                    let mut adjusted_length = total_length - length;
+                    let BranchMeta { local_length, .. } = *branch_metas.as_const_slice().get_or_panic(total_count - l - 1);
+                    // std::println!("length_to_write = {length_to_write:?}");
+                    let mut adjusted_length = length_to_write;
                     let mut m = 0;
                     while m < k {
                         adjusted_length >>= 8;
@@ -289,6 +293,7 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                     }
                     self = self.bitor_assign_at(l, adjusted_length as u8);
                     l += 1;
+                    length_to_write += local_length;
                 }
                 k += 1;
             }

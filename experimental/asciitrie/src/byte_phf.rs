@@ -289,6 +289,16 @@ mod tests {
                 expected: &[2, 0, 1, b'a', b'q'],
                 reordered_keys: b"aq",
             },
+            TestCase {
+                keys: b"xy",
+                expected: &[0, 0, 0, b'x', b'y'],
+                reordered_keys: b"xy",
+            },
+            TestCase {
+                keys: b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+                expected: &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 10, 12, 16, 4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 7, 104, 105, 106, 107, 108, 109, 110, 111, 112, 117, 118, 119, 68, 69, 70, 113, 114, 65, 66, 67, 120, 121, 122, 115, 72, 73, 74, 71, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 75, 76, 77, 78, 79, 103, 97, 98, 99, 116, 100, 102, 101],
+                reordered_keys: b"hijklmnopuvwDEFqrABCxyzsHIJGPQRSTUVWXYZKLMNOgabctdfe",
+            }
         ];
         for cas in cases {
             let computed = PerfectByteHashMap::try_new(cas.keys).unwrap();

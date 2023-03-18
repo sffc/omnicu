@@ -286,6 +286,11 @@ fn test_multi_byte_branch() {
     check_bytes_eq(8, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
 
+    let expected_bytes4 = &[b'a', 0b11000010, 0, 0, 0, b'x', b'y', 0, 2, b'b', 0b10000000, b'c', 0b10000001,];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(13, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
+
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(10, &trie1b, expected_bytes);
 }
@@ -316,6 +321,11 @@ fn test_linear_varint_values() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(10, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    let expected_bytes4 = &[0xA0, 0x44, b'x', 0xA3, 0x54, b'y', b'z', 0xA0, 0x86, 0x68];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(10, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(10, &trie1b, expected_bytes);
@@ -643,6 +653,40 @@ fn test_varint_branch() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(229, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    let expected_bytes4 = &[
+        0b11100000, // branch varint lead
+        0x14,       // branch varint trail
+        // PHF metadata:
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 10, 12, 16, 4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 7,
+        // search array:
+        b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
+        b'p', b'u', b'v', b'w', b'D', b'E', b'F', b'q',
+        b'r', b'A', b'B', b'C', b'x', b'y', b'z', b's',
+        b'H', b'I', b'J', b'G', b'P', b'Q', b'R', b'S',
+        b'T', b'U', b'V', b'W', b'X', b'Y', b'Z', b'K',
+        b'L', b'M', b'N', b'O', b'g', b'a', b'b', b'c',
+        b't', b'd', b'f', b'e',
+        // offset array:
+        0, 2, 4, 6, 8, 10, 12, 14,
+        16, 18, 20, 22, 24, 25, 26, 27,
+        29, 31, 32, 33, 34, 36, 38, 40,
+        42, 43, 44, 45, 46, 47, 48, 49,
+        50, 51, 52, 53, 54, 55, 56, 57,
+        58, 59, 60, 61, 62, 64, 65, 66,
+        67, 69, 70, 71,
+        // values:
+        0xA0, 1, 0xA0, 2, 0xA0, 3, 0xA0, 4, 0xA0, 5, 0xA0, 6, 0xA0, 7, 0xA0, 8,
+        0xA0, 9, 0xA0, 14, 0xA0, 15, 0xA0, 16, 0x80 | 3, 0x80 | 4, 0x80 | 5, 0xA0, 10,
+        0xA0, 11, 0x80 | 0, 0x80 | 1, 0x80 | 2, 0xA0, 17, 0xA0, 18, 0xA0, 19, 0xA0, 12,
+        0x80 | 7, 0x80 | 8, 0x80 | 9, 0x80 | 6, 0x80 | 15, 0x80 | 16, 0x80 | 17, 0x80 | 18,
+        0x80 | 19, 0x80 | 20, 0x80 | 21, 0x80 | 22, 0x80 | 23, 0x80 | 24, 0x80 | 25, 0x80 | 10,
+        0x80 | 11, 0x80 | 12, 0x80 | 13, 0x80 | 14, 0xA0, 0, 0x80 | 26, 0x80 | 27, 0x80 | 28,
+        0xA0, 13, 0x80 | 29, 0x80 | 31, 0x80 | 30,
+    ];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(231, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(178, &trie1b, expected_bytes);
