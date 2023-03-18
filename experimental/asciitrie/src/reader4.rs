@@ -121,8 +121,17 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 debug_assert!(false, "there should be 2 or more branches");
                 return None;
             }
-            (search, trie) = debug_split_at(trie, x * 2 + 1)?;
-            i = PerfectByteHashMap::from_store(search).get(*c)?;
+            let branch_node_type = debug_get(trie, 0);
+            if branch_node_type == Some(255) {
+                // binary search
+                (_, trie) = trie.split_first()?;
+                (search, trie) = debug_split_at(trie, x)?;
+                i = search.binary_search(c).ok()?;
+            } else {
+                // phf
+                (search, trie) = debug_split_at(trie, x * 2 + 1)?;
+                i = PerfectByteHashMap::from_store(search).get(*c)?;
+            }
             trie = get_branch(trie, i, x)?;
             ascii = temp;
             continue;

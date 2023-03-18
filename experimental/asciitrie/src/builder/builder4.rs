@@ -245,35 +245,41 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                 (length, count)
             };
             let mut branch_metas = lengths_stack.pop_many_or_panic(total_count);
-            let keys = branch_metas.map_to_ascii_bytes();
-            let phf_vec = PerfectByteHashMap::try_new(keys.as_const_slice().as_slice()).unwrap();
-            // Put everything in order via bubble sort
-            // Note: branch_metas is stored in reverse order (0 = last element)
-            loop {
-                let mut l = total_count - 1;
-                let mut changes = 0;
-                let mut start = 0;
-                while l > 0 {
-                    let a = *branch_metas.as_const_slice().get_or_panic(l);
-                    let b = *branch_metas.as_const_slice().get_or_panic(l-1);
-                    let a_idx = phf_vec.keys().iter().position(|x| x == &a.ascii.get()).unwrap();
-                    let b_idx = phf_vec.keys().iter().position(|x| x == &b.ascii.get()).unwrap();
-                    if a_idx > b_idx {
-                        // std::println!("{a:?} <=> {b:?} ({phf_vec:?})");
-                        self = self.swap_ranges(start, start + a.local_length, start + a.local_length + b.local_length);
-                        branch_metas = branch_metas.swap_or_panic(l-1, l);
-                        start += b.local_length;
-                        changes += 1;
-                        // FIXME: fix the `length` field
-                    } else {
-                        start += a.local_length;
+            let original_keys = branch_metas.map_to_ascii_bytes();
+            let phf_vec = if total_count > 3 {
+                let phf_vec = PerfectByteHashMap::try_new(original_keys.as_const_slice().as_slice()).unwrap();
+                // std::println!("{phf_vec:?}");
+                // Put everything in order via bubble sort
+                // Note: branch_metas is stored in reverse order (0 = last element)
+                loop {
+                    let mut l = total_count - 1;
+                    let mut changes = 0;
+                    let mut start = 0;
+                    while l > 0 {
+                        let a = *branch_metas.as_const_slice().get_or_panic(l);
+                        let b = *branch_metas.as_const_slice().get_or_panic(l-1);
+                        let a_idx = phf_vec.keys().iter().position(|x| x == &a.ascii.get()).unwrap();
+                        let b_idx = phf_vec.keys().iter().position(|x| x == &b.ascii.get()).unwrap();
+                        if a_idx > b_idx {
+                            // std::println!("{a:?} <=> {b:?} ({phf_vec:?})");
+                            self = self.swap_ranges(start, start + a.local_length, start + a.local_length + b.local_length);
+                            branch_metas = branch_metas.swap_or_panic(l-1, l);
+                            start += b.local_length;
+                            changes += 1;
+                            // FIXME: fix the `length` field
+                        } else {
+                            start += a.local_length;
+                        }
+                        l -= 1;
                     }
-                    l -= 1;
+                    if changes == 0 {
+                        break;
+                    }
                 }
-                if changes == 0 {
-                    break;
-                }
-            }
+                Some(phf_vec)
+            } else {
+                None
+            };
             // Write out the offset table
             current_len = total_length;
             const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
@@ -300,8 +306,14 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                 k += 1;
             }
             // Write out the lookup table
-            self = self.prepend_slice(ConstSlice::from_slice(phf_vec.as_bytes()));
-            current_len += phf_vec.as_bytes().len();
+            if let Some(phf_vec) = phf_vec {
+                self = self.prepend_slice(ConstSlice::from_slice(phf_vec.as_bytes()));
+                current_len += phf_vec.as_bytes().len();
+            } else {
+                self = self.prepend_slice(original_keys.as_const_slice());
+                self = self.prepend_slice(ConstSlice::from_slice(&[255]));
+                current_len += total_count + 1;
+            }
             /*
             self = self.prepend_n_zeros(total_count);
             current_len += total_count;
