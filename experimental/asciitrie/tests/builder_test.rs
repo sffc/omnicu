@@ -244,9 +244,9 @@ fn test_single_byte_branch() {
     check_bytes_eq(5, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
 
-    let expected_bytes4 = &[0b11000010, 0, 0, 0, b'x', b'y', 0, 1, 0b10000000, 0b10000001];
+    let expected_bytes4 = &[0b11000010, 255, b'x', b'y', 0, 1, 0b10000000, 0b10000001];
     let trie4 = asciitrie::make4_litemap(&litemap);
-    check_bytes_eq(10, &trie4, expected_bytes4);
+    check_bytes_eq(8, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -286,9 +286,9 @@ fn test_multi_byte_branch() {
     check_bytes_eq(8, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
 
-    let expected_bytes4 = &[b'a', 0b11000010, 0, 0, 0, b'x', b'y', 0, 2, b'b', 0b10000000, b'c', 0b10000001,];
+    let expected_bytes4 = &[b'a', 0b11000010, 255, b'x', b'y', 0, 2, b'b', 0b10000000, b'c', 0b10000001,];
     let trie4 = asciitrie::make4_litemap(&litemap);
-    check_bytes_eq(13, &trie4, expected_bytes4);
+    check_bytes_eq(11, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -910,12 +910,21 @@ fn test_below_wide() {
     let expected_bytes4 = &[
         0b11001010, // branch
         // PHF metadata:
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        255,
         // search array:
-        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'a', b'b', b'c',
+        b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j',
         // offset array:
-        0, 26, 52, 78, 104, 130, 156, 177, 203, 229,
+        0, 26, 52, 78, 104, 130, 156, 182, 208, 234,
         // offset data:
+        b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
+        b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+        0x81,
+        b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
+        b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
+        0x82,
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
+        0x83,
         b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q',
         b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c',
         0x84,
@@ -937,18 +946,9 @@ fn test_below_wide() {
         b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w',
         b'x', b'y', b'z', b'a', b'b', b'c', b'd',
         0x8A,
-        b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
-        b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
-        0x81,
-        b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
-        b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
-        0x82,
-        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
-        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
-        0x83,
     ];
     let trie4 = asciitrie::make4_litemap(&litemap);
-    check_bytes_eq(287, &trie4, expected_bytes4);
+    check_bytes_eq(277, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -1051,13 +1051,22 @@ fn test_at_wide() {
     let expected_bytes4 = &[
         0b11001010, // branch
         // PHF metadata:
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        255,
         // search array:
-        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'a', b'b', b'c',
+        b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j',
         // offset array (wide):
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 26, 52, 78, 104, 130, 156, 178, 204, 230,
+        0, 26, 52, 78, 104, 130, 156, 182, 208, 234,
         // offset data:
+        b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
+        b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+        0x81,
+        b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
+        b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
+        0x82,
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
+        0x83,
         b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q',
         b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c',
         0x84,
@@ -1079,18 +1088,9 @@ fn test_at_wide() {
         b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w',
         b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
         0x8A,
-        b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
-        b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
-        0x81,
-        b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
-        b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
-        0x82,
-        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
-        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
-        0x83,
     ];
     let trie4 = asciitrie::make4_litemap(&litemap);
-    check_bytes_eq(298, &trie4, expected_bytes4);
+    check_bytes_eq(288, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -1193,13 +1193,22 @@ fn test_at_wide_plus() {
     let expected_bytes4 = &[
         0b11001010, // branch
         // PHF metadata:
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        255,
         // search array:
-        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'a', b'b', b'c',
+        b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j',
         // offset array (wide):
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 26, 52, 78, 104, 130, 156, 179, 205, 231,
+        0, 26, 52, 78, 104, 130, 156, 182, 208, 234,
         // offset data:
+        b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
+        b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+        0x81,
+        b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
+        b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
+        0x82,
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
+        0x83,
         b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q',
         b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c',
         0x84,
@@ -1221,18 +1230,9 @@ fn test_at_wide_plus() {
         b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w',
         b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
         0x8A,
-        b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
-        b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
-        0x81,
-        b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
-        b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
-        0x82,
-        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
-        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
-        0x83,
     ];
     let trie4 = asciitrie::make4_litemap(&litemap);
-    check_bytes_eq(299, &trie4, expected_bytes4);
+    check_bytes_eq(289, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -1385,44 +1385,13 @@ fn test_everything() {
     let expected_bytes4 = &[
         0b10000000, // value 0
         0b11000010, // branch of 2
-        0,          // PHF metadata
-        0,          //
-        0,          //
-        b'b',       // 
+        255,        // PHF metadata
         b'a',       //
+        b'b',       //
         0,          //
-        26,         //
-        b'x',       // start of 'b' subtree
-        b'e',       //
-        0b10000100, // value 4
-        0b11000010, // branch of 2
-        0,          // PHF metadata
-        0,          //
-        0,          //
-        b'f',       //
-        b'i',       //
-        0,          //
-        11,          //
-        0b11000010, // branch of 2
-        0,          // PHF metadata
-        0,          //
-        0,          //
-        b'h',       //
-        b'g',       //
-        0,          //
-        1,          //
-        0b10000110, // value 6
-        0b10100011, // value 500 (lead)
-        0x54,       // value 500 (trail)
-        0b10000111, // value 7
-        b'k',       //
-        b'l',       //
-        0b10001000, // value 8
+        15,         //
         0b11000011, // start of 'a' subtree: branch of 3
-        0,          // PHF metadata
-        0,          //
-        0,          //
-        0,          //
+        255,        // PHF metadata
         b'x',       //
         b'y',       //
         b'z',       //
@@ -1436,9 +1405,31 @@ fn test_everything() {
         0b10000010, // value 2
         b'd',       //
         0b10000011, // value 3
+        b'x',       // start of 'b' subtree
+        b'e',       //
+        0b10000100, // value 4
+        0b11000010, // branch of 2
+        255,        // PHF metadata
+        b'f',       //
+        b'i',       //
+        0,          //
+        9,          //
+        0b11000010, // branch of 2
+        255,        // PHF metadata
+        b'g',       //
+        b'h',       //
+        0,          //
+        2,          //
+        0b10100011, // value 500 (lead)
+        0x54,       // value 500 (trail)
+        0b10000110, // value 6
+        0b10000111, // value 7
+        b'k',       //
+        b'l',       //
+        0b10001000, // value 8
     ];
     let trie4 = asciitrie::make4_litemap(&litemap);
-    check_bytes_eq(53, &trie4, expected_bytes4);
+    check_bytes_eq(44, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -1486,7 +1477,7 @@ fn test_short_subtags_10pct() {
     check_ascii_trie3(&litemap, &trie3);
 
     let trie4 = asciitrie::make4_litemap(&litemap);
-    assert_eq!(trie4.len(), 1266);
+    assert_eq!(trie4.len(), 1190);
     check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -1531,7 +1522,7 @@ fn test_short_subtags() {
     check_ascii_trie3(&litemap, &trie3);
 
     let trie4 = asciitrie::make4_litemap(&litemap);
-    assert_eq!(trie4.len(), 11782);
+    assert_eq!(trie4.len(), 10163);
     check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);

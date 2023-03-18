@@ -256,24 +256,30 @@ mod tests {
 
     #[test]
     fn test_smaller() {
-        for len in 0..32 {
+        let mut count_by_seed = [0; 256];
+        for len in 0..16 {
             for seed in 0..50 {
                 let keys = random_alphanums(seed, len);
                 let computed = PerfectByteHashMap::try_new(&keys).unwrap();
                 computed.check().expect(std::str::from_utf8(&keys).unwrap());
+                count_by_seed[computed.p() as usize] += 1;
             }
         }
+        std::println!("count_by_seed (smaller): {count_by_seed:?}");
     }
 
     #[test]
     fn test_larger() {
-        for len in 32..256 {
+        let mut count_by_seed = [0; 256];
+        for len in 16..256 {
             for seed in 0..2 {
                 let keys = random_alphanums(seed, len);
                 let computed = PerfectByteHashMap::try_new(&keys).unwrap();
                 computed.check().expect(std::str::from_utf8(&keys).unwrap());
+                count_by_seed[computed.p() as usize] += 1;
             }
         }
+        std::println!("count_by_seed (larger): {count_by_seed:?}");
     }
 
     #[test]
