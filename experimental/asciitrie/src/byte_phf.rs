@@ -11,6 +11,9 @@ use alloc::vec::Vec;
 /// hash maps that fall back to the slow path.
 const MAX_L2_SEARCH_MISSES: usize = 24;
 
+const P_FAST_MAX: u8 = 16;
+const Q_FAST_MAX: u8 = 32;
+
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum Error {
@@ -34,15 +37,11 @@ pub fn f1(byte: u8, p: u8, n: usize) -> usize {
     if p == 0 {
         byte as usize % n
     } else {
-        use core::hash::Hasher;
-        // let mut hasher = t1ha::T1haHasher::with_seed(p as u64);
-        // let mut hasher = t1ha::T1haHasher::default();
-        let mut hasher = wyhash::WyHash::with_seed(p as u64);
-        // let mut hasher = wyhash::WyHash::default();
-        core::hash::Hash::hash(&[byte], &mut hasher);
-        // hasher.write_u8(p);
-        // hasher.write_u8(byte);
-        hasher.finish() as usize % n
+        let mut result = byte ^ p ^ byte.wrapping_shr(p as u32);
+        for _ in P_FAST_MAX..p {
+            result = result ^ (result << 1) ^ (result >> 1);
+        }
+        result as usize % n
     }
 }
 
@@ -55,7 +54,15 @@ pub fn f1_naive_only(byte: u8, p: u8, n: usize) -> usize {
 }
 
 pub fn f2(byte: u8, q: u8, n: usize) -> usize {
-    ((byte ^ q) as usize) % n
+    // ((byte ^ q) as usize) % n
+    let mut result = byte ^ q;
+    // if q >= Q_FAST_MAX {
+    //     result = result ^ byte.wrapping_shr(q as u32);
+    // }
+    for _ in Q_FAST_MAX..q {
+        result = result ^ (result << 1) ^ (result >> 1);
+    }
+    result as usize % n
 }
 
 #[allow(unused_labels)] // for readability
@@ -68,6 +75,8 @@ pub fn find(bytes: &[u8]) -> Result<(u8, Vec<u8>), Error> {
 
     let mut bqs = vec![0u8; N];
     let mut seen = vec![false; N];
+    let mut max_allowable_p = P_FAST_MAX;
+    let mut max_allowable_q = Q_FAST_MAX;
 
     'p_loop: loop {
         let mut buckets: Vec<(usize, Vec<u8>)> = (0..N).map(|i| (i, vec![])).collect();
@@ -101,19 +110,25 @@ pub fn find(bytes: &[u8]) -> Result<(u8, Vec<u8>), Error> {
                         seen[f2(k_byte, bqs[i], N)] = false;
                     }
                     'reset_loop: loop {
-                        if bqs[i] < u8::MAX {
+                        if bqs[i] < max_allowable_q {
                             bqs[i] += 1;
                             continue 'q_loop;
                         }
                         num_max_q += 1;
                         bqs[i] = 0;
                         if i == 0 || num_max_q > MAX_L2_SEARCH_MISSES {
-                            if p == u8::MAX {
+                            if p == max_allowable_p && max_allowable_p != u8::MAX {
+                                max_allowable_p = u8::MAX;
+                                max_allowable_q = u8::MAX;
+                                p = 0;
+                                continue 'p_loop;
+                            } else if p == u8::MAX {
                                 // println!("Could not solve PHF function");
                                 return Err(Error::CouldNotSolve);
+                            } else {
+                                p += 1;
+                                continue 'p_loop;
                             }
-                            p += 1;
-                            continue 'p_loop;
                         }
                         i -= 1;
                         bucket = buckets[i].1.as_slice();
@@ -194,8 +209,14 @@ where
             .map(|s| s.1)
             .unwrap_or(&[])
     }
-    pub fn p(&self) -> u8 {
-        *self.0.as_ref().first().unwrap()
+    pub fn p_qmax(&self) -> Option<(u8, u8)> {
+        let (p, buffer) = self.0.as_ref().split_first()?;
+        let n = buffer.len() / 2;
+        if n == 0 {
+            return None;
+        }
+        let (qq, buffer) = debug_split_at(buffer, n)?;
+        Some((*p, *qq.iter().max().unwrap()))
     }
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_ref()
@@ -256,117 +277,140 @@ mod tests {
 
     #[test]
     fn test_smaller() {
-        let mut count_by_seed = [0; 256];
-        for len in 0..16 {
-            for seed in 0..50 {
+        let mut count_by_p = [0; 256];
+        let mut count_by_qmax = [0; 256];
+        for len in 1..16 {
+            for seed in 0..1000 {
                 let keys = random_alphanums(seed, len);
-                let computed = PerfectByteHashMap::try_new(&keys).unwrap();
-                computed.check().expect(std::str::from_utf8(&keys).unwrap());
-                count_by_seed[computed.p() as usize] += 1;
+                let keys_str = core::str::from_utf8(&keys).unwrap();
+                let computed = PerfectByteHashMap::try_new(&keys).expect(keys_str);
+                computed.check().expect(std::str::from_utf8(&keys).expect(keys_str));
+                let (p, qmax) = computed.p_qmax().unwrap();
+                count_by_p[p as usize] += 1;
+                count_by_qmax[qmax as usize] += 1;
             }
         }
-        std::println!("count_by_seed (smaller): {count_by_seed:?}");
+        std::println!("count_by_p (smaller): {count_by_p:?}");
+        std::println!("count_by_qmax (smaller): {count_by_qmax:?}");
+        std::println!("fastq/slowq: {}/{}", count_by_qmax[0..Q_FAST_MAX as usize].iter().sum::<usize>(), count_by_qmax[Q_FAST_MAX as usize..].iter().sum::<usize>());
     }
 
     #[test]
     fn test_larger() {
-        let mut count_by_seed = [0; 256];
-        for len in 16..256 {
-            for seed in 0..2 {
+        let mut count_by_p = [0; 256];
+        let mut count_by_qmax = [0; 256];
+        for len in 16..50 {
+            for seed in 0..1000 {
                 let keys = random_alphanums(seed, len);
-                let computed = PerfectByteHashMap::try_new(&keys).unwrap();
-                computed.check().expect(std::str::from_utf8(&keys).unwrap());
-                count_by_seed[computed.p() as usize] += 1;
+                let keys_str = core::str::from_utf8(&keys).unwrap();
+                let computed = PerfectByteHashMap::try_new(&keys).expect(keys_str);
+                computed.check().expect(std::str::from_utf8(&keys).expect(keys_str));
+                let (p, qmax) = computed.p_qmax().unwrap();
+                count_by_p[p as usize] += 1;
+                count_by_qmax[qmax as usize] += 1;
             }
         }
-        std::println!("count_by_seed (larger): {count_by_seed:?}");
+        std::println!("count_by_p (larger): {count_by_p:?}");
+        std::println!("count_by_qmax (larger): {count_by_qmax:?}");
+        std::println!("fastq/slowq: {}/{}", count_by_qmax[0..Q_FAST_MAX as usize].iter().sum::<usize>(), count_by_qmax[Q_FAST_MAX as usize..].iter().sum::<usize>());
     }
 
     #[test]
     fn test_build_read_small() {
+        #[derive(Debug)]
         struct TestCase<'a> {
-            keys: &'a [u8],
+            keys: &'a str,
             expected: &'a [u8],
-            reordered_keys: &'a [u8],
+            reordered_keys: &'a str,
         }
         let cases = [
             TestCase {
-                keys: b"ab",
+                keys: "ab",
                 expected: &[0, 0, 0, b'b', b'a'],
-                reordered_keys: b"ba",
+                reordered_keys: "ba",
             },
             TestCase {
-                keys: b"abc",
+                keys: "abc",
                 expected: &[0, 0, 0, 0, b'c', b'a', b'b'],
-                reordered_keys: b"cab",
+                reordered_keys: "cab",
             },
             TestCase {
                 // Note: splitting "a" and "c" into different buckets requires the heavier hash
                 // function because the difference between "a" and "c" is the period (2).
-                keys: b"ac",
-                expected: &[1, 0, 1, b'a', b'c'],
-                reordered_keys: b"ac",
+                keys: "ac",
+                expected: &[1, 0, 1, b'c', b'a'],
+                reordered_keys: "ca",
             },
             TestCase {
-                keys: b"abd",
+                keys: "abd",
                 expected: &[0, 0, 1, 3, b'a', b'b', b'd'],
-                reordered_keys: b"abd",
+                reordered_keys: "abd",
             },
             TestCase {
-                keys: b"def",
+                keys: "def",
                 expected: &[0, 0, 0, 0, b'f', b'd', b'e'],
-                reordered_keys: b"fde",
+                reordered_keys: "fde",
             },
             TestCase {
-                keys: b"fi",
+                keys: "fi",
                 expected: &[0, 0, 0, b'f', b'i'],
-                reordered_keys: b"fi",
+                reordered_keys: "fi",
             },
             TestCase {
-                keys: b"gh",
+                keys: "gh",
                 expected: &[0, 0, 0, b'h', b'g'],
-                reordered_keys: b"hg",
+                reordered_keys: "hg",
             },
             TestCase {
-                keys: b"lm",
+                keys: "lm",
                 expected: &[0, 0, 0, b'l', b'm'],
-                reordered_keys: b"lm",
+                reordered_keys: "lm",
             },
             TestCase {
                 // Note: "a" and "q" (0x61 and 0x71) are very hard to split; only a handful of
                 // hash function crates can get them into separate buckets.
-                keys: b"aq",
-                expected: &[2, 0, 1, b'a', b'q'],
-                reordered_keys: b"aq",
+                keys: "aq",
+                expected: &[4, 0, 1, b'a', b'q'],
+                reordered_keys: "aq",
             },
             TestCase {
-                keys: b"xy",
+                keys: "xy",
                 expected: &[0, 0, 0, b'x', b'y'],
-                reordered_keys: b"xy",
+                reordered_keys: "xy",
             },
             TestCase {
-                keys: b"xyz",
+                keys: "xyz",
                 expected: &[0, 0, 0, 0, b'x', b'y', b'z'],
-                reordered_keys: b"xyz",
+                reordered_keys: "xyz",
             },
             TestCase {
-                keys: b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+                keys: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
                 expected: &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 10, 12, 16, 4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 7, 104, 105, 106, 107, 108, 109, 110, 111, 112, 117, 118, 119, 68, 69, 70, 113, 114, 65, 66, 67, 120, 121, 122, 115, 72, 73, 74, 71, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 75, 76, 77, 78, 79, 103, 97, 98, 99, 116, 100, 102, 101],
-                reordered_keys: b"hijklmnopuvwDEFqrABCxyzsHIJGPQRSTUVWXYZKLMNOgabctdfe",
+                reordered_keys: "hijklmnopuvwDEFqrABCxyzsHIJGPQRSTUVWXYZKLMNOgabctdfe",
             },
             TestCase {
-                keys: b"abcdefghij",
+                keys: "abcdefghij",
                 expected: &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 101, 102, 103, 104, 105, 106, 97, 98, 99],
-                reordered_keys: b"defghijabc",
-            }
+                reordered_keys: "defghijabc",
+            },
+            TestCase {
+                keys: "Jbej",
+                expected: &[25, 0, 1, 2, 0, b'b', b'e', b'j', b'J'],
+                reordered_keys: "bejJ",
+            },
+            TestCase {
+                keys: "JFNv",
+                expected: &[0, 0, 0, 0, b'x', b'y', b'z'],
+                reordered_keys: "xyz",
+            },
         ];
         for cas in cases {
-            let computed = PerfectByteHashMap::try_new(cas.keys).unwrap();
-            assert_eq!(computed.as_bytes(), cas.expected);
-            assert_eq!(computed.keys(), cas.reordered_keys);
+            let computed = PerfectByteHashMap::try_new(cas.keys.as_bytes()).expect(cas.keys);
+            assert_eq!(computed.as_bytes(), cas.expected, "{:?}", cas);
+            assert_eq!(computed.keys(), cas.reordered_keys.as_bytes(), "{:?}", cas);
             computed
                 .check()
-                .expect(std::str::from_utf8(cas.keys).unwrap());
+                .expect(cas.keys);
         }
     }
 }

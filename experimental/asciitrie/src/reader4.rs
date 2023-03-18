@@ -130,7 +130,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             } else {
                 // phf
                 (search, trie) = debug_split_at(trie, x * 2 + 1)?;
-                i = PerfectByteHashMap::from_store(search).get_naive_only(*c)?;
+                i = PerfectByteHashMap::from_store(search).get(*c)?;
             }
             trie = get_branch(trie, i, x)?;
             ascii = temp;
