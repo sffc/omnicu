@@ -239,6 +239,7 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                 continue;
             }
             // Branch (first)
+            // std::println!("lengths_stack: {lengths_stack:?}");
             let (total_length, total_count) = {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
                 (length, count)
@@ -258,6 +259,7 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                     let a_idx = phf_vec.keys().iter().position(|x| x == &a.ascii.get()).unwrap();
                     let b_idx = phf_vec.keys().iter().position(|x| x == &b.ascii.get()).unwrap();
                     if a_idx > b_idx {
+                        // std::println!("{a:?} <=> {b:?} ({phf_vec:?})");
                         self = self.swap_ranges(start, start + a.local_length, start + a.local_length + b.local_length);
                         branch_metas = branch_metas.swap_or_panic(l-1, l);
                         start += b.local_length;

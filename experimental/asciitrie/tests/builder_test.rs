@@ -654,6 +654,7 @@ fn test_varint_branch() {
     check_bytes_eq(229, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
 
+    #[rustfmt::skip]
     let expected_bytes4 = &[
         0b11100000, // branch varint lead
         0x14,       // branch varint trail
@@ -905,6 +906,51 @@ fn test_below_wide() {
     check_bytes_eq(288, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
 
+    #[rustfmt::skip]
+    let expected_bytes4 = &[
+        0b11001010, // branch
+        // PHF metadata:
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // search array:
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'a', b'b', b'c',
+        // offset array:
+        0, 26, 52, 78, 104, 130, 156, 177, 203, 229,
+        // offset data:
+        b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q',
+        b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c',
+        0x84,
+        b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r',
+        b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd',
+        0x85,
+        b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's',
+        b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
+        0x86,
+        b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't',
+        b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
+        0x87,
+        b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u',
+        b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g',
+        0x88,
+        b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v',
+        b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h',
+        0x89,
+        b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w',
+        b'x', b'y', b'z', b'a', b'b', b'c', b'd',
+        0x8A,
+        b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
+        b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+        0x81,
+        b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
+        b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
+        0x82,
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
+        0x83,
+    ];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(287, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
+
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(276, &trie1b, expected_bytes);
 }
@@ -1001,6 +1047,52 @@ fn test_at_wide() {
     ];
     check_bytes_eq(287, trie, expected_bytes);
 
+    #[rustfmt::skip]
+    let expected_bytes4 = &[
+        0b11001010, // branch
+        // PHF metadata:
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // search array:
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'a', b'b', b'c',
+        // offset array (wide):
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 26, 52, 78, 104, 130, 156, 178, 204, 230,
+        // offset data:
+        b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q',
+        b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c',
+        0x84,
+        b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r',
+        b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd',
+        0x85,
+        b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's',
+        b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
+        0x86,
+        b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't',
+        b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
+        0x87,
+        b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u',
+        b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g',
+        0x88,
+        b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v',
+        b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h',
+        0x89,
+        b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w',
+        b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
+        0x8A,
+        b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
+        b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+        0x81,
+        b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
+        b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
+        0x82,
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
+        0x83,
+    ];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(298, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
+
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(287, &trie1b, expected_bytes);
 }
@@ -1096,6 +1188,52 @@ fn test_at_wide_plus() {
         0x8A,
     ];
     check_bytes_eq(288, trie, expected_bytes);
+
+    #[rustfmt::skip]
+    let expected_bytes4 = &[
+        0b11001010, // branch
+        // PHF metadata:
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // search array:
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'a', b'b', b'c',
+        // offset array (wide):
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 26, 52, 78, 104, 130, 156, 179, 205, 231,
+        // offset data:
+        b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q',
+        b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c',
+        0x84,
+        b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r',
+        b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd',
+        0x85,
+        b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's',
+        b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
+        0x86,
+        b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't',
+        b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
+        0x87,
+        b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u',
+        b'v', b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g',
+        0x88,
+        b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v',
+        b'w', b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h',
+        0x89,
+        b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w',
+        b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
+        0x8A,
+        b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n',
+        b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
+        0x81,
+        b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
+        b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a',
+        0x82,
+        b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
+        b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z', b'a', b'b',
+        0x83,
+    ];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(299, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(288, &trie1b, expected_bytes);
@@ -1242,6 +1380,66 @@ fn test_everything() {
     let trie3 = asciitrie::make3_litemap(&litemap);
     check_bytes_eq(33, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
+
+    #[rustfmt::skip]
+    let expected_bytes4 = &[
+        0b10000000, // value 0
+        0b11000010, // branch of 2
+        0,          // PHF metadata
+        0,          //
+        0,          //
+        b'b',       // 
+        b'a',       //
+        0,          //
+        26,         //
+        b'x',       // start of 'b' subtree
+        b'e',       //
+        0b10000100, // value 4
+        0b11000010, // branch of 2
+        0,          // PHF metadata
+        0,          //
+        0,          //
+        b'f',       //
+        b'i',       //
+        0,          //
+        11,          //
+        0b11000010, // branch of 2
+        0,          // PHF metadata
+        0,          //
+        0,          //
+        b'h',       //
+        b'g',       //
+        0,          //
+        1,          //
+        0b10000110, // value 6
+        0b10100011, // value 500 (lead)
+        0x54,       // value 500 (trail)
+        0b10000111, // value 7
+        b'k',       //
+        b'l',       //
+        0b10001000, // value 8
+        0b11000011, // start of 'a' subtree: branch of 3
+        0,          // PHF metadata
+        0,          //
+        0,          //
+        0,          //
+        b'x',       //
+        b'y',       //
+        b'z',       //
+        0,          //
+        3,          //
+        5,          //
+        b'b',       //
+        0b10100000, // value 100 (lead)
+        0x44,       // value 100 (trail)
+        b'c',       //
+        0b10000010, // value 2
+        b'd',       //
+        0b10000011, // value 3
+    ];
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(53, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(40, &trie1b, expected_bytes);

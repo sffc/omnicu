@@ -204,6 +204,12 @@ pub(crate) struct ConstLengthsStack1b<const N: usize> {
     idx: usize,
 }
 
+impl<const N: usize> core::fmt::Debug for ConstLengthsStack1b<N> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.as_slice().fmt(f)
+    }
+}
+
 impl<const N: usize> ConstLengthsStack1b<N> {
     pub const fn new() -> Self {
         Self {
@@ -256,11 +262,15 @@ impl<const N: usize> ConstLengthsStack1b<N> {
 
     pub fn pop_many_or_panic(&mut self, len: usize) -> ConstArrayBuilder<256, BranchMeta> {
         let mut result = ConstArrayBuilder::new_empty([BranchMeta::const_default(); 256], 256);
-        for i in (0..len).rev() {
+        for i in (self.idx-len..self.idx).rev() {
             result = result.push_front(self.data[i].unwrap());
         }
         self.idx -= len;
         result
+    }
+
+    fn as_slice(&self) -> &[Option<BranchMeta>] {
+        &self.data[0..self.idx]
     }
 }
 

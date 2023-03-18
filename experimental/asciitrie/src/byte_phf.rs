@@ -126,6 +126,7 @@ pub fn find(bytes: &[u8]) -> Result<(u8, Vec<u8>), Error> {
 }
 
 // Standard layout: P, N bytes of Q, N bytes of expected keys
+#[derive(Debug)]
 pub struct PerfectByteHashMap<S: ?Sized>(S);
 
 impl<S> PerfectByteHashMap<S> {
@@ -256,6 +257,11 @@ mod tests {
         }
         let cases = [
             TestCase {
+                keys: b"ab",
+                expected: &[0, 0, 0, b'b', b'a'],
+                reordered_keys: b"ba",
+            },
+            TestCase {
                 keys: b"abc",
                 expected: &[0, 0, 0, 0, b'c', b'a', b'b'],
                 reordered_keys: b"cab",
@@ -278,6 +284,16 @@ mod tests {
                 reordered_keys: b"fde",
             },
             TestCase {
+                keys: b"fi",
+                expected: &[0, 0, 0, b'f', b'i'],
+                reordered_keys: b"fi",
+            },
+            TestCase {
+                keys: b"gh",
+                expected: &[0, 0, 0, b'h', b'g'],
+                reordered_keys: b"hg",
+            },
+            TestCase {
                 keys: b"lm",
                 expected: &[0, 0, 0, b'l', b'm'],
                 reordered_keys: b"lm",
@@ -295,9 +311,19 @@ mod tests {
                 reordered_keys: b"xy",
             },
             TestCase {
+                keys: b"xyz",
+                expected: &[0, 0, 0, 0, b'x', b'y', b'z'],
+                reordered_keys: b"xyz",
+            },
+            TestCase {
                 keys: b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
                 expected: &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 10, 12, 16, 4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 7, 104, 105, 106, 107, 108, 109, 110, 111, 112, 117, 118, 119, 68, 69, 70, 113, 114, 65, 66, 67, 120, 121, 122, 115, 72, 73, 74, 71, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 75, 76, 77, 78, 79, 103, 97, 98, 99, 116, 100, 102, 101],
                 reordered_keys: b"hijklmnopuvwDEFqrABCxyzsHIJGPQRSTUVWXYZKLMNOgabctdfe",
+            },
+            TestCase {
+                keys: b"abcdefghij",
+                expected: &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 101, 102, 103, 104, 105, 106, 97, 98, 99],
+                reordered_keys: b"defghijabc",
             }
         ];
         for cas in cases {
