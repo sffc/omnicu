@@ -246,8 +246,8 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
             };
             let mut branch_metas = lengths_stack.pop_many_or_panic(total_count);
             let original_keys = branch_metas.map_to_ascii_bytes();
-            let phf_vec = if total_count > 3 {
-                let phf_vec = PerfectByteHashMap::try_new(original_keys.as_const_slice().as_slice()).unwrap();
+            let phf_vec = PerfectByteHashMap::try_new(original_keys.as_const_slice().as_slice()).unwrap();
+            let opt_phf_vec = if total_count > 3 && phf_vec.p() == 0 {
                 // std::println!("{phf_vec:?}");
                 // Put everything in order via bubble sort
                 // Note: branch_metas is stored in reverse order (0 = last element)
@@ -306,7 +306,7 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                 k += 1;
             }
             // Write out the lookup table
-            if let Some(phf_vec) = phf_vec {
+            if let Some(phf_vec) = opt_phf_vec {
                 self = self.prepend_slice(ConstSlice::from_slice(phf_vec.as_bytes()));
                 current_len += phf_vec.as_bytes().len();
             } else {

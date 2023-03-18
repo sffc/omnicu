@@ -1486,7 +1486,7 @@ fn test_short_subtags_10pct() {
     check_ascii_trie3(&litemap, &trie3);
 
     let trie4 = asciitrie::make4_litemap(&litemap);
-    assert_eq!(trie4.len(), 1302);
+    assert_eq!(trie4.len(), 1266);
     check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);

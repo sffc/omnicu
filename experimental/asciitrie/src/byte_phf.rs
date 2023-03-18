@@ -46,6 +46,14 @@ pub fn f1(byte: u8, p: u8, n: usize) -> usize {
     }
 }
 
+pub fn f1_naive_only(byte: u8, p: u8, n: usize) -> usize {
+    if p == 0 {
+        byte as usize % n
+    } else {
+        panic!("p != 0 in f1_naive_only");
+    }
+}
+
 pub fn f2(byte: u8, q: u8, n: usize) -> usize {
     ((byte ^ q) as usize) % n
 }
@@ -160,6 +168,23 @@ where
             None
         }
     }
+    pub fn get_naive_only(&self, key: u8) -> Option<usize> {
+        let (p, buffer) = self.0.as_ref().split_first()?;
+        let n = buffer.len() / 2;
+        if n == 0 {
+            return None;
+        }
+        let (qq, eks) = debug_split_at(buffer, n)?;
+        debug_assert_eq!(qq.len(), eks.len());
+        let q = qq[f1_naive_only(key, *p, n)];
+        let l2 = f2(key, q, n);
+        let ek = eks[l2];
+        if ek == key {
+            Some(l2)
+        } else {
+            None
+        }
+    }
     pub fn len(&self) -> usize {
         self.0.as_ref().len() / 2
     }
@@ -168,6 +193,9 @@ where
         debug_split_at(self.0.as_ref(), 1 + n)
             .map(|s| s.1)
             .unwrap_or(&[])
+    }
+    pub fn p(&self) -> u8 {
+        *self.0.as_ref().first().unwrap()
     }
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_ref()
