@@ -47,10 +47,11 @@ fn debug_get_range(slice: &[u8], range: Range<usize>) -> Option<&[u8]> {
 /// - `trie` = a trie pointing at an offset table (after the branch node and search table)
 /// - `i` = the desired index within the offset table
 /// - `n` = the number of items in the offset table
-fn get_branch(mut trie: &[u8], i: usize, n: usize) -> Option<&[u8]> {
+fn get_branch(trie: &[u8], i: usize, n: usize) -> Option<&[u8]> {
     let mut p = 0usize;
     let mut q = 0usize;
-    let mut h = 0usize;
+    let (w, mut trie) = trie.split_first()?;
+    let mut w = *w;
     loop {
         let indices;
         (indices, trie) = debug_split_at(trie, n - 1)?;
@@ -59,10 +60,10 @@ fn get_branch(mut trie: &[u8], i: usize, n: usize) -> Option<&[u8]> {
             Some(x) => (q << 8) + *x as usize,
             None => trie.len(),
         };
-        h = (h << 8) + 0xff;
-        if trie.len() <= h {
+        if w == 0 {
             break;
         }
+        w -= 1;
     }
     debug_get_range(trie, p..q)
 }

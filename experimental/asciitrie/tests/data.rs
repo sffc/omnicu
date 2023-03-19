@@ -208,6 +208,7 @@ pub mod basic {
         b'd',
         b'e',
         b'f',
+        0x0,
         5,
         8,
         // End Match Node
@@ -227,6 +228,7 @@ pub mod basic {
         255,
         b'l',
         b'm',
+        0x0,
         1,
         // End Match Node
         // subsubslice @ 0

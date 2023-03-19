@@ -296,9 +296,10 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
             // Write out the offset table
             current_len = total_length;
             const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
-            let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8 + 1;
+            // let max_len = total_length - branch_metas.as_const_slice().get_or_panic(0).local_length;
+            let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8;
             let mut k = 0;
-            while k < w {
+            while k <= w {
                 self = self.prepend_n_zeros(total_count - 1);
                 current_len += total_count - 1;
                 let mut l = 0;
@@ -322,6 +323,9 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                 }
                 k += 1;
             }
+            // Write out W
+            self = self.prepend_slice(ConstSlice::from_slice(&[w as u8]));
+            current_len += 1;
             // Write out the lookup table
             if let Some(phf_vec) = opt_phf_vec {
                 self = self.prepend_slice(ConstSlice::from_slice(phf_vec.as_bytes()));

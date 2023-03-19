@@ -38,7 +38,7 @@ fn test_basic() {
 
     let expected_bytes5 = testdata::basic::TRIE5;
     let trie5 = asciitrie::make5_litemap(&litemap);
-    check_bytes_eq(28, &trie5, expected_bytes5);
+    check_bytes_eq(30, &trie5, expected_bytes5);
     check_ascii_trie5(&litemap, &trie5);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -1510,7 +1510,7 @@ fn test_short_subtags_10pct() {
     check_ascii_trie4(&litemap, &trie4);
 
     let trie5 = asciitrie::make5_litemap(&litemap);
-    assert_eq!(trie5.len(), 1123);
+    assert_eq!(trie5.len(), 1187);
     check_ascii_trie5(&litemap, &trie5);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -1559,7 +1559,7 @@ fn test_short_subtags() {
     check_ascii_trie4(&litemap, &trie4);
 
     let trie5 = asciitrie::make5_litemap(&litemap);
-    assert_eq!(trie5.len(), 9772);
+    assert_eq!(trie5.len(), 10199);
     check_ascii_trie5(&litemap, &trie5);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
