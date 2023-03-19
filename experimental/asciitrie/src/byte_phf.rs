@@ -33,7 +33,24 @@ fn debug_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {
     }
 }
 
+#[inline]
+fn debug_get(slice: &[u8], index: usize) -> Option<u8> {
+    match slice.get(index) {
+        Some(x) => Some(*x),
+        None => {
+            debug_assert!(false, "debug_get: index expected to be in range");
+            None
+        }
+    }
+}
+
+/// Invariant: n > 0
+#[inline]
 pub fn f1(byte: u8, p: u8, n: usize) -> usize {
+    let n = if n > 0 { n } else {
+        debug_assert!(false, "unreachable by invariant");
+        1
+    };
     if p == 0 {
         byte as usize % n
     } else {
@@ -45,15 +62,13 @@ pub fn f1(byte: u8, p: u8, n: usize) -> usize {
     }
 }
 
-pub fn f1_naive_only(byte: u8, p: u8, n: usize) -> usize {
-    if p == 0 {
-        byte as usize % n
-    } else {
-        panic!("p != 0 in f1_naive_only");
-    }
-}
-
+/// Invariant: n > 0
+#[inline]
 pub fn f2(byte: u8, q: u8, n: usize) -> usize {
+    let n = if n > 0 { n } else {
+        debug_assert!(false, "unreachable by invariant");
+        1
+    };
     // ((byte ^ q) as usize) % n
     let mut result = byte ^ q;
     // if q >= Q_FAST_MAX {
@@ -174,26 +189,9 @@ where
         }
         let (qq, eks) = debug_split_at(buffer, n)?;
         debug_assert_eq!(qq.len(), eks.len());
-        let q = qq[f1(key, *p, n)];
+        let q = debug_get(qq, f1(key, *p, n))?;
         let l2 = f2(key, q, n);
-        let ek = eks[l2];
-        if ek == key {
-            Some(l2)
-        } else {
-            None
-        }
-    }
-    pub fn get_naive_only(&self, key: u8) -> Option<usize> {
-        let (p, buffer) = self.0.as_ref().split_first()?;
-        let n = buffer.len() / 2;
-        if n == 0 {
-            return None;
-        }
-        let (qq, eks) = debug_split_at(buffer, n)?;
-        debug_assert_eq!(qq.len(), eks.len());
-        let q = qq[f1_naive_only(key, *p, n)];
-        let l2 = f2(key, q, n);
-        let ek = eks[l2];
+        let ek = debug_get(eks, l2)?;
         if ek == key {
             Some(l2)
         } else {
@@ -215,7 +213,7 @@ where
         if n == 0 {
             return None;
         }
-        let (qq, buffer) = debug_split_at(buffer, n)?;
+        let (qq, _) = debug_split_at(buffer, n)?;
         Some((*p, *qq.iter().max().unwrap()))
     }
     pub fn as_bytes(&self) -> &[u8] {
