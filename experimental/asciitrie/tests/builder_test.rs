@@ -38,7 +38,7 @@ fn test_basic() {
 
     let expected_bytes5 = testdata::basic::TRIE5;
     let trie5 = asciitrie::make5_litemap(&litemap);
-    check_bytes_eq(30, &trie5, expected_bytes5);
+    check_bytes_eq(28, &trie5, expected_bytes5);
     check_ascii_trie5(&litemap, &trie5);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);

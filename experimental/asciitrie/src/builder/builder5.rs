@@ -299,8 +299,8 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
             let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8 + 1;
             let mut k = 0;
             while k < w {
-                self = self.prepend_n_zeros(total_count);
-                current_len += total_count;
+                self = self.prepend_n_zeros(total_count - 1);
+                current_len += total_count - 1;
                 let mut l = 0;
                 let mut length_to_write = 0;
                 while l < total_count {
@@ -314,7 +314,9 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                         adjusted_length >>= 8;
                         m += 1;
                     }
-                    self = self.bitor_assign_at(l, adjusted_length as u8);
+                    if l > 0 {
+                        self = self.bitor_assign_at(l - 1, adjusted_length as u8);
+                    }
                     l += 1;
                     length_to_write += local_length;
                 }
