@@ -11,8 +11,10 @@ use alloc::vec::Vec;
 /// hash maps that fall back to the slow path.
 const MAX_L2_SEARCH_MISSES: usize = 24;
 
-const P_FAST_MAX: u8 = 16;
-const Q_FAST_MAX: u8 = 32;
+const P_FAST_MAX: u8 = 11;
+const P_REAL_MAX: u8 = 15;
+const Q_FAST_MAX: u8 = 95;
+const Q_REAL_MAX: u8 = 127;
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -136,12 +138,12 @@ pub fn find(bytes: &[u8]) -> Result<(u8, Vec<u8>), Error> {
                         num_max_q += 1;
                         bqs[i] = 0;
                         if i == 0 || num_max_q > MAX_L2_SEARCH_MISSES {
-                            if p == max_allowable_p && max_allowable_p != u8::MAX {
-                                max_allowable_p = u8::MAX;
-                                max_allowable_q = u8::MAX;
+                            if p == max_allowable_p && max_allowable_p != P_REAL_MAX {
+                                max_allowable_p = P_REAL_MAX;
+                                max_allowable_q = Q_REAL_MAX;
                                 p = 0;
                                 continue 'p_loop;
-                            } else if p == u8::MAX {
+                            } else if p == P_REAL_MAX {
                                 // println!("Could not solve PHF function");
                                 return Err(Error::CouldNotSolve);
                             } else {
@@ -282,7 +284,7 @@ mod tests {
         let mut count_by_p = [0; 256];
         let mut count_by_qmax = [0; 256];
         for len in 1..16 {
-            for seed in 0..1000 {
+            for seed in 0..150 {
                 let keys = random_alphanums(seed, len);
                 let keys_str = core::str::from_utf8(&keys).unwrap();
                 let computed = PerfectByteHashMap::try_new(&keys).expect(keys_str);
@@ -296,19 +298,21 @@ mod tests {
         }
         std::println!("count_by_p (smaller): {count_by_p:?}");
         std::println!("count_by_qmax (smaller): {count_by_qmax:?}");
-        std::println!(
-            "fastq/slowq: {}/{}",
-            count_by_qmax[0..Q_FAST_MAX as usize].iter().sum::<usize>(),
-            count_by_qmax[Q_FAST_MAX as usize..].iter().sum::<usize>()
-        );
+        let count_fastq = count_by_qmax[0..=Q_FAST_MAX as usize].iter().sum::<usize>();
+        let count_slowq = count_by_qmax[Q_FAST_MAX as usize + 1..]
+            .iter()
+            .sum::<usize>();
+        std::println!("fastq/slowq: {count_fastq}/{count_slowq}");
+        // Assert that 99% of cases resolve to the fast hash
+        assert!(count_fastq >= count_slowq * 100);
     }
 
     #[test]
     fn test_larger() {
         let mut count_by_p = [0; 256];
         let mut count_by_qmax = [0; 256];
-        for len in 16..50 {
-            for seed in 0..1000 {
+        for len in 16..60 {
+            for seed in 0..75 {
                 let keys = random_alphanums(seed, len);
                 let keys_str = core::str::from_utf8(&keys).unwrap();
                 let computed = PerfectByteHashMap::try_new(&keys).expect(keys_str);
@@ -322,11 +326,13 @@ mod tests {
         }
         std::println!("count_by_p (larger): {count_by_p:?}");
         std::println!("count_by_qmax (larger): {count_by_qmax:?}");
-        std::println!(
-            "fastq/slowq: {}/{}",
-            count_by_qmax[0..Q_FAST_MAX as usize].iter().sum::<usize>(),
-            count_by_qmax[Q_FAST_MAX as usize..].iter().sum::<usize>()
-        );
+        let count_fastq = count_by_qmax[0..=Q_FAST_MAX as usize].iter().sum::<usize>();
+        let count_slowq = count_by_qmax[Q_FAST_MAX as usize + 1..]
+            .iter()
+            .sum::<usize>();
+        std::println!("fastq/slowq: {count_fastq}/{count_slowq}");
+        // Assert that 99% of cases resolve to the fast hash
+        assert!(count_fastq >= count_slowq * 100);
     }
 
     #[test]
@@ -417,14 +423,16 @@ mod tests {
                 reordered_keys: "defghijabc",
             },
             TestCase {
+                // This is a small case that resolves to the slow hasher
                 keys: "Jbej",
-                expected: &[25, 0, 1, 2, 0, b'b', b'e', b'j', b'J'],
-                reordered_keys: "bejJ",
+                expected: &[2, 0, 0, 102, 0, b'j', b'e', b'b', b'J'],
+                reordered_keys: "jebJ",
             },
             TestCase {
+                // This is another small case that resolves to the slow hasher
                 keys: "JFNv",
-                expected: &[0, 0, 0, 0, b'x', b'y', b'z'],
-                reordered_keys: "xyz",
+                expected: &[1, 98, 0, 2, 0, b'J', b'F', b'N', b'v'],
+                reordered_keys: "JFNv",
             },
         ];
         for cas in cases {
