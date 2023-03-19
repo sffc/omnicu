@@ -324,13 +324,18 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                 k += 1;
             }
             // Write out the lookup table
+            let branch_len;
             if let Some(phf_vec) = opt_phf_vec {
+                // TODO: Assert w <= 3
+                // TODO: Assert p < 15
                 self = self.prepend_slice(ConstSlice::from_slice(phf_vec.as_bytes()));
-                current_len += phf_vec.as_bytes().len();
+                (self, branch_len) = self.prepend_branch((total_count << 2) + w);
+                current_len += phf_vec.as_bytes().len() + branch_len;
             } else {
+                // TODO: Assert w <= 3
                 self = self.prepend_slice(original_keys.as_const_slice());
-                self = self.prepend_slice(ConstSlice::from_slice(&[255]));
-                current_len += total_count + 1;
+                (self, branch_len) = self.prepend_branch((total_count << 2) + w);
+                current_len += total_count + branch_len;
             }
             /*
             self = self.prepend_n_zeros(total_count);
@@ -342,10 +347,6 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                 l += 1;
             }
             */
-            // TODO: Assert w <= 3
-            let len;
-            (self, len) = self.prepend_branch((total_count << 2) + w);
-            current_len += len;
             i = new_i;
             j = new_j;
         }

@@ -204,7 +204,6 @@ pub mod basic {
         single_byte_value(2),
         // Begin Match Node
         single_byte_match(3 << 2),
-        255,
         b'd',
         b'e',
         b'f',
@@ -224,7 +223,6 @@ pub mod basic {
         // subslice @ 8
         // Begin Match Node
         single_byte_match(2 << 2),
-        255,
         b'l',
         b'm',
         1,
