@@ -17,6 +17,7 @@ fn test_basic() {
     let trie2 = testdata::basic::TRIE2;
     let trie3 = testdata::basic::TRIE3;
     let trie4 = testdata::basic::TRIE4;
+    let trie5 = testdata::basic::TRIE5;
     let data = testdata::basic::DATA;
 
     // Check that the getter works
@@ -41,6 +42,11 @@ fn test_basic() {
             None => panic!("value should be in trie4: {:?} => {}", key, expected),
         };
         assert_eq!(*expected, actual4);
+        let actual5 = match asciitrie::reader5::get(trie5, key.as_bytes()) {
+            Some(v) => v,
+            None => panic!("value should be in trie5: {:?} => {}", key, expected),
+        };
+        assert_eq!(*expected, actual5);
     }
 
     // Compare the size to a postcard ZeroMap
