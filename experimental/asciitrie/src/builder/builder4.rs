@@ -246,7 +246,8 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
             };
             let mut branch_metas = lengths_stack.pop_many_or_panic(total_count);
             let original_keys = branch_metas.map_to_ascii_bytes();
-            let phf_vec = PerfectByteHashMap::try_new(original_keys.as_const_slice().as_slice()).unwrap();
+            let phf_vec =
+                PerfectByteHashMap::try_new(original_keys.as_const_slice().as_slice()).unwrap();
             let opt_phf_vec = if total_count > 15 {
                 // std::println!("{phf_vec:?}");
                 // Put everything in order via bubble sort
@@ -257,13 +258,25 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                     let mut start = 0;
                     while l > 0 {
                         let a = *branch_metas.as_const_slice().get_or_panic(l);
-                        let b = *branch_metas.as_const_slice().get_or_panic(l-1);
-                        let a_idx = phf_vec.keys().iter().position(|x| x == &a.ascii.get()).unwrap();
-                        let b_idx = phf_vec.keys().iter().position(|x| x == &b.ascii.get()).unwrap();
+                        let b = *branch_metas.as_const_slice().get_or_panic(l - 1);
+                        let a_idx = phf_vec
+                            .keys()
+                            .iter()
+                            .position(|x| x == &a.ascii.get())
+                            .unwrap();
+                        let b_idx = phf_vec
+                            .keys()
+                            .iter()
+                            .position(|x| x == &b.ascii.get())
+                            .unwrap();
                         if a_idx > b_idx {
                             // std::println!("{a:?} <=> {b:?} ({phf_vec:?})");
-                            self = self.swap_ranges(start, start + a.local_length, start + a.local_length + b.local_length);
-                            branch_metas = branch_metas.swap_or_panic(l-1, l);
+                            self = self.swap_ranges(
+                                start,
+                                start + a.local_length,
+                                start + a.local_length + b.local_length,
+                            );
+                            branch_metas = branch_metas.swap_or_panic(l - 1, l);
                             start += b.local_length;
                             changes += 1;
                             // FIXME: fix the `length` field
@@ -291,7 +304,9 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
                 let mut l = 0;
                 let mut length_to_write = 0;
                 while l < total_count {
-                    let BranchMeta { local_length, .. } = *branch_metas.as_const_slice().get_or_panic(total_count - l - 1);
+                    let BranchMeta { local_length, .. } = *branch_metas
+                        .as_const_slice()
+                        .get_or_panic(total_count - l - 1);
                     // std::println!("length_to_write = {length_to_write:?}");
                     let mut adjusted_length = length_to_write;
                     let mut m = 0;

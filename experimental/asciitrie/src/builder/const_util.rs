@@ -186,7 +186,10 @@ impl<const N: usize, T: Copy> ConstArrayBuilder<N, T> {
             panic!("Invalid args to swap_ranges(): start > mid || mid > limit");
         }
         if limit > self.len() {
-            panic!("Invalid args to swap_ranges(): limit out of range: {limit} > {}", self.len());
+            panic!(
+                "Invalid args to swap_ranges(): limit out of range: {limit} > {}",
+                self.len()
+            );
         }
         loop {
             if start == mid || mid == limit {

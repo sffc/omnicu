@@ -4,9 +4,9 @@
 
 //! This module contains trait-like storage abstractions for AsciiTrieBuilder.
 
+use super::const_util::const_for_each;
 use super::const_util::ConstArrayBuilder;
 use super::const_util::ConstSlice;
-use super::const_util::const_for_each;
 use super::AsciiByte;
 
 pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
@@ -262,7 +262,7 @@ impl<const N: usize> ConstLengthsStack1b<N> {
 
     pub fn pop_many_or_panic(&mut self, len: usize) -> ConstArrayBuilder<256, BranchMeta> {
         let mut result = ConstArrayBuilder::new_empty([BranchMeta::const_default(); 256], 256);
-        for i in (self.idx-len..self.idx).rev() {
+        for i in (self.idx - len..self.idx).rev() {
             result = result.push_front(self.data[i].unwrap());
         }
         self.idx -= len;

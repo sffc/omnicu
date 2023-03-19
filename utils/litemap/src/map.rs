@@ -334,9 +334,7 @@ where
     ///
     /// assert_eq!(borrowed_map.get(&1), Some(&"one".to_string()));
     /// ```
-    pub fn to_borrowed_keys<KB: ?Sized, SB>(
-        &'a self,
-    ) -> LiteMap<&'a KB, V, SB>
+    pub fn to_borrowed_keys<KB: ?Sized, SB>(&'a self) -> LiteMap<&'a KB, V, SB>
     where
         K: Borrow<KB>,
         V: Clone,
@@ -370,9 +368,7 @@ where
     ///
     /// assert_eq!(borrowed_map.get(&1), Some(&"one"));
     /// ```
-    pub fn to_borrowed_values<VB: ?Sized, SB>(
-        &'a self,
-    ) -> LiteMap<K, &'a VB, SB>
+    pub fn to_borrowed_values<VB: ?Sized, SB>(&'a self) -> LiteMap<K, &'a VB, SB>
     where
         K: Clone,
         V: Borrow<VB>,

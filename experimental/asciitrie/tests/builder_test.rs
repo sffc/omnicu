@@ -286,7 +286,9 @@ fn test_multi_byte_branch() {
     check_bytes_eq(8, &trie3, expected_bytes3);
     check_ascii_trie3(&litemap, &trie3);
 
-    let expected_bytes4 = &[b'a', 0b11000010, 255, b'x', b'y', 0, 2, b'b', 0b10000000, b'c', 0b10000001,];
+    let expected_bytes4 = &[
+        b'a', 0b11000010, 255, b'x', b'y', 0, 2, b'b', 0b10000000, b'c', 0b10000001,
+    ];
     let trie4 = asciitrie::make4_litemap(&litemap);
     check_bytes_eq(11, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);

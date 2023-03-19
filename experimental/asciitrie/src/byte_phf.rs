@@ -47,7 +47,9 @@ fn debug_get(slice: &[u8], index: usize) -> Option<u8> {
 /// Invariant: n > 0
 #[inline]
 pub fn f1(byte: u8, p: u8, n: usize) -> usize {
-    let n = if n > 0 { n } else {
+    let n = if n > 0 {
+        n
+    } else {
         debug_assert!(false, "unreachable by invariant");
         1
     };
@@ -65,7 +67,9 @@ pub fn f1(byte: u8, p: u8, n: usize) -> usize {
 /// Invariant: n > 0
 #[inline]
 pub fn f2(byte: u8, q: u8, n: usize) -> usize {
-    let n = if n > 0 { n } else {
+    let n = if n > 0 {
+        n
+    } else {
         debug_assert!(false, "unreachable by invariant");
         1
     };
@@ -282,7 +286,9 @@ mod tests {
                 let keys = random_alphanums(seed, len);
                 let keys_str = core::str::from_utf8(&keys).unwrap();
                 let computed = PerfectByteHashMap::try_new(&keys).expect(keys_str);
-                computed.check().expect(std::str::from_utf8(&keys).expect(keys_str));
+                computed
+                    .check()
+                    .expect(std::str::from_utf8(&keys).expect(keys_str));
                 let (p, qmax) = computed.p_qmax().unwrap();
                 count_by_p[p as usize] += 1;
                 count_by_qmax[qmax as usize] += 1;
@@ -290,7 +296,11 @@ mod tests {
         }
         std::println!("count_by_p (smaller): {count_by_p:?}");
         std::println!("count_by_qmax (smaller): {count_by_qmax:?}");
-        std::println!("fastq/slowq: {}/{}", count_by_qmax[0..Q_FAST_MAX as usize].iter().sum::<usize>(), count_by_qmax[Q_FAST_MAX as usize..].iter().sum::<usize>());
+        std::println!(
+            "fastq/slowq: {}/{}",
+            count_by_qmax[0..Q_FAST_MAX as usize].iter().sum::<usize>(),
+            count_by_qmax[Q_FAST_MAX as usize..].iter().sum::<usize>()
+        );
     }
 
     #[test]
@@ -302,7 +312,9 @@ mod tests {
                 let keys = random_alphanums(seed, len);
                 let keys_str = core::str::from_utf8(&keys).unwrap();
                 let computed = PerfectByteHashMap::try_new(&keys).expect(keys_str);
-                computed.check().expect(std::str::from_utf8(&keys).expect(keys_str));
+                computed
+                    .check()
+                    .expect(std::str::from_utf8(&keys).expect(keys_str));
                 let (p, qmax) = computed.p_qmax().unwrap();
                 count_by_p[p as usize] += 1;
                 count_by_qmax[qmax as usize] += 1;
@@ -310,7 +322,11 @@ mod tests {
         }
         std::println!("count_by_p (larger): {count_by_p:?}");
         std::println!("count_by_qmax (larger): {count_by_qmax:?}");
-        std::println!("fastq/slowq: {}/{}", count_by_qmax[0..Q_FAST_MAX as usize].iter().sum::<usize>(), count_by_qmax[Q_FAST_MAX as usize..].iter().sum::<usize>());
+        std::println!(
+            "fastq/slowq: {}/{}",
+            count_by_qmax[0..Q_FAST_MAX as usize].iter().sum::<usize>(),
+            count_by_qmax[Q_FAST_MAX as usize..].iter().sum::<usize>()
+        );
     }
 
     #[test]
@@ -383,12 +399,21 @@ mod tests {
             },
             TestCase {
                 keys: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-                expected: &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 10, 12, 16, 4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 7, 104, 105, 106, 107, 108, 109, 110, 111, 112, 117, 118, 119, 68, 69, 70, 113, 114, 65, 66, 67, 120, 121, 122, 115, 72, 73, 74, 71, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 75, 76, 77, 78, 79, 103, 97, 98, 99, 116, 100, 102, 101],
+                expected: &[
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 10, 12, 16, 4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 16,
+                    16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+                    2, 0, 7, 104, 105, 106, 107, 108, 109, 110, 111, 112, 117, 118, 119, 68, 69,
+                    70, 113, 114, 65, 66, 67, 120, 121, 122, 115, 72, 73, 74, 71, 80, 81, 82, 83,
+                    84, 85, 86, 87, 88, 89, 90, 75, 76, 77, 78, 79, 103, 97, 98, 99, 116, 100, 102,
+                    101,
+                ],
                 reordered_keys: "hijklmnopuvwDEFqrABCxyzsHIJGPQRSTUVWXYZKLMNOgabctdfe",
             },
             TestCase {
                 keys: "abcdefghij",
-                expected: &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 101, 102, 103, 104, 105, 106, 97, 98, 99],
+                expected: &[
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 101, 102, 103, 104, 105, 106, 97, 98, 99,
+                ],
                 reordered_keys: "defghijabc",
             },
             TestCase {
@@ -406,9 +431,7 @@ mod tests {
             let computed = PerfectByteHashMap::try_new(cas.keys.as_bytes()).expect(cas.keys);
             assert_eq!(computed.as_bytes(), cas.expected, "{:?}", cas);
             assert_eq!(computed.keys(), cas.reordered_keys.as_bytes(), "{:?}", cas);
-            computed
-                .check()
-                .expect(cas.keys);
+            computed.check().expect(cas.keys);
         }
     }
 }
