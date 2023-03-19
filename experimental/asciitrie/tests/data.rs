@@ -203,12 +203,11 @@ pub mod basic {
         b'c',
         single_byte_value(2),
         // Begin Match Node
-        single_byte_match(3),
+        single_byte_match(3 << 2),
         255,
         b'd',
         b'e',
         b'f',
-        0x0,
         5,
         8,
         // End Match Node
@@ -224,11 +223,10 @@ pub mod basic {
         single_byte_value(5),
         // subslice @ 8
         // Begin Match Node
-        single_byte_match(2),
+        single_byte_match(2 << 2),
         255,
         b'l',
         b'm',
-        0x0,
         1,
         // End Match Node
         // subsubslice @ 0

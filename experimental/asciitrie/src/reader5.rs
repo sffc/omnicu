@@ -47,11 +47,10 @@ fn debug_get_range(slice: &[u8], range: Range<usize>) -> Option<&[u8]> {
 /// - `trie` = a trie pointing at an offset table (after the branch node and search table)
 /// - `i` = the desired index within the offset table
 /// - `n` = the number of items in the offset table
-fn get_branch(trie: &[u8], i: usize, n: usize) -> Option<&[u8]> {
+/// - `w` = the width of the offset table items minus one
+fn get_branch(mut trie: &[u8], i: usize, n: usize, mut w: usize) -> Option<&[u8]> {
     let mut p = 0usize;
     let mut q = 0usize;
-    let (w, mut trie) = trie.split_first()?;
-    let mut w = *w;
     loop {
         let indices;
         (indices, trie) = debug_split_at(trie, n - 1)?;
@@ -118,6 +117,8 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 continue;
             }
             // Branch node
+            let w = x & 0x3;
+            let x = x >> 2;
             if x <= 1 {
                 debug_assert!(false, "there should be 2 or more branches");
                 return None;
@@ -133,7 +134,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 (search, trie) = debug_split_at(trie, x * 2 + 1)?;
                 i = PerfectByteHashMap::from_store(search).get(*c)?;
             }
-            trie = get_branch(trie, i, x)?;
+            trie = get_branch(trie, i, x, w)?;
             ascii = temp;
             continue;
         } else {

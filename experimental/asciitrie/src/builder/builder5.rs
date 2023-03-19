@@ -323,9 +323,6 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                 }
                 k += 1;
             }
-            // Write out W
-            self = self.prepend_slice(ConstSlice::from_slice(&[w as u8]));
-            current_len += 1;
             // Write out the lookup table
             if let Some(phf_vec) = opt_phf_vec {
                 self = self.prepend_slice(ConstSlice::from_slice(phf_vec.as_bytes()));
@@ -345,8 +342,9 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                 l += 1;
             }
             */
+            // TODO: Assert w <= 3
             let len;
-            (self, len) = self.prepend_branch(total_count);
+            (self, len) = self.prepend_branch((total_count << 2) + w);
             current_len += len;
             i = new_i;
             j = new_j;
