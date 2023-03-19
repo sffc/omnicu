@@ -14,18 +14,30 @@ use testdata::strings_to_litemap;
 
 #[test]
 fn test_basic() {
-    let trie = testdata::basic::TRIE;
-    let data = testdata::basic::DATA;
+    let litemap: LiteMap<&AsciiStr, usize> = testdata::basic::DATA.iter().copied().collect();
 
-    // Check that the builder works
-    let built_trie: AsciiTrie<Vec<u8>> = data.iter().copied().collect();
-    assert_eq!(built_trie.as_bytes(), trie);
+    let expected_bytes = testdata::basic::TRIE;
+    let trie: AsciiTrie<Vec<u8>> = litemap.iter().map(|(k, v)| (*k, *v)).collect();
+    check_bytes_eq(28, trie.as_bytes(), expected_bytes);
+    check_ascii_trie(&litemap, &trie);
 
-    assert!(data
-        .iter()
-        .copied()
-        .map(|(s, v)| (s.to_boxed(), v))
-        .eq(built_trie.iter()));
+    let expected_bytes2 = testdata::basic::TRIE2;
+    let trie2 = asciitrie::make2_litemap(&litemap);
+    check_bytes_eq(24, &trie2, expected_bytes2);
+    check_ascii_trie2(&litemap, &trie2);
+
+    let expected_bytes3 = testdata::basic::TRIE3;
+    let trie3 = asciitrie::make3_litemap(&litemap);
+    check_bytes_eq(25, &trie3, expected_bytes3);
+    check_ascii_trie3(&litemap, &trie3);
+
+    let expected_bytes4 = testdata::basic::TRIE4;
+    let trie4 = asciitrie::make4_litemap(&litemap);
+    check_bytes_eq(30, &trie4, expected_bytes4);
+    check_ascii_trie4(&litemap, &trie4);
+
+    let trie1b = asciitrie::make1b_litemap(&litemap);
+    check_bytes_eq(28, &trie1b, expected_bytes);
 }
 
 fn check_ascii_trie<S>(items: &LiteMap<&AsciiStr, usize>, trie: &AsciiTrie<S>)
@@ -1524,7 +1536,7 @@ fn test_short_subtags() {
     check_ascii_trie3(&litemap, &trie3);
 
     let trie4 = asciitrie::make4_litemap(&litemap);
-    assert_eq!(trie4.len(), 10163);
+    assert_eq!(trie4.len(), 10211);
     check_ascii_trie4(&litemap, &trie4);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);

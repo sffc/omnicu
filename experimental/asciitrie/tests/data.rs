@@ -163,23 +163,28 @@ pub mod basic {
         single_byte_value(2),
         // Begin Match Node
         single_byte_match(3),
-        0,
-        0,
-        0,
-        0,
-        b'f',
+        255,
         b'd',
         b'e',
+        b'f',
         0,
-        11,
-        16,
+        5,
+        8,
         // End Match Node
         // subslice @ 0
+        single_byte_value(3),
+        b'g',
+        b'h',
+        b'i',
+        single_byte_value(4),
+        // subslice @ 5
+        b'j',
+        b'k',
+        single_byte_value(5),
+        // subslice @ 8
         // Begin Match Node
         single_byte_match(2),
-        0,
-        0,
-        0,
+        255,
         b'l',
         b'm',
         0,
@@ -190,16 +195,6 @@ pub mod basic {
         // subsubslice @ 1
         b'n',
         single_byte_value(7),
-        // subslice @ 11
-        single_byte_value(3),
-        b'g',
-        b'h',
-        b'i',
-        single_byte_value(4),
-        // subslice @ 16
-        b'j',
-        b'k',
-        single_byte_value(5),
     ];
     pub static DATA: &[(&AsciiStr, usize)] = &[
         (AsciiStr::from_str_or_panic("ab"), 1),
