@@ -36,6 +36,11 @@ fn test_basic() {
     check_bytes_eq(30, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);
 
+    let expected_bytes5 = testdata::basic::TRIE5;
+    let trie5 = asciitrie::make5_litemap(&litemap);
+    check_bytes_eq(30, &trie5, expected_bytes5);
+    check_ascii_trie5(&litemap, &trie5);
+
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(28, &trie1b, expected_bytes);
 }
@@ -76,6 +81,16 @@ fn check_ascii_trie3(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
 fn check_ascii_trie4(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
     for (k, v) in items.iter() {
         assert_eq!(asciitrie::reader4::get(trie, k.as_bytes()), Some(*v));
+    }
+    // assert!(items
+    //     .iter()
+    //     .map(|(s, v)| (s.to_boxed(), *v))
+    //     .eq(trie.iter()));
+}
+
+fn check_ascii_trie5(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
+    for (k, v) in items.iter() {
+        assert_eq!(asciitrie::reader5::get(trie, k.as_bytes()), Some(*v));
     }
     // assert!(items
     //     .iter()

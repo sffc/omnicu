@@ -196,6 +196,47 @@ pub mod basic {
         b'n',
         single_byte_value(7),
     ];
+    pub static TRIE5: &[u8] = &[
+        b'a',
+        b'b',
+        single_byte_value(1),
+        b'c',
+        single_byte_value(2),
+        // Begin Match Node
+        single_byte_match(3),
+        255,
+        b'd',
+        b'e',
+        b'f',
+        0,
+        5,
+        8,
+        // End Match Node
+        // subslice @ 0
+        single_byte_value(3),
+        b'g',
+        b'h',
+        b'i',
+        single_byte_value(4),
+        // subslice @ 5
+        b'j',
+        b'k',
+        single_byte_value(5),
+        // subslice @ 8
+        // Begin Match Node
+        single_byte_match(2),
+        255,
+        b'l',
+        b'm',
+        0,
+        1,
+        // End Match Node
+        // subsubslice @ 0
+        single_byte_value(6),
+        // subsubslice @ 1
+        b'n',
+        single_byte_value(7),
+    ];
     pub static DATA: &[(&AsciiStr, usize)] = &[
         (AsciiStr::from_str_or_panic("ab"), 1),
         (AsciiStr::from_str_or_panic("abc"), 2),
