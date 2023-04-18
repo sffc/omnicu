@@ -252,6 +252,27 @@ impl LineSegmenter {
     /// The current behavior, which is subject to change, is to use the LSTM model when available.
     ///
     /// See also [`Self::try_new_auto_with_options_unstable`].
+    ///
+    /// # Examples
+    ///
+    /// Behavior with complex scripts:
+    ///
+    /// ```
+    /// use icu::segmenter::LineSegmenter;
+    ///
+    /// let th_str = "ทุกสองสัปดาห์";
+    /// let ja_str = "こんにちは世界";
+    ///
+    /// let segmenter =
+    ///     LineSegmenter::try_new_auto_unstable(&icu_testdata::unstable())
+    ///         .unwrap();
+    ///
+    /// let th_bps = segmenter.segment_str(th_str).collect::<Vec<_>>();
+    /// let ja_bps = segmenter.segment_str(ja_str).collect::<Vec<_>>();
+    ///
+    /// assert_eq!(th_bps, [0, 9, 18, 39]);
+    /// assert_eq!(ja_bps, [0, 3, 6, 9, 12, 15, 18, 21]);
+    /// ```
     #[cfg(feature = "auto")]
     pub fn try_new_auto_unstable<D>(provider: &D) -> Result<Self, SegmenterError>
     where
@@ -282,6 +303,27 @@ impl LineSegmenter {
     /// the full dictionary but more expensive during segmentation (inference).
     ///
     /// See also [`Self::try_new_lstm_with_options_unstable`].
+    ///
+    /// # Examples
+    ///
+    /// Behavior with complex scripts:
+    ///
+    /// ```
+    /// use icu::segmenter::LineSegmenter;
+    ///
+    /// let th_str = "ทุกสองสัปดาห์";
+    /// let ja_str = "こんにちは世界";
+    ///
+    /// let segmenter =
+    ///     LineSegmenter::try_new_lstm_unstable(&icu_testdata::unstable())
+    ///         .unwrap();
+    ///
+    /// let th_bps = segmenter.segment_str(th_str).collect::<Vec<_>>();
+    /// let ja_bps = segmenter.segment_str(ja_str).collect::<Vec<_>>();
+    ///
+    /// assert_eq!(th_bps, [0, 9, 18, 39]);
+    /// assert_eq!(ja_bps, [0, 3, 6, 9, 12, 15, 18, 21]);
+    /// ```
     #[cfg(feature = "lstm")]
     pub fn try_new_lstm_unstable<D>(provider: &D) -> Result<Self, SegmenterError>
     where
@@ -312,6 +354,27 @@ impl LineSegmenter {
     /// faster than the LSTM model but requires more data.
     ///
     /// See also [`Self::try_new_dictionary_with_options_unstable`].
+    ///
+    /// # Examples
+    ///
+    /// Behavior with complex scripts:
+    ///
+    /// ```
+    /// use icu::segmenter::LineSegmenter;
+    ///
+    /// let th_str = "ทุกสองสัปดาห์";
+    /// let ja_str = "こんにちは世界";
+    ///
+    /// let segmenter =
+    ///     LineSegmenter::try_new_dictionary_unstable(&icu_testdata::unstable())
+    ///         .unwrap();
+    ///
+    /// let th_bps = segmenter.segment_str(th_str).collect::<Vec<_>>();
+    /// let ja_bps = segmenter.segment_str(ja_str).collect::<Vec<_>>();
+    ///
+    /// assert_eq!(th_bps, [0, 9, 18, 39]);
+    /// assert_eq!(ja_bps, [0, 3, 6, 9, 12, 15, 18, 21]);
+    /// ```
     pub fn try_new_dictionary_unstable<D>(provider: &D) -> Result<Self, SegmenterError>
     where
         D: DataProvider<LineBreakDataV1Marker>
