@@ -133,7 +133,10 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
             return (Self::new(), 0);
         }
         let mut lengths_stack = ConstLengthsStack1b::<100>::new();
-        let mut prefix_len = all_items.last().unwrap().0.len();
+        let mut prefix_len = match all_items.last() {
+            Some(item) => item.0.len(),
+            None => unreachable!(),
+        };
         let mut i = all_items.len() - 1;
         let mut j = all_items.len();
         let mut current_len = 0;
@@ -156,7 +159,7 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
             let mut diff_j = 0;
             let mut ascii_i = item_i.0.ascii_at_or_panic(prefix_len);
             let mut ascii_j = item_j.0.ascii_at_or_panic(prefix_len);
-            assert_eq!(ascii_i, ascii_j);
+            assert!(ascii_i.get() == ascii_j.get());
             let key_ascii = ascii_i;
             loop {
                 if new_i == 0 {
@@ -177,7 +180,7 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                     break;
                 }
                 let candidate = candidate.ascii_at_or_panic(prefix_len);
-                if candidate != ascii_i {
+                if candidate.get() != ascii_i.get() {
                     diff_i += 1;
                     ascii_i = candidate;
                 }
@@ -200,7 +203,7 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                     panic!("A shorter string should be earlier in the sequence");
                 }
                 let candidate = candidate.ascii_at_or_panic(prefix_len);
-                if candidate != ascii_j {
+                if candidate.get() != ascii_j.get() {
                     diff_j += 1;
                     ascii_j = candidate;
                 }
@@ -211,7 +214,7 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                 current_len += len;
                 assert!(i == new_i || i == new_i + 1);
                 i = new_i;
-                assert_eq!(j, new_j);
+                assert!(j == new_j);
                 continue;
             }
             // Branch
@@ -244,7 +247,8 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
                 (length, count)
             };
-            let mut branch_metas = lengths_stack.pop_many_or_panic(total_count);
+            let mut branch_metas;
+            (lengths_stack, branch_metas) = lengths_stack.pop_many_or_panic(total_count);
             let original_keys = branch_metas.map_to_ascii_bytes();
             let phf_vec =
                 PerfectByteHashMap::try_new(original_keys.as_const_slice().as_slice()).unwrap();

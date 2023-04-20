@@ -257,27 +257,30 @@ impl<const N: usize> ConstLengthsStack1b<N> {
         (self, value)
     }
 
-    pub fn peek_or_panic(&self) -> BranchMeta {
+    pub const fn peek_or_panic(&self) -> BranchMeta {
         if self.idx == 0 {
             panic!("AsciiTrie Builder: Attempted to peek from an empty stack");
         }
         self.get_or_panic(0)
     }
 
-    pub fn get_or_panic(&self, index: usize) -> BranchMeta {
+    pub const fn get_or_panic(&self, index: usize) -> BranchMeta {
         if self.idx <= index {
             panic!("AsciiTrie Builder: Attempted to get too deep in a stack");
         }
-        self.data[self.idx - index - 1].unwrap()
+        match self.data[self.idx - index - 1] {
+            Some(x) => x,
+            None => unreachable!(),
+        }
     }
 
-    pub fn pop_many_or_panic(&mut self, len: usize) -> ConstArrayBuilder<256, BranchMeta> {
+    pub fn pop_many_or_panic(mut self, len: usize) -> (Self, ConstArrayBuilder<256, BranchMeta>) {
         let mut result = ConstArrayBuilder::new_empty([BranchMeta::const_default(); 256], 256);
         for i in (self.idx - len..self.idx).rev() {
             result = result.push_front(self.data[i].unwrap());
         }
         self.idx -= len;
-        result
+        (self, result)
     }
 
     fn as_slice(&self) -> &[Option<BranchMeta>] {
@@ -286,7 +289,7 @@ impl<const N: usize> ConstLengthsStack1b<N> {
 }
 
 impl<const N: usize> ConstArrayBuilder<N, BranchMeta> {
-    pub fn map_to_ascii_bytes(&self) -> ConstArrayBuilder<N, u8> {
+    pub const fn map_to_ascii_bytes(&self) -> ConstArrayBuilder<N, u8> {
         let mut result = ConstArrayBuilder::new_empty([0; N], N);
         let self_as_slice = self.as_const_slice();
         const_for_each!(self_as_slice, value, {
