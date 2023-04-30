@@ -6,13 +6,13 @@ use crate::buf::BufferMarker;
 use crate::error::{DataError, DataErrorKind};
 use crate::marker::DataMarker;
 use crate::request::DataLocale;
-use crate::yoke::trait_hack::YokeTraitHack;
-use crate::yoke::*;
 use alloc::boxed::Box;
 use core::convert::TryFrom;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use core::ops::Deref;
+use yoke::trait_hack::YokeTraitHack;
+use yoke::*;
 
 #[cfg(not(feature = "sync"))]
 use alloc::rc::Rc as SelectedRc;
@@ -79,7 +79,7 @@ where
 }
 
 /// The type of the "cart" that is used by `DataPayload`.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[allow(clippy::redundant_allocation)] // false positive, it's cheaper to wrap an existing Box in an Rc than to reallocate a huge Rc
 pub struct Cart(SelectedRc<Box<[u8]>>);
 

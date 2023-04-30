@@ -7,7 +7,7 @@
 FORCE:
 
 ALL_HEADERS := $(wildcard ../../include/*.h)
-ICU4X_NIGHTLY_TOOLCHAIN ?= "nightly-2022-04-05"
+ICU4X_NIGHTLY_TOOLCHAIN ?= "nightly-2022-04-18"
 
 $(ALL_HEADERS):
 
@@ -16,7 +16,7 @@ CLANG := clang-14
 LLD := lld-14
 
 ../../../../../target/debug/libicu_capi_staticlib.a: FORCE
-	cargo build -p icu_capi_staticlib --no-default-features --features buffer_provider
+	cargo build -p icu_capi_staticlib --no-default-features --features buffer_provider,icu_capi/default_components
 
 icu_capi_staticlib_tiny/target/x86_64-unknown-linux-gnu/debug/libicu_capi_staticlib_tiny.a: FORCE
 	rustup toolchain install ${ICU4X_NIGHTLY_TOOLCHAIN}

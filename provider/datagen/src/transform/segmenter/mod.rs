@@ -4,6 +4,10 @@
 
 //! This module contains provider implementations backed by built-in segmentation data.
 
+// Some code gated on icu_codepointtrie_builder features
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 use icu_codepointtrie_builder::{CodePointTrieBuilder, CodePointTrieBuilderData};
 use icu_collections::codepointtrie::CodePointTrie;
 use icu_locid::{langid, locale};
@@ -222,6 +226,7 @@ fn is_cjk_fullwidth(eaw: maps::CodePointMapDataBorrowed<EastAsianWidth>, codepoi
 }
 
 impl crate::DatagenProvider {
+    #[cfg(any(feature = "use_wasm", feature = "use_icu4c"))]
     fn generate_rule_break_data(
         &self,
         key: DataKey,
@@ -279,6 +284,7 @@ impl crate::DatagenProvider {
         let mut properties_map = vec![0; CODEPOINT_TABLE_LEN];
         let mut properties_names = Vec::<String>::new();
         let mut simple_properties_count = 0;
+        let mut rule_status_table = Vec::<u8>::new();
 
         properties_names.push("Unknown".to_string());
         simple_properties_count += 1;
@@ -586,7 +592,12 @@ impl crate::DatagenProvider {
             data: CodePointTrieBuilderData::ValuesByCodePoint(&properties_map),
             default_value: 0,
             error_value: 0,
-            trie_type: self.source.trie_type().to_internal(),
+            trie_type: match self.source.trie_type() {
+                crate::source::IcuTrieType::Fast => icu_collections::codepointtrie::TrieType::Fast,
+                crate::source::IcuTrieType::Small => {
+                    icu_collections::codepointtrie::TrieType::Small
+                }
+            },
         }
         .build();
 
@@ -608,9 +619,26 @@ impl crate::DatagenProvider {
             debug_assert_eq!(property_trie.get32(0xe0020), CM);
         }
 
+        // rule status for word segmenter
+        if segmenter.segmenter_type == "word" {
+            for p in &segmenter.tables {
+                let rule_state = match &*p.name {
+                    "Numeric" => RuleStatusType::Number,
+                    "ALetter" => RuleStatusType::Letter,
+                    "Hebrew_Letter" => RuleStatusType::Letter,
+                    "ExtendNumLet" => RuleStatusType::Letter,
+                    "Katakana" => RuleStatusType::Letter,
+                    "SA" => RuleStatusType::Letter,
+                    _ => RuleStatusType::None,
+                };
+                rule_status_table.push(rule_state as u8);
+            }
+        }
+
         Ok(RuleBreakDataV1 {
             property_table: RuleBreakPropertyTable(property_trie),
             break_state_table: RuleBreakStateTable(ZeroVec::new_owned(break_state_table)),
+            rule_status_table: RuleStatusTable(ZeroVec::new_owned(rule_status_table)),
             property_count: property_length as u8,
             last_codepoint_property: (simple_properties_count - 1) as i8,
             sot_property: (property_length - 2) as u8,
@@ -622,12 +650,18 @@ impl crate::DatagenProvider {
 
 impl DataProvider<LineBreakDataV1Marker> for crate::DatagenProvider {
     fn load(&self, _req: DataRequest) -> Result<DataResponse<LineBreakDataV1Marker>, DataError> {
-        let break_data = self.generate_rule_break_data(LineBreakDataV1Marker::KEY)?;
-
-        Ok(DataResponse {
+        #[cfg(not(any(feature = "use_wasm", feature = "use_icu4c")))]
+        return Err(DataError::custom(
+            "icu_datagen must be built with use_icu4c or use_wasm to build segmenter/line@1",
+        )
+        .with_req(LineBreakDataV1Marker::KEY, _req));
+        #[cfg(any(feature = "use_wasm", feature = "use_icu4c"))]
+        return Ok(DataResponse {
             metadata: DataResponseMetadata::default(),
-            payload: Some(DataPayload::from_owned(break_data)),
-        })
+            payload: Some(DataPayload::from_owned(
+                self.generate_rule_break_data(LineBreakDataV1Marker::KEY)?,
+            )),
+        });
     }
 }
 
@@ -636,23 +670,35 @@ impl DataProvider<GraphemeClusterBreakDataV1Marker> for crate::DatagenProvider {
         &self,
         _req: DataRequest,
     ) -> Result<DataResponse<GraphemeClusterBreakDataV1Marker>, DataError> {
-        let break_data = self.generate_rule_break_data(GraphemeClusterBreakDataV1Marker::KEY)?;
-
-        Ok(DataResponse {
+        #[cfg(not(any(feature = "use_wasm", feature = "use_icu4c")))]
+        return Err(DataError::custom(
+            "icu_datagen must be built with use_icu4c or use_wasm to build segmenter/grapheme@1",
+        )
+        .with_req(GraphemeClusterBreakDataV1Marker::KEY, _req));
+        #[cfg(any(feature = "use_wasm", feature = "use_icu4c"))]
+        return Ok(DataResponse {
             metadata: DataResponseMetadata::default(),
-            payload: Some(DataPayload::from_owned(break_data)),
-        })
+            payload: Some(DataPayload::from_owned(
+                self.generate_rule_break_data(GraphemeClusterBreakDataV1Marker::KEY)?,
+            )),
+        });
     }
 }
 
 impl DataProvider<WordBreakDataV1Marker> for crate::DatagenProvider {
     fn load(&self, _req: DataRequest) -> Result<DataResponse<WordBreakDataV1Marker>, DataError> {
-        let break_data = self.generate_rule_break_data(WordBreakDataV1Marker::KEY)?;
-
-        Ok(DataResponse {
+        #[cfg(not(any(feature = "use_wasm", feature = "use_icu4c")))]
+        return Err(DataError::custom(
+            "icu_datagen must be built with use_icu4c or use_wasm to build segmenter/word@1",
+        )
+        .with_req(WordBreakDataV1Marker::KEY, _req));
+        #[cfg(any(feature = "use_wasm", feature = "use_icu4c"))]
+        return Ok(DataResponse {
             metadata: DataResponseMetadata::default(),
-            payload: Some(DataPayload::from_owned(break_data)),
-        })
+            payload: Some(DataPayload::from_owned(
+                self.generate_rule_break_data(WordBreakDataV1Marker::KEY)?,
+            )),
+        });
     }
 }
 
@@ -661,12 +707,18 @@ impl DataProvider<SentenceBreakDataV1Marker> for crate::DatagenProvider {
         &self,
         _req: DataRequest,
     ) -> Result<DataResponse<SentenceBreakDataV1Marker>, DataError> {
-        let break_data = self.generate_rule_break_data(SentenceBreakDataV1Marker::KEY)?;
-
-        Ok(DataResponse {
+        #[cfg(not(any(feature = "use_wasm", feature = "use_icu4c")))]
+        return Err(DataError::custom(
+            "icu_datagen must be built with use_icu4c or use_wasm to build segmenter/sentence@1",
+        )
+        .with_req(SentenceBreakDataV1Marker::KEY, _req));
+        #[cfg(any(feature = "use_wasm", feature = "use_icu4c"))]
+        return Ok(DataResponse {
             metadata: DataResponseMetadata::default(),
-            payload: Some(DataPayload::from_owned(break_data)),
-        })
+            payload: Some(DataPayload::from_owned(
+                self.generate_rule_break_data(SentenceBreakDataV1Marker::KEY)?,
+            )),
+        });
     }
 }
 
@@ -717,11 +769,11 @@ impl crate::DatagenProvider {
     }
 }
 
-impl DataProvider<UCharDictionaryBreakDataV1Marker> for crate::DatagenProvider {
-    fn load(
+impl crate::DatagenProvider {
+    fn load_dictionary_data(
         &self,
         req: DataRequest,
-    ) -> Result<DataResponse<UCharDictionaryBreakDataV1Marker>, DataError> {
+    ) -> Result<UCharDictionaryBreakDataV1<'static>, DataError> {
         let toml_data = self
             .source
             .segmenter()?
@@ -729,9 +781,18 @@ impl DataProvider<UCharDictionaryBreakDataV1Marker> for crate::DatagenProvider {
                 Self::get_toml_filename(req.locale)
                     .ok_or_else(|| DataErrorKind::MissingLocale.into_error())?,
             )?;
-        let data = UCharDictionaryBreakDataV1 {
+        Ok(UCharDictionaryBreakDataV1 {
             trie_data: ZeroVec::alloc_from_slice(&toml_data.trie_data),
-        };
+        })
+    }
+}
+
+impl DataProvider<DictionaryForWordOnlyAutoV1Marker> for crate::DatagenProvider {
+    fn load(
+        &self,
+        req: DataRequest,
+    ) -> Result<DataResponse<DictionaryForWordOnlyAutoV1Marker>, DataError> {
+        let data = self.load_dictionary_data(req)?;
         Ok(DataResponse {
             metadata: DataResponseMetadata::default(),
             payload: Some(DataPayload::from_owned(data)),
@@ -739,14 +800,32 @@ impl DataProvider<UCharDictionaryBreakDataV1Marker> for crate::DatagenProvider {
     }
 }
 
-impl IterableDataProvider<UCharDictionaryBreakDataV1Marker> for crate::DatagenProvider {
+impl IterableDataProvider<DictionaryForWordOnlyAutoV1Marker> for crate::DatagenProvider {
+    fn supported_locales(&self) -> Result<Vec<DataLocale>, DataError> {
+        Ok(vec![locale!("ja").into()])
+    }
+}
+
+impl DataProvider<DictionaryForWordLineExtendedV1Marker> for crate::DatagenProvider {
+    fn load(
+        &self,
+        req: DataRequest,
+    ) -> Result<DataResponse<DictionaryForWordLineExtendedV1Marker>, DataError> {
+        let data = self.load_dictionary_data(req)?;
+        Ok(DataResponse {
+            metadata: DataResponseMetadata::default(),
+            payload: Some(DataPayload::from_owned(data)),
+        })
+    }
+}
+
+impl IterableDataProvider<DictionaryForWordLineExtendedV1Marker> for crate::DatagenProvider {
     fn supported_locales(&self) -> Result<Vec<DataLocale>, DataError> {
         Ok(vec![
             locale!("th").into(),
             locale!("km").into(),
             locale!("lo").into(),
             locale!("my").into(),
-            locale!("ja").into(),
         ])
     }
 }

@@ -11,6 +11,7 @@ use crate::prelude::*;
 /// The data is expected to be deserialized before it can be used; see
 /// [`DataPayload::into_deserialized`].
 #[allow(clippy::exhaustive_structs)] // marker type
+#[derive(Debug)]
 pub struct BufferMarker;
 
 impl DataMarker for BufferMarker {
@@ -110,7 +111,7 @@ pub enum BufferFormat {
     Json,
     /// Serialize using Bincode version 1.
     Bincode1,
-    /// Serialize using Postcard version 0.7.
+    /// Serialize using Postcard version 1.
     Postcard1,
 }
 

@@ -91,20 +91,20 @@ fn test_sizes() {
     assert_eq!(core::mem::size_of::<subtags::Script>(), 4);
     assert_eq!(core::mem::size_of::<subtags::Region>(), 3);
     assert_eq!(core::mem::size_of::<subtags::Variant>(), 8);
-    assert_eq!(core::mem::size_of::<subtags::Variants>(), 32);
-    assert_eq!(core::mem::size_of::<LanguageIdentifier>(), 48);
+    assert_eq!(core::mem::size_of::<subtags::Variants>(), 16);
+    assert_eq!(core::mem::size_of::<LanguageIdentifier>(), 32);
 
-    assert_eq!(core::mem::size_of::<extensions::transform::Transform>(), 72);
-    assert_eq!(core::mem::size_of::<Option<LanguageIdentifier>>(), 48);
+    assert_eq!(core::mem::size_of::<extensions::transform::Transform>(), 56);
+    assert_eq!(core::mem::size_of::<Option<LanguageIdentifier>>(), 32);
     assert_eq!(core::mem::size_of::<extensions::transform::Fields>(), 24);
 
-    assert_eq!(core::mem::size_of::<extensions::unicode::Attributes>(), 24);
-    assert_eq!(core::mem::size_of::<extensions::unicode::Keywords>(), 40);
+    assert_eq!(core::mem::size_of::<extensions::unicode::Attributes>(), 16);
+    assert_eq!(core::mem::size_of::<extensions::unicode::Keywords>(), 24);
     assert_eq!(core::mem::size_of::<Vec<extensions::other::Other>>(), 24);
-    assert_eq!(core::mem::size_of::<extensions::private::Private>(), 24);
-    assert_eq!(core::mem::size_of::<extensions::Extensions>(), 184);
+    assert_eq!(core::mem::size_of::<extensions::private::Private>(), 16);
+    assert_eq!(core::mem::size_of::<extensions::Extensions>(), 136);
 
-    assert_eq!(core::mem::size_of::<Locale>(), 232);
+    assert_eq!(core::mem::size_of::<Locale>(), 168);
 }
 
 impl Locale {

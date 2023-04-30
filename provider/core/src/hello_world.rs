@@ -9,12 +9,12 @@
 #[cfg(feature = "datagen")]
 use crate::datagen::IterableDataProvider;
 use crate::prelude::*;
-use crate::yoke::{self, *};
-use crate::zerofrom::{self, *};
 use alloc::borrow::Cow;
 use alloc::string::String;
 use core::fmt::Debug;
 use writeable::Writeable;
+use yoke::*;
+use zerofrom::*;
 
 /// A struct containing "Hello World" in the requested language.
 #[derive(Debug, PartialEq, Clone, Yokeable, ZeroFrom)]
@@ -42,6 +42,7 @@ impl Default for HelloWorldV1<'_> {
 /// Marker type for [`HelloWorldV1`].
 #[cfg_attr(feature = "datagen", derive(Default, databake::Bake))]
 #[cfg_attr(feature = "datagen", databake(path = icu_provider::hello_world))]
+#[derive(Debug)]
 pub struct HelloWorldV1Marker;
 
 impl DataMarker for HelloWorldV1Marker {
@@ -157,6 +158,7 @@ impl_dynamic_data_provider!(HelloWorldProvider, [HelloWorldV1Marker,], AnyMarker
 ///     .expect("Data should be present");
 ///
 /// assert_eq!(german_hello_world.get(), br#"{"message":"Hallo Welt"}"#);
+#[derive(Debug)]
 pub struct HelloWorldJsonProvider;
 
 #[cfg(feature = "deserialize_json")]
@@ -218,6 +220,7 @@ make_exportable_provider!(HelloWorldProvider, [HelloWorldV1Marker,]);
 ///
 /// assert_writeable_eq!(fmt.format(), "Saluton, Mondo");
 /// ```
+#[derive(Debug)]
 pub struct HelloWorldFormatter {
     data: DataPayload<HelloWorldV1Marker>,
 }
@@ -225,6 +228,7 @@ pub struct HelloWorldFormatter {
 /// A formatted hello world message. Implements [`Writeable`].
 ///
 /// For an example, see [`HelloWorldFormatter`].
+#[derive(Debug)]
 pub struct FormattedHelloWorld<'l> {
     data: &'l HelloWorldV1<'l>,
 }

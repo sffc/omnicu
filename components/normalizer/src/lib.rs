@@ -13,7 +13,7 @@
         clippy::panic,
         clippy::exhaustive_structs,
         clippy::exhaustive_enums,
-        // TODO(#2266): enable missing_debug_implementations,
+        missing_debug_implementations,
     )
 )]
 #![warn(missing_docs)]
@@ -73,6 +73,9 @@ pub mod provider;
 
 pub use crate::error::NormalizerError;
 
+#[doc(no_inline)]
+pub use NormalizerError as Error;
+
 use crate::provider::CanonicalDecompositionDataV1Marker;
 use crate::provider::CompatibilityDecompositionSupplementV1Marker;
 use crate::provider::DecompositionDataV1;
@@ -88,7 +91,6 @@ use icu_collections::char16trie::TrieResult;
 use icu_collections::codepointtrie::CodePointTrie;
 use icu_properties::CanonicalCombiningClass;
 use icu_provider::prelude::*;
-use icu_provider::zerofrom::ZeroFrom;
 use provider::CanonicalCompositionsV1Marker;
 use provider::CanonicalDecompositionTablesV1Marker;
 use provider::CompatibilityDecompositionTablesV1Marker;
@@ -98,9 +100,11 @@ use smallvec::SmallVec;
 use utf16_iter::Utf16CharsEx;
 use utf8_iter::Utf8CharsEx;
 use write16::Write16;
+use zerofrom::ZeroFrom;
 use zerovec::ule::AsULE;
 use zerovec::ZeroSlice;
 
+#[derive(Debug)]
 enum SupplementPayloadHolder {
     Compatibility(DataPayload<CompatibilityDecompositionSupplementV1Marker>),
     #[cfg(feature = "experimental")]
@@ -498,6 +502,7 @@ fn sort_slice_by_ccc(slice: &mut [CharacterAndClass], trie: &CodePointTrie<u32>)
 
 /// An iterator adaptor that turns an `Iterator` over `char` into
 /// a lazily-decomposed `char` sequence.
+#[derive(Debug)]
 pub struct Decomposition<'data, I>
 where
     I: Iterator<Item = char>,
@@ -957,6 +962,7 @@ where
 
 /// An iterator adaptor that turns an `Iterator` over `char` into
 /// a lazily-decomposed and then canonically composed `char` sequence.
+#[derive(Debug)]
 pub struct Composition<'data, I>
 where
     I: Iterator<Item = char>,
@@ -1509,6 +1515,7 @@ macro_rules! normalizer_methods {
 }
 
 /// A normalizer for performing decomposing normalization.
+#[derive(Debug)]
 pub struct DecomposingNormalizer {
     decompositions: DataPayload<CanonicalDecompositionDataV1Marker>,
     supplementary_decompositions: Option<SupplementPayloadHolder>,
@@ -1985,6 +1992,7 @@ impl DecomposingNormalizer {
 }
 
 /// A normalizer for performing composing normalization.
+#[derive(Debug)]
 pub struct ComposingNormalizer {
     decomposing_normalizer: DecomposingNormalizer,
     canonical_compositions: DataPayload<CanonicalCompositionsV1Marker>,

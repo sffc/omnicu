@@ -10,7 +10,7 @@ use icu_decimal::{
     FixedDecimalFormatter,
 };
 use icu_plurals::PluralRules;
-use icu_provider::{DataLocale, DataPayload, DataProvider, DataRequest};
+use icu_provider::prelude::*;
 use zerovec::maps::ZeroMap2dCursor;
 
 use crate::{
@@ -92,6 +92,7 @@ impl From<GroupingStrategy> for CompactDecimalFormatterOptions {
 /// /// The output does not always contain digits:
 /// assert_writeable_eq!(long_french.format_i64(1000), "mille");
 /// ```
+#[derive(Debug)]
 pub struct CompactDecimalFormatter {
     pub(crate) plural_rules: PluralRules,
     pub(crate) fixed_decimal_format: FixedDecimalFormatter,
