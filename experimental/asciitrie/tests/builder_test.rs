@@ -1746,7 +1746,9 @@ fn test_non_ascii() {
         ("bxefh".as_bytes(), 6),
         ("bxei".as_bytes(), 7),
         ("bxeikl".as_bytes(), 8),
-        ("bxeiklΚαλημέρα".as_bytes(), 9),
+        ("bxeiklmΚαλημέρααα".as_bytes(), 9),
+        ("bxeiklmαnλo".as_bytes(), 10),
+        ("bxeiklmη".as_bytes(), 11),
     ]
     .into_iter()
     .collect();
@@ -1789,10 +1791,17 @@ fn test_non_ascii() {
         b'k',       //
         b'l',       //
         0b10001000, // value 8
-        0b10110000, // span of length 16 (lead)
-        0b00000000, // span of length 16 (trail)
-        utf8_byte!('Κ', 0),
+        b'm',       //
+        0b10100001, // span of length 1
+        utf8_byte!('Κ', 0), // NOTE: all three letters have the same lead byte
+        0b11001100, // branch of 3
         utf8_byte!('Κ', 1),
+        utf8_byte!('α', 1),
+        utf8_byte!('η', 1),
+        21,
+        27,
+        0b10110000, // span of length 18 (lead)
+        0b00000010, // span of length 18 (trail)
         utf8_byte!('α', 0),
         utf8_byte!('α', 1),
         utf8_byte!('λ', 0),
@@ -1807,10 +1816,21 @@ fn test_non_ascii() {
         utf8_byte!('ρ', 1),
         utf8_byte!('α', 0),
         utf8_byte!('α', 1),
+        utf8_byte!('α', 0),
+        utf8_byte!('α', 1),
+        utf8_byte!('α', 0),
+        utf8_byte!('α', 1),
         0b10001001, // value 9
+        b'n',
+        0b10100010, // span of length 2
+        utf8_byte!('λ', 0),
+        utf8_byte!('λ', 1),
+        b'o',
+        0b10001010, // value 10
+        0b10001011, // value 11
     ];
     let trie6 = asciitrie::make6_byte_litemap(&litemap);
-    check_bytes_eq(55, &trie6, expected_bytes6);
+    check_bytes_eq(73, &trie6, expected_bytes6);
     check_ascii_trie6_bytes(&litemap, &trie6);
 }
 
