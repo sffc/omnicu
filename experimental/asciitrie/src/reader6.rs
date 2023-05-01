@@ -103,9 +103,9 @@ impl core::fmt::Debug for ByteType {
 #[inline]
 fn byte_type(b: u8) -> ByteType {
     match b & 0b11100000 {
+        0b10000000 => ByteType::Value,
+        0b11000000 => ByteType::Match,
         0b10100000 => ByteType::Span,
-        0b11000000 => ByteType::Value,
-        0b11100000 => ByteType::Match,
         _ => ByteType::Ascii,
     }
 }

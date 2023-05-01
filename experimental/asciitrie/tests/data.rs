@@ -22,6 +22,8 @@ const fn single_byte_intermediate_value(x: u8) -> u8 {
     x | 0b10000000
 }
 
+use single_byte_intermediate_value as single_byte_short_value;
+
 const fn single_byte_final_value(x: u8) -> u8 {
     debug_assert!(x <= 0b00001111);
     x | 0b10100000
@@ -34,14 +36,12 @@ const fn single_byte_branch_equal(x: u8) -> u8 {
     x | 0b11000000
 }
 
-use single_byte_branch_equal as single_byte_short_value;
+use single_byte_branch_equal as single_byte_short_match;
 
 const fn single_byte_branch_greater(x: u8) -> u8 {
     debug_assert!(x <= 0b00001111);
     x | 0b11100000
 }
-
-use single_byte_branch_greater as single_byte_short_match;
 
 const fn single_byte_intermediate_branch(x: u8) -> u8 {
     debug_assert!(x <= 0b00001111);

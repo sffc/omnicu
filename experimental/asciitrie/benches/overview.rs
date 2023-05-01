@@ -21,6 +21,7 @@ fn get_basic_bench(c: &mut Criterion) {
     let trie3 = testdata::basic::TRIE3;
     let trie4 = testdata::basic::TRIE4;
     let trie5 = testdata::basic::TRIE5;
+    let trie6 = testdata::basic::TRIE6;
     let data = testdata::basic::DATA;
 
     g.bench_function("AsciiTrie", |b| {
@@ -64,6 +65,15 @@ fn get_basic_bench(c: &mut Criterion) {
         b.iter(|| {
             for (key, expected) in black_box(data) {
                 let actual = asciitrie::reader5::get(black_box(&trie5), key.as_bytes());
+                assert_eq!(Some(*expected), actual);
+            }
+        });
+    });
+
+    g.bench_function("AsciiTrie6", |b| {
+        b.iter(|| {
+            for (key, expected) in black_box(data) {
+                let actual = asciitrie::reader6::get(black_box(&trie6), key.as_bytes());
                 assert_eq!(Some(*expected), actual);
             }
         });
@@ -198,6 +208,16 @@ fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(
         b.iter(|| {
             for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = asciitrie::reader5::get(black_box(&trie5), key.as_bytes());
+                assert_eq!(Some(i), actual);
+            }
+        });
+    });
+
+    g.bench_function("AsciiTrie6", |b| {
+        let trie6 = asciitrie::make6_litemap(&litemap);
+        b.iter(|| {
+            for (i, key) in black_box(strings).iter().enumerate() {
+                let actual = asciitrie::reader6::get(black_box(&trie6), key.as_bytes());
                 assert_eq!(Some(i), actual);
             }
         });
