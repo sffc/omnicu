@@ -36,8 +36,9 @@ impl ToOwned for AsciiTrie<[u8]> {
     /// assert_eq!(trie.get(b"abc"), Some(5));
     /// ```
     fn to_owned(&self) -> Self::Owned {
+        let bytes: &[u8] = self.0.as_ref();
         AsciiTrie {
-            0: Vec::from(self.0.as_ref()).into_boxed_slice(),
+            0: Vec::from(bytes).into_boxed_slice(),
         }
     }
 }

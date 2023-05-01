@@ -144,8 +144,9 @@ where
     }
     #[cfg(all(feature = "alloc", test))]
     pub fn check(&self) -> Result<(), (&'static str, u8)> {
+        use alloc::vec;
         let len = self.len();
-        let mut seen = alloc::vec::vec![false; len];
+        let mut seen = vec![false; len];
         for b in 0..=255u8 {
             let get_result = self.get(b);
             if self.keys().contains(&b) {
@@ -167,6 +168,7 @@ where
 #[cfg(all(test, feature = "alloc"))]
 mod tests {
     use super::*;
+    use alloc::vec::Vec;
     extern crate std;
 
     fn random_alphanums(seed: u64, len: usize) -> Vec<u8> {
