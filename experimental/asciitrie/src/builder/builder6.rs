@@ -272,7 +272,8 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
                 (length, count)
             };
-            let mut branch_metas = lengths_stack.pop_many_or_panic(total_count);
+            let mut branch_metas;
+            (lengths_stack, branch_metas) = lengths_stack.pop_many_or_panic(total_count);
             let original_keys = branch_metas.map_to_ascii_bytes();
             let phf_vec =
                 PerfectByteHashMap::try_new(original_keys.as_const_slice().as_slice()).unwrap();
