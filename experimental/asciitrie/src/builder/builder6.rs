@@ -42,8 +42,15 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
 
     #[must_use]
     const fn prepend_ascii(self, ascii: u8) -> (Self, usize) {
-        let data = self.data.atbs_push_front(ascii);
-        (Self { data }, 1)
+        if ascii <= 127 {
+            let data = self.data.atbs_push_front(ascii);
+            (Self { data }, 1)
+        } else {
+            // TODO: Allow for spans of length greater than 1
+            let data = self.data.atbs_push_front(ascii);
+            let data = data.atbs_push_front(0b10100001);
+            (Self { data }, 2)
+        }
     }
 
     #[must_use]

@@ -113,6 +113,16 @@ fn check_ascii_trie6(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
     //     .eq(trie.iter()));
 }
 
+fn check_ascii_trie6_bytes(items: &LiteMap<&[u8], usize>, trie: &[u8]) {
+    for (k, v) in items.iter() {
+        assert_eq!(asciitrie::reader6::get(trie, k), Some(*v));
+    }
+    // assert!(items
+    //     .iter()
+    //     .map(|(s, v)| (s.to_boxed(), *v))
+    //     .eq(trie.iter()));
+}
+
 fn check_bytes_eq(len: usize, a: impl AsRef<[u8]>, b: &[u8]) {
     assert_eq!(len, a.as_ref().len());
     assert_eq!(a.as_ref(), b);
@@ -1712,6 +1722,110 @@ fn test_everything() {
         .collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 138);
+}
+
+macro_rules! utf8_byte {
+    ($ch:expr, $i:literal) => {
+        {
+            let mut utf8_encoder_buf = [0u8; 4];
+            $ch.encode_utf8(&mut utf8_encoder_buf);
+            utf8_encoder_buf[$i]
+        }
+    };
+}
+
+#[test]
+fn test_non_ascii() {
+    let litemap: LiteMap<&[u8], usize> = [
+        ("".as_bytes(), 0),
+        ("axb".as_bytes(), 100),
+        ("ayc".as_bytes(), 2),
+        ("azd".as_bytes(), 3),
+        ("bxe".as_bytes(), 4),
+        ("bxefg".as_bytes(), 500),
+        ("bxefh".as_bytes(), 6),
+        ("bxei".as_bytes(), 7),
+        ("bxeikl".as_bytes(), 8),
+        ("bxeiklΚαλημέρα".as_bytes(), 9),
+    ]
+    .into_iter()
+    .collect();
+
+    #[rustfmt::skip]
+    let expected_bytes6 = &[
+        0b10000000, // value 0
+        0b11001000, // branch of 2
+        b'a',       //
+        b'b',       //
+        13,         //
+        0b11001100, // start of 'a' subtree: branch of 3
+        b'x',       //
+        b'y',       //
+        b'z',       //
+        3,          //
+        5,          //
+        b'b',       //
+        0b10010000, // value 100 (lead)
+        0x54,       // value 100 (trail)
+        b'c',       //
+        0b10000010, // value 2
+        b'd',       //
+        0b10000011, // value 3
+        b'x',       // start of 'b' subtree
+        b'e',       //
+        0b10000100, // value 4
+        0b11001000, // branch of 2
+        b'f',       //
+        b'i',       //
+        7,          //
+        0b11001000, // branch of 2
+        b'g',       //
+        b'h',       //
+        2,          //
+        0b10010011, // value 500 (lead)
+        0x64,       // value 500 (trail)
+        0b10000110, // value 6
+        0b10000111, // value 7
+        b'k',       //
+        b'l',       //
+        0b10001000, // value 8
+        0b10100001, // span of length 1
+        utf8_byte!('Κ', 0),
+        0b10100001, // span of length 1
+        utf8_byte!('Κ', 1),
+        0b10100001, // span of length 1
+        utf8_byte!('α', 0),
+        0b10100001, // span of length 1
+        utf8_byte!('α', 1),
+        0b10100001, // span of length 1
+        utf8_byte!('λ', 0),
+        0b10100001, // span of length 1
+        utf8_byte!('λ', 1),
+        0b10100001, // span of length 1
+        utf8_byte!('η', 0),
+        0b10100001, // span of length 1
+        utf8_byte!('η', 1),
+        0b10100001, // span of length 1
+        utf8_byte!('μ', 0),
+        0b10100001, // span of length 1
+        utf8_byte!('μ', 1),
+        0b10100001, // span of length 1
+        utf8_byte!('έ', 0),
+        0b10100001, // span of length 1
+        utf8_byte!('έ', 1),
+        0b10100001, // span of length 1
+        utf8_byte!('ρ', 0),
+        0b10100001, // span of length 1
+        utf8_byte!('ρ', 1),
+        0b10100001, // span of length 1
+        utf8_byte!('α', 0),
+        0b10100001, // span of length 1
+        utf8_byte!('α', 1),
+        0b10001001, // value 9
+    ];
+    let trie6 = asciitrie::make6_byte_litemap(&litemap);
+    check_bytes_eq(69, &trie6, expected_bytes6);
+    check_ascii_trie6_bytes(&litemap, &trie6);
 }
 
 #[test]
