@@ -36,8 +36,17 @@ impl ByteStr {
         Self::from_boxed_byte_slice(bytes)
     }
 
-    pub const fn from_ascii_str_slice_with_value<'a, 'l>(input: &'l [(&'a crate::AsciiStr, usize)]) -> &'l [(&'a ByteStr, usize)] {
+    pub const fn from_ascii_str_slice_with_value<'a, 'l>(
+        input: &'l [(&'a crate::AsciiStr, usize)],
+    ) -> &'l [(&'a ByteStr, usize)] {
         // Safety: AsciiStr and ByteStr have the same layout, and ByteStr is less restrictive
+        unsafe { core::mem::transmute(input) }
+    }
+
+    pub const fn from_byte_slice_with_value<'a, 'l>(
+        input: &'l [(&'a [u8], usize)],
+    ) -> &'l [(&'a ByteStr, usize)] {
+        // Safety: [u8] and ByteStr have the same layout and invariants
         unsafe { core::mem::transmute(input) }
     }
 

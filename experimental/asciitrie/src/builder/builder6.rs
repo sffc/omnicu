@@ -7,9 +7,9 @@ use super::const_util::ConstSlice;
 use super::store::BranchMeta;
 use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstLengthsStack1b;
+use crate::builder::bytestr::ByteStr;
 use crate::byte_phf::PerfectByteHashMap;
 use crate::varint;
-use crate::builder::bytestr::ByteStr;
 
 extern crate std;
 
@@ -258,16 +258,8 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
                     while l > 0 {
                         let a = *branch_metas.as_const_slice().get_or_panic(l);
                         let b = *branch_metas.as_const_slice().get_or_panic(l - 1);
-                        let a_idx = phf_vec
-                            .keys()
-                            .iter()
-                            .position(|x| x == &a.ascii)
-                            .unwrap();
-                        let b_idx = phf_vec
-                            .keys()
-                            .iter()
-                            .position(|x| x == &b.ascii)
-                            .unwrap();
+                        let a_idx = phf_vec.keys().iter().position(|x| x == &a.ascii).unwrap();
+                        let b_idx = phf_vec.keys().iter().position(|x| x == &b.ascii).unwrap();
                         if a_idx > b_idx {
                             // std::println!("{a:?} <=> {b:?} ({phf_vec:?})");
                             self = self.swap_ranges(

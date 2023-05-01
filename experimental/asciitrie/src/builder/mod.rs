@@ -3,7 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 mod asciistr;
-mod bytestr;
 mod builder;
 mod builder1b;
 mod builder2;
@@ -11,6 +10,7 @@ mod builder3;
 mod builder4;
 mod builder5;
 mod builder6;
+mod bytestr;
 pub(crate) mod const_util;
 #[cfg(feature = "litemap")]
 mod litemap;
@@ -21,7 +21,8 @@ use alloc::vec::Vec;
 #[cfg(feature = "litemap")]
 pub use self::litemap::{
     make1b_litemap, make1b_slice, make2_litemap, make2_slice, make3_litemap, make3_slice,
-    make4_litemap, make4_slice, make5_litemap, make5_slice, make6_litemap, make6_slice,
+    make4_litemap, make4_slice, make5_litemap, make5_slice, make6_byte_litemap, make6_byte_slice,
+    make6_litemap, make6_slice,
 };
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;

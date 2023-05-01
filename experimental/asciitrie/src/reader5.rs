@@ -54,7 +54,12 @@ fn get_branch(mut trie: &[u8], i: usize, n: usize, mut w: usize) -> Option<&[u8]
     loop {
         let indices;
         (indices, trie) = debug_split_at(trie, n - 1)?;
-        p = (p << 8) + if i == 0 { 0 } else { debug_get(indices, i - 1)? as usize };
+        p = (p << 8)
+            + if i == 0 {
+                0
+            } else {
+                debug_get(indices, i - 1)? as usize
+            };
         q = match indices.get(i) {
             Some(x) => (q << 8) + *x as usize,
             None => trie.len(),
