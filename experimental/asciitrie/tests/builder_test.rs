@@ -1789,42 +1789,28 @@ fn test_non_ascii() {
         b'k',       //
         b'l',       //
         0b10001000, // value 8
-        0b10100001, // span of length 1
+        0b10110000, // span of length 16 (lead)
+        0b00000000, // span of length 16 (trail)
         utf8_byte!('Κ', 0),
-        0b10100001, // span of length 1
         utf8_byte!('Κ', 1),
-        0b10100001, // span of length 1
         utf8_byte!('α', 0),
-        0b10100001, // span of length 1
         utf8_byte!('α', 1),
-        0b10100001, // span of length 1
         utf8_byte!('λ', 0),
-        0b10100001, // span of length 1
         utf8_byte!('λ', 1),
-        0b10100001, // span of length 1
         utf8_byte!('η', 0),
-        0b10100001, // span of length 1
         utf8_byte!('η', 1),
-        0b10100001, // span of length 1
         utf8_byte!('μ', 0),
-        0b10100001, // span of length 1
         utf8_byte!('μ', 1),
-        0b10100001, // span of length 1
         utf8_byte!('έ', 0),
-        0b10100001, // span of length 1
         utf8_byte!('έ', 1),
-        0b10100001, // span of length 1
         utf8_byte!('ρ', 0),
-        0b10100001, // span of length 1
         utf8_byte!('ρ', 1),
-        0b10100001, // span of length 1
         utf8_byte!('α', 0),
-        0b10100001, // span of length 1
         utf8_byte!('α', 1),
         0b10001001, // value 9
     ];
     let trie6 = asciitrie::make6_byte_litemap(&litemap);
-    check_bytes_eq(69, &trie6, expected_bytes6);
+    check_bytes_eq(55, &trie6, expected_bytes6);
     check_ascii_trie6_bytes(&litemap, &trie6);
 }
 

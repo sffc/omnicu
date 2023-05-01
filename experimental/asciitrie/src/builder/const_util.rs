@@ -175,6 +175,14 @@ impl<const N: usize, T: Copy> ConstArrayBuilder<N, T> {
         self.full_array[self.start] = value;
         self
     }
+    pub const fn split_first_or_panic(mut self) -> (T, Self) {
+        if self.start == self.limit {
+            panic!("Cannot split first out of an empty ConstArrayBuilder");
+        }
+        let byte = self.full_array[self.start];
+        self.start += 1;
+        (byte, self)
+    }
     pub fn swap_or_panic(mut self, i: usize, j: usize) -> Self {
         let temp = self.full_array[self.start + i];
         self.full_array[self.start + i] = self.full_array[self.start + j];

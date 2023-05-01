@@ -46,8 +46,30 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
             let data = self.data.atbs_push_front(ascii);
             (Self { data }, 1)
         } else {
-            // TODO: Allow for spans of length greater than 1
-            let data = self.data.atbs_push_front(ascii);
+            let old_byte_len = self.data.atbs_len();
+            let data;
+            if old_byte_len != 0 {
+                let (old_front, data_) = self.data.atbs_split_first_or_panic();
+                if old_front & 0b11100000 == 0b10100000 {
+                    // Extend an existing span
+                    data = data_;
+                    let data = data.take();
+                    let (old_span_size, data) = varint::read_varint2_from_store_or_panic(old_front, data);
+                    let data = ConstAsciiTrieBuilderStore::from_const_array_builder(data);
+                    let data = data.atbs_push_front(ascii);
+                    let varint_array = varint::write_varint2(old_span_size + 1);
+                    let data = data.atbs_extend_front(varint_array.as_const_slice());
+                    let data = data.atbs_bitor_assign(0, 0b10100000);
+                    let new_byte_len = data.atbs_len();
+                    return (Self { data }, new_byte_len - old_byte_len);
+                } else {
+                    data = data_.atbs_push_front(old_front);
+                }
+            } else {
+                data = self.data;
+            }
+            // Create a new span
+            let data = data.atbs_push_front(ascii);
             let data = data.atbs_push_front(0b10100001);
             (Self { data }, 2)
         }
