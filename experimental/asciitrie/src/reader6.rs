@@ -3,6 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::byte_phf::PerfectByteHashMap;
+use crate::varint::read_varint;
 use crate::varint::read_varint2;
 use core::ops::Range;
 
@@ -109,8 +110,9 @@ impl core::fmt::Debug for ByteType {
 fn byte_type(b: u8) -> ByteType {
     match b & 0b11100000 {
         0b10000000 => ByteType::Value,
-        0b11000000 => ByteType::Match,
         0b10100000 => ByteType::Span,
+        0b11000000 => ByteType::Match,
+        0b11100000 => ByteType::Match,
         _ => ByteType::Ascii,
     }
 }
@@ -122,7 +124,8 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
         let byte_type = byte_type(*b);
         (x, trie) = match byte_type {
             ByteType::Ascii => (0, trie),
-            _ => read_varint2(*b, trie)?,
+            ByteType::Span | ByteType::Value => read_varint2(*b, trie)?,
+            ByteType::Match => read_varint(*b, trie)?,
         };
         if let Some((c, temp)) = ascii.split_first() {
             if matches!(byte_type, ByteType::Ascii) {

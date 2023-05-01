@@ -834,8 +834,8 @@ fn test_varint_branch() {
 
     #[rustfmt::skip]
     let expected_bytes6 = &[
-        0b11010001, // branch varint lead
-        0x40,       // branch varint trail
+        0b11100001, // branch varint lead
+        0x30,       // branch varint trail
         // PHF metadata:
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 10, 12, 16, 4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 7,
         // search array:
@@ -1859,7 +1859,7 @@ fn test_short_subtags_10pct() {
     check_ascii_trie5(&litemap, &trie5);
 
     let trie6 = asciitrie::make6_litemap(&litemap);
-    assert_eq!(trie6.len(), 1114);
+    assert_eq!(trie6.len(), 1107);
     check_ascii_trie6(&litemap, &trie6);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -1912,7 +1912,7 @@ fn test_short_subtags() {
     check_ascii_trie5(&litemap, &trie5);
 
     let trie6 = asciitrie::make6_litemap(&litemap);
-    assert_eq!(trie6.len(), 9578);
+    assert_eq!(trie6.len(), 9450);
     check_ascii_trie6(&litemap, &trie6);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);

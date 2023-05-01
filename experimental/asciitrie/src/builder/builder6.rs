@@ -87,7 +87,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
     #[must_use]
     fn prepend_branch(self, value: usize) -> (Self, usize) {
         let mut data = self.data;
-        let varint_array = varint::write_varint2(value);
+        let varint_array = varint::write_varint(value);
         data = data.atbs_extend_front(varint_array.as_const_slice());
         data = data.atbs_bitor_assign(0, 0b11000000);
         (Self { data }, varint_array.len())
