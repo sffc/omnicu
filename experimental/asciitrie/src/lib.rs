@@ -26,6 +26,7 @@ mod ref_cast;
 mod serde;
 mod trie;
 mod varinta;
+mod varintb;
 mod varintx;
 #[cfg(feature = "zerovec")]
 mod zerovec;
