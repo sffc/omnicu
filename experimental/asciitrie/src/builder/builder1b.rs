@@ -198,7 +198,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
             // Branch
             if diff_j == 0 {
                 lengths_stack = lengths_stack.push(BranchMeta {
-                    ascii: key_ascii,
+                    ascii: key_ascii.get(),
                     length: current_len,
                     local_length: current_len,
                     count: 1,
@@ -206,7 +206,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
             } else {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
                 lengths_stack = lengths_stack.push(BranchMeta {
-                    ascii: key_ascii,
+                    ascii: key_ascii.get(),
                     length: length + current_len,
                     local_length: current_len,
                     count: count + 1,
@@ -251,7 +251,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
             while l < total_count {
                 let ascii;
                 (lengths_stack, BranchMeta { ascii, .. }) = lengths_stack.pop_or_panic();
-                self = self.bitor_assign_at(l, ascii.get());
+                self = self.bitor_assign_at(l, ascii);
                 l += 1;
             }
             let len;

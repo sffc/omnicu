@@ -7,10 +7,9 @@ use super::const_util::ConstSlice;
 use super::store::BranchMeta;
 use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstLengthsStack1b;
-use super::AsciiByte;
-use super::AsciiStr;
 use crate::byte_phf::PerfectByteHashMap;
 use crate::varint;
+use crate::builder::bytestr::ByteStr;
 
 extern crate std;
 
@@ -42,8 +41,8 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
     }
 
     #[must_use]
-    const fn prepend_ascii(self, ascii: AsciiByte) -> (Self, usize) {
-        let data = self.data.atbs_push_front(ascii.get());
+    const fn prepend_ascii(self, ascii: u8) -> (Self, usize) {
+        let data = self.data.atbs_push_front(ascii);
         (Self { data }, 1)
     }
 
@@ -101,15 +100,15 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
     }
 
     /// Panics if the items are not sorted
-    pub fn from_tuple_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Self {
+    pub fn from_tuple_slice<'a>(items: &[(&'a ByteStr, usize)]) -> Self {
         let items = ConstSlice::from_slice(items);
-        let mut prev: Option<&'a AsciiStr> = None;
+        let mut prev: Option<&'a ByteStr> = None;
         const_for_each!(items, (ascii_str, _), {
             match prev {
                 None => (),
                 Some(prev) => {
                     if !prev.is_less_then(ascii_str) {
-                        panic!("Strings in AsciiStr constructor are not sorted");
+                        panic!("Strings in ByteStr constructor are not sorted");
                     }
                 }
             };
@@ -119,7 +118,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
     }
 
     /// Assumes that the items are sorted
-    pub fn from_sorted_const_tuple_slice<'a>(items: ConstSlice<(&'a AsciiStr, usize)>) -> Self {
+    pub fn from_sorted_const_tuple_slice<'a>(items: ConstSlice<(&'a ByteStr, usize)>) -> Self {
         let mut result = Self::new();
         let total_size;
         (result, total_size) = result.create(items);
@@ -128,7 +127,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
     }
 
     #[must_use]
-    fn create<'a>(mut self, all_items: ConstSlice<(&'a AsciiStr, usize)>) -> (Self, usize) {
+    fn create<'a>(mut self, all_items: ConstSlice<(&'a ByteStr, usize)>) -> (Self, usize) {
         if all_items.is_empty() {
             return (Self::new(), 0);
         }
@@ -154,8 +153,8 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
             let mut new_j = j;
             let mut diff_i = 0;
             let mut diff_j = 0;
-            let mut ascii_i = item_i.0.ascii_at_or_panic(prefix_len);
-            let mut ascii_j = item_j.0.ascii_at_or_panic(prefix_len);
+            let mut ascii_i = item_i.0.byte_at_or_panic(prefix_len);
+            let mut ascii_j = item_j.0.byte_at_or_panic(prefix_len);
             assert_eq!(ascii_i, ascii_j);
             let key_ascii = ascii_i;
             loop {
@@ -176,7 +175,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
                     // A string of length prefix_len can't be preceded by another with that prefix
                     break;
                 }
-                let candidate = candidate.ascii_at_or_panic(prefix_len);
+                let candidate = candidate.byte_at_or_panic(prefix_len);
                 if candidate != ascii_i {
                     diff_i += 1;
                     ascii_i = candidate;
@@ -199,7 +198,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
                 if candidate.len() == prefix_len {
                     panic!("A shorter string should be earlier in the sequence");
                 }
-                let candidate = candidate.ascii_at_or_panic(prefix_len);
+                let candidate = candidate.byte_at_or_panic(prefix_len);
                 if candidate != ascii_j {
                     diff_j += 1;
                     ascii_j = candidate;
@@ -262,12 +261,12 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
                         let a_idx = phf_vec
                             .keys()
                             .iter()
-                            .position(|x| x == &a.ascii.get())
+                            .position(|x| x == &a.ascii)
                             .unwrap();
                         let b_idx = phf_vec
                             .keys()
                             .iter()
-                            .position(|x| x == &b.ascii.get())
+                            .position(|x| x == &b.ascii)
                             .unwrap();
                         if a_idx > b_idx {
                             // std::println!("{a:?} <=> {b:?} ({phf_vec:?})");

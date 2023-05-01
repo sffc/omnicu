@@ -217,7 +217,7 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
             // Branch
             if diff_j == 0 {
                 lengths_stack = lengths_stack.push(BranchMeta {
-                    ascii: key_ascii,
+                    ascii: key_ascii.get(),
                     length: current_len,
                     local_length: current_len,
                     count: 1,
@@ -225,7 +225,7 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
             } else {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
                 lengths_stack = lengths_stack.push(BranchMeta {
-                    ascii: key_ascii,
+                    ascii: key_ascii.get(),
                     length: length + current_len,
                     local_length: current_len,
                     count: count + 1,
@@ -262,12 +262,12 @@ impl<const N: usize> AsciiTrieBuilder5<N> {
                         let a_idx = phf_vec
                             .keys()
                             .iter()
-                            .position(|x| x == &a.ascii.get())
+                            .position(|x| x == &a.ascii)
                             .unwrap();
                         let b_idx = phf_vec
                             .keys()
                             .iter()
-                            .position(|x| x == &b.ascii.get())
+                            .position(|x| x == &b.ascii)
                             .unwrap();
                         if a_idx > b_idx {
                             // std::println!("{a:?} <=> {b:?} ({phf_vec:?})");

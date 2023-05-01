@@ -182,7 +182,7 @@ impl<const N: usize> ConstLengthsStack3<N> {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct BranchMeta {
-    pub ascii: AsciiByte,
+    pub ascii: u8,
     pub length: usize,
     pub local_length: usize,
     pub count: usize,
@@ -191,7 +191,7 @@ pub(crate) struct BranchMeta {
 impl BranchMeta {
     pub const fn const_default() -> Self {
         BranchMeta {
-            ascii: AsciiByte::nul(),
+            ascii: AsciiByte::nul().get(),
             length: 0,
             local_length: 0,
             count: 0,
@@ -279,7 +279,7 @@ impl<const N: usize> ConstArrayBuilder<N, BranchMeta> {
         let mut result = ConstArrayBuilder::new_empty([0; N], N);
         let self_as_slice = self.as_const_slice();
         const_for_each!(self_as_slice, value, {
-            result = result.const_push_front(value.ascii.get());
+            result = result.const_push_front(value.ascii);
         });
         result
     }

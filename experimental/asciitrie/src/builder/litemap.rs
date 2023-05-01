@@ -11,6 +11,7 @@ use crate::builder::builder6::AsciiTrieBuilder6;
 use crate::builder::AsciiTrieBuilder;
 use crate::AsciiStr;
 use crate::AsciiTrie;
+use crate::builder::bytestr::ByteStr;
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -188,13 +189,16 @@ pub fn make6_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>
 where
     S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
 {
-    AsciiTrieBuilder6::<15000>::from_sorted_const_tuple_slice(items.as_slice().into())
+    let ascii_str_slice = items.as_slice();
+    let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
+    AsciiTrieBuilder6::<15000>::from_sorted_const_tuple_slice(byte_str_slice.into())
         .as_bytes()
         .to_owned()
 }
 
 pub fn make6_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Vec<u8> {
-    AsciiTrieBuilder6::<15000>::from_tuple_slice(items.into())
+    let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(items);
+    AsciiTrieBuilder6::<15000>::from_tuple_slice(byte_str_slice.into())
         .as_bytes()
         .to_owned()
 }

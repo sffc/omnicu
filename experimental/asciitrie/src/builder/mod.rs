@@ -3,6 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 mod asciistr;
+mod bytestr;
 mod builder;
 mod builder1b;
 mod builder2;
