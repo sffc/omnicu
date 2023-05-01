@@ -509,9 +509,9 @@ dependencies = [
 
 [[package]]
 name = "colored"
-version = "1.9.3"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4ffc801dacf156c5854b9df4f425a626539c3a6ef7893cc0c5084a23f0b6c59"
+checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
 dependencies = [
  "atty",
  "lazy_static",
@@ -885,7 +885,7 @@ dependencies = [
 
 [[package]]
 name = "databake"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "databake-derive",
  "proc-macro2",
@@ -895,7 +895,7 @@ dependencies = [
 
 [[package]]
 name = "databake-derive"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "databake",
  "proc-macro2",
@@ -948,9 +948,9 @@ dependencies = [
 
 [[package]]
 name = "diplomat"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33e9eae368e4141b5f1c594afe819c85bad0aec8fd1f4cc9ac1888837a957491"
+checksum = "131a7c8474cb3648784b28b131021017bf0e8a0acb2e7fe4432ac5a72b81d734"
 dependencies = [
  "diplomat_core",
  "proc-macro2",
@@ -960,15 +960,15 @@ dependencies = [
 
 [[package]]
 name = "diplomat-runtime"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e401cc0e98682b1a24220a4f3185bb5ddd8ccb2cd861d09fe23455b401e3cce"
+checksum = "7be78da2d794f65e463740e6f1a6b1e7a3973d62f40fd02d05cc71adbee7ea5a"
 
 [[package]]
 name = "diplomat_core"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ba145991e24046639916a3199216e29493659398fc2f25673f48aee29b122b2"
+checksum = "b7c69d55d3abfc5b4f487e4410df7971626d999d84b25de6ad0ffd5c278f58a1"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -1684,7 +1684,7 @@ dependencies = [
 
 [[package]]
 name = "icu_capi"
-version = "1.2.0"
+version = "1.2.2"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
@@ -1821,7 +1821,7 @@ dependencies = [
 
 [[package]]
 name = "icu_datagen"
-version = "1.2.0"
+version = "1.2.5"
 dependencies = [
  "cached-path",
  "clap 4.0.32",
@@ -1863,7 +1863,6 @@ dependencies = [
  "quote",
  "rayon",
  "repodata",
- "rust-format",
  "serde",
  "serde-aux",
  "serde_json",
@@ -1878,7 +1877,7 @@ dependencies = [
 
 [[package]]
 name = "icu_datetime"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "bincode",
  "criterion 0.4.0",
@@ -1959,11 +1958,12 @@ dependencies = [
 
 [[package]]
 name = "icu_freertos"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "cortex-m",
  "freertos-rust",
  "icu_capi",
+ "rustc_version 0.4.0",
 ]
 
 [[package]]
@@ -2019,7 +2019,7 @@ dependencies = [
 
 [[package]]
 name = "icu_locid_transform"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "criterion 0.4.0",
  "databake",
@@ -2155,7 +2155,7 @@ dependencies = [
 
 [[package]]
 name = "icu_provider_fs"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "bincode",
  "criterion 0.4.0",
@@ -2202,7 +2202,7 @@ dependencies = [
 
 [[package]]
 name = "icu_segmenter"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "criterion 0.4.0",
  "databake",
@@ -2215,7 +2215,7 @@ dependencies = [
  "icu_provider_fs",
  "icu_testdata",
  "itertools",
- "num-traits",
+ "libm",
  "serde",
  "serde_json",
  "utf8_iter",
@@ -3551,15 +3551,15 @@ checksum = "f27f6278552951f1f2b8cf9da965d10969b2efdea95a6ec47987ab46edfe263a"
 
 [[package]]
 name = "simple_logger"
-version = "1.16.0"
+version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45b60258a35dc3cb8a16890b8fd6723349bfa458d7960e25e633f1b1c19d7b5e"
+checksum = "e78beb34673091ccf96a8816fce8bfd30d1292c7621ca2bcb5f2ba0fae4f558d"
 dependencies = [
  "atty",
  "colored",
  "log",
  "time 0.3.17",
- "winapi",
+ "windows-sys 0.42.0",
 ]
 
 [[package]]
