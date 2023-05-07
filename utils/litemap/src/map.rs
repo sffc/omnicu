@@ -556,6 +556,10 @@ where
     ///
     /// If `key` is already in the map, a reference to the existing value is returned.
     ///
+    /// Additionally, the index of the value in the map is returned. If it is not desirable
+    /// to hold on to the mutable reference's lifetime, the index can be used to access the
+    /// element via [`LiteMap::get_indexed()`].
+    ///
     /// The closure returns a `Result` to allow for a fallible insertion function. If the
     /// creation of `value` is infallible, you can use [`core::convert::Infallible`].
     ///
@@ -589,7 +593,7 @@ where
         &mut self,
         key: K,
         value: impl FnOnce(&K) -> Result<V, E>,
-    ) -> Result<&V, E> {
+    ) -> Result<(usize, &V), E> {
         let idx = match self.values.lm_binary_search_by(|k| k.cmp(&key)) {
             Ok(idx) => idx,
             Err(idx) => {
@@ -599,7 +603,7 @@ where
             }
         };
         #[allow(clippy::unwrap_used)] // item at idx found or inserted above
-        Ok(self.values.lm_get(idx).unwrap().1)
+        Ok((idx, self.values.lm_get(idx).unwrap().1))
     }
 
     /// Remove the value at `key`, returning it if it exists.

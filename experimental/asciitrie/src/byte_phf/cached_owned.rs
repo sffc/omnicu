@@ -18,8 +18,13 @@ impl PerfectByteHashMapCacheOwned {
     }
 
     pub fn try_get_or_insert(&mut self, keys: Vec<u8>) -> Result<&PerfectByteHashMap<[u8]>, Error> {
+        // TODO: Use the index returned by try_get_or_insert to speed up the second lookup
         self.data
             .try_get_or_insert(keys, |keys| PerfectByteHashMap::try_new(keys))
-            .map(|p| p.as_borrowed())
+            .map(|p| p.1.as_borrowed())
+    }
+
+    pub fn get(&self, keys: &[u8]) -> Option<&PerfectByteHashMap<[u8]>> {
+        self.data.get(keys).map(|p| p.as_borrowed())
     }
 }

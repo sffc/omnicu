@@ -8,7 +8,6 @@ use super::store::BranchMeta;
 use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstLengthsStack1b;
 use crate::builder::bytestr::ByteStr;
-use crate::byte_phf::PerfectByteHashMap;
 use crate::byte_phf::PerfectByteHashMapCacheOwned;
 use crate::varint;
 
@@ -277,9 +276,8 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
             let mut branch_metas;
             (lengths_stack, branch_metas) = lengths_stack.pop_many_or_panic(total_count);
             let original_keys = branch_metas.map_to_ascii_bytes();
-            let phf_vec =
-                PerfectByteHashMap::try_new(original_keys.as_const_slice().as_slice()).unwrap();
-            let opt_phf_vec = if total_count > 15 {
+            let phf_vec = self.phf_cache.try_get_or_insert(original_keys.as_const_slice().as_slice().to_vec()).unwrap();
+            if total_count > 15 {
                 // std::println!("{phf_vec:?}");
                 // Put everything in order via bubble sort
                 // Note: branch_metas is stored in reverse order (0 = last element)
@@ -294,11 +292,9 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
                         let b_idx = phf_vec.keys().iter().position(|x| x == &b.ascii).unwrap();
                         if a_idx > b_idx {
                             // std::println!("{a:?} <=> {b:?} ({phf_vec:?})");
-                            self.swap_ranges(
-                                start,
-                                start + a.local_length,
-                                start + a.local_length + b.local_length,
-                            );
+                            let mut data = core::mem::take(&mut self.data);
+                            data = data.atbs_swap_ranges(start, start + a.local_length, start + a.local_length + b.local_length);
+                            self.data = data;
                             branch_metas = branch_metas.swap_or_panic(l - 1, l);
                             start += b.local_length;
                             changes += 1;
@@ -348,12 +344,15 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
             }
             // Write out the lookup table
             let branch_len;
-            if let Some(phf_vec) = opt_phf_vec {
+            if total_count > 15 {
                 // TODO: Assert w <= 3
                 // TODO: Assert p < 15
-                self.prepend_slice(ConstSlice::from_slice(phf_vec.as_bytes()));
+                let phf_vec = self.phf_cache.get(original_keys.as_const_slice().as_slice()).unwrap().as_bytes().to_vec();
+                // TODO: Since prepend_slice borrows all of self, we annoyingly can't borrow from
+                // one field while modifying another.
+                self.prepend_slice(ConstSlice::from_slice(&phf_vec));
                 branch_len = self.prepend_branch((total_count << 2) + w);
-                current_len += phf_vec.as_bytes().len() + branch_len;
+                current_len += phf_vec.len() + branch_len;
             } else {
                 // TODO: Assert w <= 3
                 self.prepend_slice(original_keys.as_const_slice());
