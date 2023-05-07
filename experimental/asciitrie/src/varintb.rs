@@ -45,8 +45,10 @@ pub const fn read_varintb_5bits(start: u8, remainder: &[u8]) -> Option<(usize, &
     Some((value, remainder))
 }
 
-
-pub(crate) const fn read_varintb_5bits_from_store_or_panic<const N: usize>(start: u8, remainder: ConstArrayBuilder<N, u8>) -> (usize, ConstArrayBuilder<N, u8>) {
+pub(crate) const fn read_varintb_5bits_from_store_or_panic<const N: usize>(
+    start: u8,
+    remainder: ConstArrayBuilder<N, u8>,
+) -> (usize, ConstArrayBuilder<N, u8>) {
     const X: u8 = X_5BIT;
     let initial = start & X;
     let mut remainder = remainder;
@@ -204,7 +206,7 @@ mod tests {
             assert_eq!(recovered, Some((cas.value, cas.remainder)), "{:?}", cas);
             let write_bytes = write_varintb_5bits(cas.value);
             assert_eq!(
-                &cas.bytes[0..cas.bytes.len()-cas.remainder.len()],
+                &cas.bytes[0..cas.bytes.len() - cas.remainder.len()],
                 write_bytes.as_slice(),
                 "{:?}",
                 cas

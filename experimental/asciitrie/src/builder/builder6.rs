@@ -9,6 +9,7 @@ use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstLengthsStack1b;
 use crate::builder::bytestr::ByteStr;
 use crate::byte_phf::PerfectByteHashMap;
+// use crate::byte_phf::PerfectByteHashMapCacheOwned;
 use crate::varint;
 
 extern crate std;
@@ -16,6 +17,7 @@ extern crate std;
 /// A low-level builder for AsciiTrie.
 pub(crate) struct AsciiTrieBuilder6<const N: usize> {
     data: ConstAsciiTrieBuilderStore<N>,
+    // phf_cache: PerfectByteHashMapCacheOwned,
 }
 
 impl<const N: usize> AsciiTrieBuilder6<N> {
@@ -37,6 +39,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
     pub const fn new() -> Self {
         Self {
             data: ConstAsciiTrieBuilderStore::atbs_new_empty(),
+            // phf_cache: PerfectByteHashMapCacheOwned::new_empty(),
         }
     }
 
@@ -54,7 +57,8 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
                     // Extend an existing span
                     data = data_;
                     let data = data.take();
-                    let (old_span_size, data) = varint::read_varint2_from_store_or_panic(old_front, data);
+                    let (old_span_size, data) =
+                        varint::read_varint2_from_store_or_panic(old_front, data);
                     let data = ConstAsciiTrieBuilderStore::from_const_array_builder(data);
                     let data = data.atbs_push_front(ascii);
                     let varint_array = varint::write_varint2(old_span_size + 1);

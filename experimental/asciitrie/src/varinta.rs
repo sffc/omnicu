@@ -54,7 +54,10 @@ pub const fn read_varint2(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])>
     Some((value, remainder))
 }
 
-pub(crate) const fn read_varint2_from_store_or_panic<const N: usize>(start: u8, remainder: ConstArrayBuilder<N, u8>) -> (usize, ConstArrayBuilder<N, u8>) {
+pub(crate) const fn read_varint2_from_store_or_panic<const N: usize>(
+    start: u8,
+    remainder: ConstArrayBuilder<N, u8>,
+) -> (usize, ConstArrayBuilder<N, u8>) {
     let mut value = (start & 0b00001111) as usize;
     let mut remainder = remainder;
     if (start & 0b00010000) != 0 {

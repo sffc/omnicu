@@ -1725,13 +1725,11 @@ fn test_everything() {
 }
 
 macro_rules! utf8_byte {
-    ($ch:expr, $i:literal) => {
-        {
-            let mut utf8_encoder_buf = [0u8; 4];
-            $ch.encode_utf8(&mut utf8_encoder_buf);
-            utf8_encoder_buf[$i]
-        }
-    };
+    ($ch:expr, $i:literal) => {{
+        let mut utf8_encoder_buf = [0u8; 4];
+        $ch.encode_utf8(&mut utf8_encoder_buf);
+        utf8_encoder_buf[$i]
+    }};
 }
 
 #[test]

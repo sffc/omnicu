@@ -18,6 +18,13 @@ impl Borrow<AsciiTrie<[u8]>> for AsciiTrie<Box<[u8]>> {
     }
 }
 
+// Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
+impl Borrow<AsciiTrie<[u8]>> for AsciiTrie<Vec<u8>> {
+    fn borrow(&self) -> &AsciiTrie<[u8]> {
+        self.as_borrowed()
+    }
+}
+
 impl ToOwned for AsciiTrie<[u8]> {
     type Owned = AsciiTrie<Box<[u8]>>;
     /// This impl allows [`AsciiTrie`] to be used inside of a [`Cow`](std::borrow::Cow).

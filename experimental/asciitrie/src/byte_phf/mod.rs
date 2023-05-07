@@ -4,6 +4,15 @@
 
 #[cfg(feature = "alloc")]
 mod builder;
+#[cfg(feature = "litemap")]
+mod cached_borrowed;
+#[cfg(all(feature = "alloc", feature = "litemap"))]
+mod cached_owned;
+
+use ref_cast::RefCast;
+
+#[cfg(all(feature = "alloc", feature = "litemap"))]
+pub use cached_owned::PerfectByteHashMapCacheOwned;
 
 /// To speed up the search algorithm, we limit the number of times the level-2 parameter (q)
 /// can hit its max value of 255 before we try the next level-1 parameter (p). In practice,
@@ -87,7 +96,8 @@ pub fn f2(byte: u8, q: u8, n: usize) -> usize {
 }
 
 // Standard layout: P, N bytes of Q, N bytes of expected keys
-#[derive(Debug)]
+#[derive(Debug, RefCast)]
+#[repr(transparent)]
 pub struct PerfectByteHashMap<S: ?Sized>(S);
 
 impl<S> PerfectByteHashMap<S> {
@@ -162,6 +172,15 @@ where
             }
         }
         Ok(())
+    }
+}
+
+impl<S> PerfectByteHashMap<S>
+where
+    S: AsRef<[u8]> + ?Sized,
+{
+    pub fn as_borrowed(&self) -> &PerfectByteHashMap<[u8]> {
+        PerfectByteHashMap::ref_cast(self.0.as_ref())
     }
 }
 
