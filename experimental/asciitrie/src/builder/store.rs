@@ -9,6 +9,7 @@ use super::const_util::ConstArrayBuilder;
 use super::const_util::ConstSlice;
 use super::AsciiByte;
 
+#[derive(Default)]
 pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
     data: ConstArrayBuilder<N, u8>,
 }

@@ -11,6 +11,9 @@ mod cached_owned;
 
 use ref_cast::RefCast;
 
+#[doc(hidden)]
+pub use builder::find;
+
 #[cfg(all(feature = "alloc", feature = "litemap"))]
 pub use cached_owned::PerfectByteHashMapCacheOwned;
 

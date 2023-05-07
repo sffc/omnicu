@@ -11,7 +11,7 @@ pub struct PerfectByteHashMapCacheOwned {
 }
 
 impl PerfectByteHashMapCacheOwned {
-    pub fn new_empty() -> Self {
+    pub const fn new_empty() -> Self {
         Self {
             data: LiteMap::new()
         }

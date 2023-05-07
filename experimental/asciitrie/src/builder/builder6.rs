@@ -9,7 +9,7 @@ use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstLengthsStack1b;
 use crate::builder::bytestr::ByteStr;
 use crate::byte_phf::PerfectByteHashMap;
-// use crate::byte_phf::PerfectByteHashMapCacheOwned;
+use crate::byte_phf::PerfectByteHashMapCacheOwned;
 use crate::varint;
 
 extern crate std;
@@ -17,7 +17,7 @@ extern crate std;
 /// A low-level builder for AsciiTrie.
 pub(crate) struct AsciiTrieBuilder6<const N: usize> {
     data: ConstAsciiTrieBuilderStore<N>,
-    // phf_cache: PerfectByteHashMapCacheOwned,
+    phf_cache: PerfectByteHashMapCacheOwned,
 }
 
 impl<const N: usize> AsciiTrieBuilder6<N> {
@@ -39,97 +39,98 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
     pub const fn new() -> Self {
         Self {
             data: ConstAsciiTrieBuilderStore::atbs_new_empty(),
-            // phf_cache: PerfectByteHashMapCacheOwned::new_empty(),
+            phf_cache: PerfectByteHashMapCacheOwned::new_empty(),
         }
     }
 
     #[must_use]
-    const fn prepend_ascii(self, ascii: u8) -> (Self, usize) {
+    fn prepend_ascii(&mut self, ascii: u8) -> usize {
+        let mut data = core::mem::take(&mut self.data);
         if ascii <= 127 {
-            let data = self.data.atbs_push_front(ascii);
-            (Self { data }, 1)
+            data = data.atbs_push_front(ascii);
+            self.data = data;
+            1
         } else {
-            let old_byte_len = self.data.atbs_len();
-            let data;
+            let old_byte_len = data.atbs_len();
             if old_byte_len != 0 {
-                let (old_front, data_) = self.data.atbs_split_first_or_panic();
+                let old_front;
+                (old_front, data) = data.atbs_split_first_or_panic();
                 if old_front & 0b11100000 == 0b10100000 {
                     // Extend an existing span
-                    data = data_;
-                    let data = data.take();
-                    let (old_span_size, data) =
-                        varint::read_varint2_from_store_or_panic(old_front, data);
-                    let data = ConstAsciiTrieBuilderStore::from_const_array_builder(data);
-                    let data = data.atbs_push_front(ascii);
+                    let mut data_inner = data.take();
+                    let old_span_size;
+                    (old_span_size, data_inner) =
+                        varint::read_varint2_from_store_or_panic(old_front, data_inner);
+                    data = ConstAsciiTrieBuilderStore::from_const_array_builder(data_inner);
+                    data = data.atbs_push_front(ascii);
                     let varint_array = varint::write_varint2(old_span_size + 1);
-                    let data = data.atbs_extend_front(varint_array.as_const_slice());
-                    let data = data.atbs_bitor_assign(0, 0b10100000);
+                    data = data.atbs_extend_front(varint_array.as_const_slice());
+                    data = data.atbs_bitor_assign(0, 0b10100000);
                     let new_byte_len = data.atbs_len();
-                    return (Self { data }, new_byte_len - old_byte_len);
+                    self.data = data;
+                    return new_byte_len - old_byte_len;
                 } else {
-                    data = data_.atbs_push_front(old_front);
+                    data = data.atbs_push_front(old_front);
                 }
-            } else {
-                data = self.data;
             }
             // Create a new span
             let data = data.atbs_push_front(ascii);
             let data = data.atbs_push_front(0b10100001);
-            (Self { data }, 2)
+            self.data = data;
+            2
         }
     }
 
     #[must_use]
-    const fn prepend_value(self, value: usize) -> (Self, usize) {
-        let mut data = self.data;
+    fn prepend_value(&mut self, value: usize) -> usize {
+        let mut data = core::mem::take(&mut self.data);
         let varint_array = varint::write_varint2(value);
         data = data.atbs_extend_front(varint_array.as_const_slice());
         data = data.atbs_bitor_assign(0, 0b10000000);
-        (Self { data }, varint_array.len())
+        self.data = data;
+        varint_array.len()
     }
 
     #[must_use]
-    fn prepend_branch(self, value: usize) -> (Self, usize) {
-        let mut data = self.data;
+    fn prepend_branch(&mut self, value: usize) -> usize {
+        let mut data = core::mem::take(&mut self.data);
         let varint_array = varint::write_varint(value);
         data = data.atbs_extend_front(varint_array.as_const_slice());
         data = data.atbs_bitor_assign(0, 0b11000000);
-        (Self { data }, varint_array.len())
+        self.data = data;
+        varint_array.len()
     }
 
-    #[must_use]
-    const fn prepend_n_zeros(self, n: usize) -> Self {
-        let mut data = self.data;
+    fn prepend_n_zeros(&mut self, n: usize) {
+        let mut data = core::mem::take(&mut self.data);
         let mut i = 0;
         while i < n {
             data = data.atbs_push_front(0);
             i += 1;
         }
-        Self { data }
+        self.data = data;
     }
 
-    #[must_use]
-    const fn prepend_slice(self, s: ConstSlice<u8>) -> Self {
-        let mut data = self.data;
+    fn prepend_slice(&mut self, s: ConstSlice<u8>) {
+        let mut data = core::mem::take(&mut self.data);
         let mut i = s.len();
         while i > 0 {
             data = data.atbs_push_front(*s.get_or_panic(i - 1));
             i -= 1;
         }
-        Self { data }
+        self.data = data;
     }
 
-    #[must_use]
-    fn swap_ranges(self, start: usize, mid: usize, limit: usize) -> Self {
-        let mut data = self.data;
+    fn swap_ranges(&mut self, start: usize, mid: usize, limit: usize) {
+        let mut data = core::mem::take(&mut self.data);
         data = data.atbs_swap_ranges(start, mid, limit);
-        Self { data }
+        self.data = data;
     }
 
-    const fn bitor_assign_at(self, index: usize, byte: u8) -> Self {
-        let mut data = self.data;
+    fn bitor_assign_at(&mut self, index: usize, byte: u8) {
+        let mut data = core::mem::take(&mut self.data);
         data = data.atbs_bitor_assign(index, byte);
-        Self { data }
+        self.data = data;
     }
 
     /// Panics if the items are not sorted
@@ -153,16 +154,15 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
     /// Assumes that the items are sorted
     pub fn from_sorted_const_tuple_slice<'a>(items: ConstSlice<(&'a ByteStr, usize)>) -> Self {
         let mut result = Self::new();
-        let total_size;
-        (result, total_size) = result.create(items);
+        let total_size = result.create(items);
         debug_assert!(total_size == result.data.atbs_len());
         result
     }
 
     #[must_use]
-    fn create<'a>(mut self, all_items: ConstSlice<(&'a ByteStr, usize)>) -> (Self, usize) {
+    fn create<'a>(&mut self, all_items: ConstSlice<(&'a ByteStr, usize)>) -> usize {
         if all_items.is_empty() {
-            return (Self::new(), 0);
+            return 0;
         }
         let mut lengths_stack = ConstLengthsStack1b::<100>::new();
         let mut prefix_len = all_items.last().unwrap().0.len();
@@ -174,8 +174,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
             let item_j = all_items.get_or_panic(j - 1);
             assert!(item_i.0.prefix_eq(item_j.0, prefix_len));
             if item_i.0.len() == prefix_len {
-                let len;
-                (self, len) = self.prepend_value(item_i.1);
+                let len = self.prepend_value(item_i.1);
                 current_len += len;
             }
             if prefix_len == 0 {
@@ -238,8 +237,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
                 }
             }
             if diff_i == 0 && diff_j == 0 {
-                let len;
-                (self, len) = self.prepend_ascii(ascii_i);
+                let len = self.prepend_ascii(ascii_i);
                 current_len += len;
                 assert!(i == new_i || i == new_i + 1);
                 i = new_i;
@@ -296,7 +294,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
                         let b_idx = phf_vec.keys().iter().position(|x| x == &b.ascii).unwrap();
                         if a_idx > b_idx {
                             // std::println!("{a:?} <=> {b:?} ({phf_vec:?})");
-                            self = self.swap_ranges(
+                            self.swap_ranges(
                                 start,
                                 start + a.local_length,
                                 start + a.local_length + b.local_length,
@@ -325,7 +323,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
             let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8;
             let mut k = 0;
             while k <= w {
-                self = self.prepend_n_zeros(total_count - 1);
+                self.prepend_n_zeros(total_count - 1);
                 current_len += total_count - 1;
                 let mut l = 0;
                 let mut length_to_write = 0;
@@ -341,7 +339,7 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
                         m += 1;
                     }
                     if l > 0 {
-                        self = self.bitor_assign_at(l - 1, adjusted_length as u8);
+                        self.bitor_assign_at(l - 1, adjusted_length as u8);
                     }
                     l += 1;
                     length_to_write += local_length;
@@ -353,13 +351,13 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
             if let Some(phf_vec) = opt_phf_vec {
                 // TODO: Assert w <= 3
                 // TODO: Assert p < 15
-                self = self.prepend_slice(ConstSlice::from_slice(phf_vec.as_bytes()));
-                (self, branch_len) = self.prepend_branch((total_count << 2) + w);
+                self.prepend_slice(ConstSlice::from_slice(phf_vec.as_bytes()));
+                branch_len = self.prepend_branch((total_count << 2) + w);
                 current_len += phf_vec.as_bytes().len() + branch_len;
             } else {
                 // TODO: Assert w <= 3
-                self = self.prepend_slice(original_keys.as_const_slice());
-                (self, branch_len) = self.prepend_branch((total_count << 2) + w);
+                self.prepend_slice(original_keys.as_const_slice());
+                branch_len = self.prepend_branch((total_count << 2) + w);
                 current_len += total_count + branch_len;
             }
             /*
@@ -376,6 +374,6 @@ impl<const N: usize> AsciiTrieBuilder6<N> {
             j = new_j;
         }
         assert!(lengths_stack.is_empty());
-        (self, current_len)
+        current_len
     }
 }

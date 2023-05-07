@@ -91,6 +91,12 @@ pub(crate) struct ConstArrayBuilder<const N: usize, T> {
     limit: usize,
 }
 
+impl<const N: usize, T: Default> Default for ConstArrayBuilder<N, T> {
+    fn default() -> Self {
+        Self::new_empty([(); N].map(|_| Default::default()), 0)
+    }
+}
+
 impl<const N: usize, T> ConstArrayBuilder<N, T> {
     pub const fn new_empty(full_array: [T; N], cursor: usize) -> Self {
         assert!(cursor <= N);
