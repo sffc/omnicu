@@ -548,6 +548,60 @@ where
         }
     }
 
+    /// Attemps to insert a unique entry into the map.
+    ///
+    /// If `key` is not already in the map, invokes the closure to compute `value`, inserts
+    /// the pair into the map, and returns a reference to the value. The closure is passed
+    /// a reference to the `key` argument.
+    ///
+    /// If `key` is already in the map, a reference to the existing value is returned.
+    ///
+    /// The closure returns a `Result` to allow for a fallible insertion function. If the
+    /// creation of `value` is infallible, you can use [`core::convert::Infallible`].
+    ///
+    /// ```
+    /// use litemap::LiteMap;
+    ///
+    /// /// Helper function to unwrap an `Infallible` result from the insertion function
+    /// fn unwrap_infallible<T>(result: Result<T, core::convert::Infallible>) -> T {
+    ///     result.unwrap_or_else(|never| match never {})
+    /// }
+    ///
+    /// let mut map = LiteMap::new_vec();
+    /// map.insert(1, "one");
+    /// map.insert(3, "three");
+    ///
+    /// // 2 is not yet in the map...
+    /// let result1 = unwrap_infallible(
+    ///     map.try_get_or_insert(2, |_| Ok("two"))
+    /// );
+    /// assert_eq!(result1, &"two");
+    /// assert_eq!(map.len(), 3);
+    ///
+    /// // ...but now it is.
+    /// let result1 = unwrap_infallible(
+    ///     map.try_get_or_insert(2, |_| Ok("TWO"))
+    /// );
+    /// assert_eq!(result1, &"two");
+    /// assert_eq!(map.len(), 3);
+    /// ```
+    pub fn try_get_or_insert<E>(
+        &mut self,
+        key: K,
+        value: impl FnOnce(&K) -> Result<V, E>,
+    ) -> Result<&V, E> {
+        let idx = match self.values.lm_binary_search_by(|k| k.cmp(&key)) {
+            Ok(idx) => idx,
+            Err(idx) => {
+                let value = value(&key)?;
+                self.values.lm_insert(idx, key, value);
+                idx
+            }
+        };
+        #[allow(clippy::unwrap_used)] // item at idx found or inserted above
+        Ok(self.values.lm_get(idx).unwrap().1)
+    }
+
     /// Remove the value at `key`, returning it if it exists.
     ///
     /// ```rust
