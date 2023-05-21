@@ -326,7 +326,7 @@ fn test_single_byte_branch() {
     check_bytes_eq(6, &trie5, expected_bytes5);
     check_ascii_trie5(&litemap, &trie5);
 
-    let expected_bytes6 = &[0b11001000, b'x', b'y', 1, 0b10000000, 0b10000001];
+    let expected_bytes6 = &[0b11000010, b'x', b'y', 1, 0b10000000, 0b10000001];
     let trie6 = asciitrie::make6_litemap(&litemap);
     check_bytes_eq(6, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
@@ -383,7 +383,7 @@ fn test_multi_byte_branch() {
     check_ascii_trie5(&litemap, &trie5);
 
     let expected_bytes6 = &[
-        b'a', 0b11001000, b'x', b'y', 2, b'b', 0b10000000, b'c', 0b10000001,
+        b'a', 0b11000010, b'x', b'y', 2, b'b', 0b10000000, b'c', 0b10000001,
     ];
     let trie6 = asciitrie::make6_litemap(&litemap);
     check_bytes_eq(9, &trie6, expected_bytes6);
@@ -834,8 +834,8 @@ fn test_varint_branch() {
 
     #[rustfmt::skip]
     let expected_bytes6 = &[
-        0b11100001, // branch varint lead
-        0x30,       // branch varint trail
+        0b11100000, // branch varint lead
+        0x14,       // branch varint trail
         // PHF metadata:
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 10, 12, 16, 4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 7,
         // search array:
@@ -1656,11 +1656,11 @@ fn test_everything() {
     #[rustfmt::skip]
     let expected_bytes6 = &[
         0b10000000, // value 0
-        0b11001000, // branch of 2
+        0b11000010, // branch of 2
         b'a',       //
         b'b',       //
         13,         //
-        0b11001100, // start of 'a' subtree: branch of 3
+        0b11000011, // start of 'a' subtree: branch of 3
         b'x',       //
         b'y',       //
         b'z',       //
@@ -1676,11 +1676,11 @@ fn test_everything() {
         b'x',       // start of 'b' subtree
         b'e',       //
         0b10000100, // value 4
-        0b11001000, // branch of 2
+        0b11000010, // branch of 2
         b'f',       //
         b'i',       //
         7,          //
-        0b11001000, // branch of 2
+        0b11000010, // branch of 2
         b'g',       //
         b'h',       //
         2,          //
@@ -1754,11 +1754,11 @@ fn test_non_ascii() {
     #[rustfmt::skip]
     let expected_bytes6 = &[
         0b10000000, // value 0
-        0b11001000, // branch of 2
+        0b11000010, // branch of 2
         b'a',       //
         b'b',       //
         13,         //
-        0b11001100, // start of 'a' subtree: branch of 3
+        0b11000011, // start of 'a' subtree: branch of 3
         b'x',       //
         b'y',       //
         b'z',       //
@@ -1774,11 +1774,11 @@ fn test_non_ascii() {
         b'x',       // start of 'b' subtree
         b'e',       //
         0b10000100, // value 4
-        0b11001000, // branch of 2
+        0b11000010, // branch of 2
         b'f',       //
         b'i',       //
         7,          //
-        0b11001000, // branch of 2
+        0b11000010, // branch of 2
         b'g',       //
         b'h',       //
         2,          //
@@ -1792,7 +1792,7 @@ fn test_non_ascii() {
         b'm',       //
         0b10100001, // span of length 1
         utf8_byte!('Κ', 0), // NOTE: all three letters have the same lead byte
-        0b11001100, // branch of 3
+        0b11000011, // branch of 3
         utf8_byte!('Κ', 1),
         utf8_byte!('α', 1),
         utf8_byte!('η', 1),
@@ -1857,7 +1857,7 @@ fn test_short_subtags_10pct() {
     check_ascii_trie5(&litemap, &trie5);
 
     let trie6 = asciitrie::make6_litemap(&litemap);
-    assert_eq!(trie6.len(), 1107);
+    assert_eq!(trie6.len(), 1100);
     check_ascii_trie6(&litemap, &trie6);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
@@ -1910,7 +1910,7 @@ fn test_short_subtags() {
     check_ascii_trie5(&litemap, &trie5);
 
     let trie6 = asciitrie::make6_litemap(&litemap);
-    assert_eq!(trie6.len(), 9450);
+    assert_eq!(trie6.len(), 9400);
     check_ascii_trie6(&litemap, &trie6);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);

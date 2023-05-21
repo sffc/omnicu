@@ -155,12 +155,12 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 }
             }
             // Branch node
-            let w = x & 0x3;
-            let x = x >> 2;
-            if x <= 1 {
-                debug_assert!(false, "there should be 2 or more branches");
-                return None;
-            }
+            let (x, w) = if x >= 256 {
+                (x & 0xff, x >> 8)
+            } else {
+                (x, 0)
+            };
+            let x = if x == 0 { 256 } else { x };
             if x < 16 {
                 // binary search
                 (search, trie) = debug_split_at(trie, x)?;

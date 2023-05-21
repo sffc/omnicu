@@ -304,18 +304,18 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                 k += 1;
             }
             // Write out the lookup table
-            let branch_len;
+            assert!(0 < total_count && total_count <= 256);
+            let branch_value = (w << 8) + (total_count & 0xff);
             if let Some(phf_vec) = opt_phf_vec {
                 // TODO: Assert w <= 3
-                // TODO: Assert p < 15
                 self.data.atbs_extend_front(phf_vec.as_bytes());
                 let phf_len = phf_vec.as_bytes().len();
-                branch_len = self.prepend_branch((total_count << 2) + w);
+                let branch_len = self.prepend_branch(branch_value);
                 current_len += phf_len + branch_len;
             } else {
                 // TODO: Assert w <= 3
                 self.prepend_slice(original_keys.as_const_slice());
-                branch_len = self.prepend_branch((total_count << 2) + w);
+                let branch_len = self.prepend_branch(branch_value);
                 current_len += total_count + branch_len;
             }
             i = new_i;

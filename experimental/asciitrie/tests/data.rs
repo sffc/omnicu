@@ -246,7 +246,7 @@ pub mod basic {
         b'c',
         single_byte_short_value(2),
         // Begin Match Node
-        single_byte_short_match(3 << 2),
+        single_byte_short_match(3),
         b'd',
         b'e',
         b'f',
@@ -265,7 +265,7 @@ pub mod basic {
         single_byte_short_value(5),
         // subslice @ 8
         // Begin Match Node
-        single_byte_short_match(2 << 2),
+        single_byte_short_match(2),
         b'l',
         b'm',
         1,
