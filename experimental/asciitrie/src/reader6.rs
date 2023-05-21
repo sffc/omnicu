@@ -87,6 +87,22 @@ fn get_branch(mut trie: &[u8], i: usize, n: usize, mut w: usize) -> Option<&[u8]
     debug_get_range(trie, p..q)
 }
 
+/// Version of [`get_branch()`] specialized for the case `w == 0` for performance
+fn get_branch_w0(mut trie: &[u8], i: usize, n: usize) -> Option<&[u8]> {
+    let indices;
+    (indices, trie) = debug_split_at(trie, n - 1)?;
+    let p = if i == 0 {
+            0
+        } else {
+            debug_get(indices, i - 1)? as usize
+        };
+    let q = match indices.get(i) {
+        Some(x) => *x as usize,
+        None => trie.len(),
+    };
+    debug_get_range(trie, p..q)
+}
+
 enum ByteType {
     Ascii,
     Span,
@@ -173,7 +189,11 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 (search, trie) = debug_split_at(trie, x * 2 + 1)?;
                 i = PerfectByteHashMap::from_store(search).get(*c)?;
             }
-            trie = get_branch(trie, i, x, w)?;
+            trie = if w == 0 {
+                get_branch_w0(trie, i, x)
+            } else {
+                get_branch(trie, i, x, w)
+            }?;
             ascii = temp;
             continue;
         } else {
