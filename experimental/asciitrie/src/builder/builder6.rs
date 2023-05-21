@@ -127,7 +127,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
         if all_items.is_empty() {
             return 0;
         }
-        let mut lengths_stack = ConstLengthsStack1b::<100>::new();
+        let mut lengths_stack = ConstLengthsStack1b::<256>::new();
         let mut prefix_len = all_items.last().unwrap().0.len();
         let mut i = all_items.len() - 1;
         let mut j = all_items.len();

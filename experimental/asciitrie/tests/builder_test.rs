@@ -1833,6 +1833,20 @@ fn test_non_ascii() {
 }
 
 #[test]
+fn test_max_branch() {
+    // Evaluate a branch with all 256 possible children
+    let mut litemap: LiteMap<&[u8], usize> = LiteMap::new_vec();
+    let all_bytes: Vec<u8> = (u8::MIN..=u8::MAX).collect();
+    for b in all_bytes.iter() {
+        litemap.insert(core::slice::from_ref(b), *b as usize);
+    }
+    assert_eq!(all_bytes.len(), 256);
+    let trie6 = asciitrie::make6_byte_litemap(&litemap);
+    assert_eq!(trie6.len(), 1521);
+    check_ascii_trie6_bytes(&litemap, &trie6);
+}
+
+#[test]
 fn test_short_subtags_10pct() {
     let litemap = strings_to_litemap(&testdata::short_subtags_10pct::STRINGS).unwrap();
 
