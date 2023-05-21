@@ -74,11 +74,9 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
 
     #[must_use]
     fn prepend_value(&mut self, value: usize) -> usize {
-        let old = self.data.atbs_to_bytes();
         let varint_array = varint::write_varint2(value);
         self.data.atbs_extend_front(varint_array.as_slice());
         self.data.atbs_bitor_assign(0, 0b10000000);
-        std::println!("prepend_value 6: {:?} + {:?} => {:?}", varint_array.as_slice(), old, self.data.atbs_to_bytes());
         varint_array.len()
     }
 
@@ -88,14 +86,6 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
         self.data.atbs_extend_front(varint_array.as_slice());
         self.data.atbs_bitor_assign(0, 0b11000000);
         varint_array.len()
-    }
-
-    fn prepend_n_zeros(&mut self, n: usize) {
-        let mut i = 0;
-        while i < n {
-            self.data.atbs_push_front(0);
-            i += 1;
-        }
     }
 
     fn prepend_slice(&mut self, s: ConstSlice<u8>) {
@@ -291,7 +281,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8;
             let mut k = 0;
             while k <= w {
-                self.prepend_n_zeros(total_count - 1);
+                self.data.atbs_prepend_n_zeros(total_count - 1);
                 current_len += total_count - 1;
                 let mut l = 0;
                 let mut length_to_write = 0;
@@ -319,12 +309,10 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             if total_count > 15 {
                 // TODO: Assert w <= 3
                 // TODO: Assert p < 15
-                let phf_vec = self.phf_cache.get(original_keys.as_const_slice().as_slice()).unwrap().as_bytes().to_vec();
-                // TODO: Since prepend_slice borrows all of self, we annoyingly can't borrow from
-                // one field while modifying another.
-                self.prepend_slice(ConstSlice::from_slice(&phf_vec));
+                self.data.atbs_extend_front(phf_vec.as_bytes());
+                let phf_len = phf_vec.as_bytes().len();
                 branch_len = self.prepend_branch((total_count << 2) + w);
-                current_len += phf_vec.len() + branch_len;
+                current_len += phf_len + branch_len;
             } else {
                 // TODO: Assert w <= 3
                 self.prepend_slice(original_keys.as_const_slice());

@@ -99,7 +99,7 @@ pub fn f2(byte: u8, q: u8, n: usize) -> usize {
 }
 
 // Standard layout: P, N bytes of Q, N bytes of expected keys
-#[derive(Debug, RefCast)]
+#[derive(Debug, PartialEq, Eq, RefCast)]
 #[repr(transparent)]
 pub struct PerfectByteHashMap<S: ?Sized>(S);
 
@@ -134,11 +134,13 @@ where
             None
         }
     }
-    pub fn len(&self) -> usize {
+    /// This is called `num_items` because `len` is ambiguous: it could refer
+    /// to the number of items or the number of bytes.
+    pub fn num_items(&self) -> usize {
         self.0.as_ref().len() / 2
     }
     pub fn keys(&self) -> &[u8] {
-        let n = self.len();
+        let n = self.num_items();
         debug_split_at(self.0.as_ref(), 1 + n)
             .map(|s| s.1)
             .unwrap_or(&[])
@@ -158,7 +160,7 @@ where
     #[cfg(all(feature = "alloc", test))]
     pub fn check(&self) -> Result<(), (&'static str, u8)> {
         use alloc::vec;
-        let len = self.len();
+        let len = self.num_items();
         let mut seen = vec![false; len];
         for b in 0..=255u8 {
             let get_result = self.get(b);
