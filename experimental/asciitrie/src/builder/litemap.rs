@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use alloc::collections::VecDeque;
 use crate::builder::builder1b::AsciiTrieBuilder1b;
 use crate::builder::builder2::AsciiTrieBuilder2;
 use crate::builder::builder3::AsciiTrieBuilder3;
@@ -191,16 +192,14 @@ where
 {
     let ascii_str_slice = items.as_slice();
     let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
-    AsciiTrieBuilder6::<15000>::from_sorted_const_tuple_slice(byte_str_slice.into())
-        .as_bytes()
-        .to_owned()
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(byte_str_slice.into())
+        .to_bytes()
 }
 
 pub fn make6_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Vec<u8> {
     let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(items);
-    AsciiTrieBuilder6::<15000>::from_tuple_slice(byte_str_slice.into())
-        .as_bytes()
-        .to_owned()
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(byte_str_slice.into())
+        .to_bytes()
 }
 
 pub fn make6_byte_litemap<'a, S>(items: &LiteMap<&'a [u8], usize, S>) -> Vec<u8>
@@ -209,14 +208,12 @@ where
 {
     let byte_slice = items.as_slice();
     let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
-    AsciiTrieBuilder6::<15000>::from_sorted_const_tuple_slice(byte_str_slice.into())
-        .as_bytes()
-        .to_owned()
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(byte_str_slice.into())
+        .to_bytes()
 }
 
 pub fn make6_byte_slice<'a>(items: &[(&'a [u8], usize)]) -> Vec<u8> {
     let byte_str_slice = ByteStr::from_byte_slice_with_value(items);
-    AsciiTrieBuilder6::<15000>::from_tuple_slice(byte_str_slice.into())
-        .as_bytes()
-        .to_owned()
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(byte_str_slice.into())
+        .to_bytes()
 }

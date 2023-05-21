@@ -130,7 +130,6 @@ impl<const N: usize, T> ConstArrayBuilder<N, T> {
         ConstSlice::from_manual_slice(&self.full_array, self.start, self.limit)
     }
 
-    #[cfg(test)]
     pub fn as_slice(&self) -> &[T] {
         &self.full_array[self.start..self.limit]
     }

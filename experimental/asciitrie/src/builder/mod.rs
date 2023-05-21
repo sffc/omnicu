@@ -17,6 +17,8 @@ mod litemap;
 mod store;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+#[cfg(feature = "alloc")]
+pub mod tstore;
 
 #[cfg(feature = "litemap")]
 pub use self::litemap::{
