@@ -160,6 +160,9 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             } else {
                 (x, 0)
             };
+            // FIXME: This function is 10% faster if we assert a max on w. Discuss what to do.
+            debug_assert!(w <= 3, "get: w > 3 but we assume w <= 3");
+            let w = w & 0x3;
             let x = if x == 0 { 256 } else { x };
             if x < 16 {
                 // binary search
