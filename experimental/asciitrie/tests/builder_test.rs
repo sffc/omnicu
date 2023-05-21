@@ -1837,12 +1837,16 @@ fn test_max_branch() {
     // Evaluate a branch with all 256 possible children
     let mut litemap: LiteMap<&[u8], usize> = LiteMap::new_vec();
     let all_bytes: Vec<u8> = (u8::MIN..=u8::MAX).collect();
+    assert_eq!(all_bytes.len(), 256);
+    let all_bytes_prefixed: Vec<[u8; 2]> = (u8::MIN..=u8::MAX).map(|x| [b'\0', x]).collect();
     for b in all_bytes.iter() {
         litemap.insert(core::slice::from_ref(b), *b as usize);
     }
-    assert_eq!(all_bytes.len(), 256);
+    for s in all_bytes_prefixed.iter() {
+        litemap.insert(s, s[1] as usize);
+    }
     let trie6 = asciitrie::make6_byte_litemap(&litemap);
-    assert_eq!(trie6.len(), 1521);
+    assert_eq!(trie6.len(), 3042);
     check_ascii_trie6_bytes(&litemap, &trie6);
 }
 
