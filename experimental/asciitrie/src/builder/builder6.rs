@@ -240,9 +240,8 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             let mut branch_metas;
             (lengths_stack, branch_metas) = lengths_stack.pop_many_or_panic(total_count);
             let original_keys = branch_metas.map_to_ascii_bytes();
-            let phf_vec = self.phf_cache.try_get_or_insert(original_keys.as_const_slice().as_slice().to_vec()).unwrap();
-            if total_count > 15 {
-                // std::println!("{phf_vec:?}");
+            let opt_phf_vec = if total_count > 15 {
+                let phf_vec = self.phf_cache.try_get_or_insert(original_keys.as_const_slice().as_slice().to_vec()).unwrap();
                 // Put everything in order via bubble sort
                 // Note: branch_metas is stored in reverse order (0 = last element)
                 loop {
@@ -306,7 +305,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             }
             // Write out the lookup table
             let branch_len;
-            if total_count > 15 {
+            if let Some(phf_vec) = opt_phf_vec {
                 // TODO: Assert w <= 3
                 // TODO: Assert p < 15
                 self.data.atbs_extend_front(phf_vec.as_bytes());
@@ -319,16 +318,6 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                 branch_len = self.prepend_branch((total_count << 2) + w);
                 current_len += total_count + branch_len;
             }
-            /*
-            self = self.prepend_n_zeros(total_count);
-            current_len += total_count;
-            let mut l = 0;
-            while l < total_count {
-                let BranchMeta { ascii, .. } = *branch_metas.as_const_slice().get_or_panic(l);
-                self = self.bitor_assign_at(l, ascii.get());
-                l += 1;
-            }
-            */
             i = new_i;
             j = new_j;
         }
