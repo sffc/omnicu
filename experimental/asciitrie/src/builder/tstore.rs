@@ -26,13 +26,13 @@ pub trait TrieBuilderStore {
 
 impl TrieBuilderStore for VecDeque<u8> {
     fn atbs_new_empty() -> Self {
-    	VecDeque::new()
+        VecDeque::new()
     }
     fn atbs_len(&self) -> usize {
-    	self.len()
+        self.len()
     }
     fn atbs_push_front(&mut self, byte: u8) {
-    	self.push_front(byte);
+        self.push_front(byte);
     }
     fn atbs_extend_front(&mut self, other: &[u8]) {
         // TODO: No extend_front on VecDeque?
@@ -42,14 +42,14 @@ impl TrieBuilderStore for VecDeque<u8> {
         }
     }
     fn atbs_to_bytes(&self) -> Vec<u8> {
-    	let mut v = Vec::with_capacity(self.len());
+        let mut v = Vec::with_capacity(self.len());
         let (a, b) = self.as_slices();
         v.extend(a);
         v.extend(b);
         v
     }
     fn atbs_bitor_assign(&mut self, index: usize, other: u8) {
-    	self[index] |= other;
+        self[index] |= other;
     }
     fn atbs_swap_ranges(&mut self, mut start: usize, mut mid: usize, mut limit: usize) {
         if start > mid || mid > limit {
@@ -84,7 +84,7 @@ impl TrieBuilderStore for VecDeque<u8> {
         }
     }
     fn atbs_split_first_or_panic(&mut self) -> u8 {
-    	self.pop_front().unwrap()
+        self.pop_front().unwrap()
     }
 }
 

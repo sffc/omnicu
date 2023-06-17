@@ -77,7 +77,10 @@ pub(crate) const fn read_varint2_from_store_or_panic<const N: usize>(
     (value, remainder)
 }
 
-pub(crate) fn read_varint2_from_tstore_or_panic<S: TrieBuilderStore>(start: u8, remainder: &mut S) -> usize {
+pub(crate) fn read_varint2_from_tstore_or_panic<S: TrieBuilderStore>(
+    start: u8,
+    remainder: &mut S,
+) -> usize {
     let mut value = (start & 0b00001111) as usize;
     if (start & 0b00010000) != 0 {
         loop {

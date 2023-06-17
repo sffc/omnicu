@@ -92,10 +92,10 @@ fn get_branch_w0(mut trie: &[u8], i: usize, n: usize) -> Option<&[u8]> {
     let indices;
     (indices, trie) = debug_split_at(trie, n - 1)?;
     let p = if i == 0 {
-            0
-        } else {
-            debug_get(indices, i - 1)? as usize
-        };
+        0
+    } else {
+        debug_get(indices, i - 1)? as usize
+    };
     let q = match indices.get(i) {
         Some(x) => *x as usize,
         None => trie.len(),
@@ -171,11 +171,7 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
                 }
             }
             // Branch node
-            let (x, w) = if x >= 256 {
-                (x & 0xff, x >> 8)
-            } else {
-                (x, 0)
-            };
+            let (x, w) = if x >= 256 { (x & 0xff, x >> 8) } else { (x, 0) };
             // DISCUSS: This function is 7% faster *on aarch64* if we assert a max on w.
             //
             // | Bench         | No Assert, x86_64 | No Assert, aarch64 | Assertion, x86_64 | Assertion, aarch64 |
