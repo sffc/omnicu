@@ -4,8 +4,6 @@
 
 #[cfg(feature = "alloc")]
 mod builder;
-#[cfg(feature = "litemap")]
-mod cached_borrowed;
 #[cfg(all(feature = "alloc", feature = "litemap"))]
 mod cached_owned;
 

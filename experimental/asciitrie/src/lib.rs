@@ -25,7 +25,6 @@ mod ref_cast;
 mod serde;
 mod trie;
 mod varinta;
-mod varintb;
 mod varintx;
 mod zerotrie;
 #[cfg(feature = "zerovec")]
@@ -43,3 +42,8 @@ pub use builder::{
 };
 pub use error::Error as AsciiTrieError;
 pub use trie::AsciiTrie;
+
+pub use zerotrie::ZeroTrie;
+pub use zerotrie::ZeroTrieSimpleAscii;
+pub use zerotrie::ZeroTriePerfectHash;
+pub use zerotrie::ZeroTrieExtendedCapacity;

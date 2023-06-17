@@ -55,28 +55,6 @@ pub const fn read_varint2(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])>
     Some((value, remainder))
 }
 
-pub(crate) const fn read_varint2_from_store_or_panic<const N: usize>(
-    start: u8,
-    remainder: ConstArrayBuilder<N, u8>,
-) -> (usize, ConstArrayBuilder<N, u8>) {
-    let mut value = (start & 0b00001111) as usize;
-    let mut remainder = remainder;
-    if (start & 0b00010000) != 0 {
-        loop {
-            let next;
-            (next, remainder) = remainder.split_first_or_panic();
-            // Note: value << 7 could drop high bits. The first addition can't overflow.
-            // The second addition could overflow; in such a case we just inform the
-            // developer via the debug assertion.
-            value = (value << 7) + ((next & 0b01111111) as usize) + 16;
-            if (next & 0b10000000) == 0 {
-                break;
-            }
-        }
-    }
-    (value, remainder)
-}
-
 pub(crate) fn read_varint2_from_tstore_or_panic<S: TrieBuilderStore>(
     start: u8,
     remainder: &mut S,

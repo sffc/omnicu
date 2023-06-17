@@ -17,8 +17,6 @@ fn get_basic_bench(c: &mut Criterion) {
     let mut g = c.benchmark_group("get/basic");
 
     let trie = testdata::basic::TRIE;
-    let trie2 = testdata::basic::TRIE2;
-    let trie3 = testdata::basic::TRIE3;
     let trie4 = testdata::basic::TRIE4;
     let trie5 = testdata::basic::TRIE5;
     let trie6 = testdata::basic::TRIE6;

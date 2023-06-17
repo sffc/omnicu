@@ -2,8 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use zerovec::ZeroVec;
-
 use crate::reader::get as get1;
 use crate::reader6::get as get6;
 
