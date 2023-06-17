@@ -216,20 +216,24 @@ impl<const N: usize> AsciiTrieBuilder4<N> {
             }
             // Branch
             if diff_j == 0 {
-                lengths_stack = lengths_stack.push(BranchMeta {
-                    ascii: key_ascii.get(),
-                    length: current_len,
-                    local_length: current_len,
-                    count: 1,
-                });
+                lengths_stack = lengths_stack
+                    .push(BranchMeta {
+                        ascii: key_ascii.get(),
+                        length: current_len,
+                        local_length: current_len,
+                        count: 1,
+                    })
+                    .unwrap();
             } else {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
-                lengths_stack = lengths_stack.push(BranchMeta {
-                    ascii: key_ascii.get(),
-                    length: length + current_len,
-                    local_length: current_len,
-                    count: count + 1,
-                });
+                lengths_stack = lengths_stack
+                    .push(BranchMeta {
+                        ascii: key_ascii.get(),
+                        length: length + current_len,
+                        local_length: current_len,
+                        count: count + 1,
+                    })
+                    .unwrap();
             }
             if diff_i != 0 {
                 j = i;

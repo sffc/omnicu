@@ -9,6 +9,7 @@ use super::store::ConstLengthsStack1b;
 use super::tstore::TrieBuilderStore;
 use crate::builder::bytestr::ByteStr;
 use crate::byte_phf::PerfectByteHashMapCacheOwned;
+use crate::error::Error;
 use crate::varint;
 use alloc::vec::Vec;
 
@@ -97,7 +98,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
     }
 
     /// Panics if the items are not sorted
-    pub fn from_tuple_slice<'a>(items: &[(&'a ByteStr, usize)]) -> Self {
+    pub fn from_tuple_slice<'a>(items: &[(&'a ByteStr, usize)]) -> Result<Self, Error> {
         let items = ConstSlice::from_slice(items);
         let mut prev: Option<&'a ByteStr> = None;
         const_for_each!(items, (ascii_str, _), {
@@ -115,17 +116,19 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
     }
 
     /// Assumes that the items are sorted
-    pub fn from_sorted_const_tuple_slice<'a>(items: ConstSlice<(&'a ByteStr, usize)>) -> Self {
+    pub fn from_sorted_const_tuple_slice<'a>(
+        items: ConstSlice<(&'a ByteStr, usize)>,
+    ) -> Result<Self, Error> {
         let mut result = Self::new();
-        let total_size = result.create(items);
+        let total_size = result.create(items)?;
         debug_assert!(total_size == result.data.atbs_len());
-        result
+        Ok(result)
     }
 
     #[must_use]
-    fn create<'a>(&mut self, all_items: ConstSlice<(&'a ByteStr, usize)>) -> usize {
+    fn create<'a>(&mut self, all_items: ConstSlice<(&'a ByteStr, usize)>) -> Result<usize, Error> {
         if all_items.is_empty() {
-            return 0;
+            return Ok(0);
         }
         // FIXME: This arbitrary limit of 512 can't handle all cases.
         let mut lengths_stack = ConstLengthsStack1b::<512>::new();
@@ -215,7 +218,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                     length: current_len,
                     local_length: current_len,
                     count: 1,
-                });
+                })?;
             } else {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
                 lengths_stack = lengths_stack.push(BranchMeta {
@@ -223,7 +226,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                     length: length + current_len,
                     local_length: current_len,
                     count: count + 1,
-                });
+                })?;
             }
             if diff_i != 0 {
                 j = i;
@@ -242,7 +245,9 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             (lengths_stack, branch_metas) = lengths_stack.pop_many_or_panic(total_count);
             let original_keys = branch_metas.map_to_ascii_bytes();
             let opt_phf_vec = if total_count > 15 {
-                let phf_vec = self.phf_cache.try_get_or_insert(original_keys.as_const_slice().as_slice().to_vec()).unwrap();
+                let phf_vec = self
+                    .phf_cache
+                    .try_get_or_insert(original_keys.as_const_slice().as_slice().to_vec())?;
                 // Put everything in order via bubble sort
                 // Note: branch_metas is stored in reverse order (0 = last element)
                 loop {
@@ -256,7 +261,11 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                         let b_idx = phf_vec.keys().iter().position(|x| x == &b.ascii).unwrap();
                         if a_idx > b_idx {
                             // std::println!("{a:?} <=> {b:?} ({phf_vec:?})");
-                            self.data.atbs_swap_ranges(start, start + a.local_length, start + a.local_length + b.local_length);
+                            self.data.atbs_swap_ranges(
+                                start,
+                                start + a.local_length,
+                                start + a.local_length + b.local_length,
+                            );
                             branch_metas = branch_metas.swap_or_panic(l - 1, l);
                             start += b.local_length;
                             changes += 1;
@@ -279,6 +288,9 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
             // let max_len = total_length - branch_metas.as_const_slice().get_or_panic(0).local_length;
             let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8;
+            if w > 3 {
+                return Err(Error::CapacityExceeded);
+            }
             let mut k = 0;
             while k <= w {
                 self.data.atbs_prepend_n_zeros(total_count - 1);
@@ -308,13 +320,11 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             assert!(0 < total_count && total_count <= 256);
             let branch_value = (w << 8) + (total_count & 0xff);
             if let Some(phf_vec) = opt_phf_vec {
-                // TODO: Assert w <= 3
                 self.data.atbs_extend_front(phf_vec.as_bytes());
                 let phf_len = phf_vec.as_bytes().len();
                 let branch_len = self.prepend_branch(branch_value);
                 current_len += phf_len + branch_len;
             } else {
-                // TODO: Assert w <= 3
                 self.prepend_slice(original_keys.as_const_slice());
                 let branch_len = self.prepend_branch(branch_value);
                 current_len += total_count + branch_len;
@@ -323,6 +333,6 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             j = new_j;
         }
         assert!(lengths_stack.is_empty());
-        current_len
+        Ok(current_len)
     }
 }

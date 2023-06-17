@@ -8,6 +8,7 @@ use super::const_util::const_for_each;
 use super::const_util::ConstArrayBuilder;
 use super::const_util::ConstSlice;
 use super::AsciiByte;
+use crate::error::Error;
 
 #[derive(Default)]
 pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
@@ -235,17 +236,17 @@ impl<const N: usize> ConstLengthsStack1b<N> {
     }
 
     #[must_use]
-    pub const fn push(mut self, meta: BranchMeta) -> Self {
+    pub const fn push(mut self, meta: BranchMeta) -> Result<Self, Error> {
         if self.idx >= N {
-            panic!(concat!(
+            return Err(Error::ConstBuilder(concat!(
                 "AsciiTrie Builder: Need more stack (max ",
                 stringify!(N),
                 ")"
-            ));
+            )));
         }
         self.data[self.idx] = Some(meta);
         self.idx += 1;
-        self
+        Ok(self)
     }
 
     #[must_use]

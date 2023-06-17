@@ -3,6 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use super::*;
+use crate::error::Error;
 use alloc::vec::Vec;
 use litemap::LiteMap;
 
@@ -13,7 +14,7 @@ pub struct PerfectByteHashMapCacheOwned {
 impl PerfectByteHashMapCacheOwned {
     pub const fn new_empty() -> Self {
         Self {
-            data: LiteMap::new()
+            data: LiteMap::new(),
         }
     }
 

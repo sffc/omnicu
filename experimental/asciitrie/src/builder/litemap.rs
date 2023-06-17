@@ -2,7 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use alloc::collections::VecDeque;
 use crate::builder::builder1b::AsciiTrieBuilder1b;
 use crate::builder::builder2::AsciiTrieBuilder2;
 use crate::builder::builder3::AsciiTrieBuilder3;
@@ -11,10 +10,12 @@ use crate::builder::builder5::AsciiTrieBuilder5;
 use crate::builder::builder6::AsciiTrieBuilder6;
 use crate::builder::bytestr::ByteStr;
 use crate::builder::AsciiTrieBuilder;
+use crate::error::Error;
 use crate::AsciiStr;
 use crate::AsciiTrie;
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
+use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use litemap::LiteMap;
 
@@ -186,34 +187,32 @@ pub fn make5_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Vec<u8> {
         .to_owned()
 }
 
-pub fn make6_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>
+pub fn make6_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Result<Vec<u8>, Error>
 where
     S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
 {
     let ascii_str_slice = items.as_slice();
     let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
     AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(byte_str_slice.into())
-        .to_bytes()
+        .map(|s| s.to_bytes())
 }
 
-pub fn make6_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Vec<u8> {
+pub fn make6_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error> {
     let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(items);
-    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(byte_str_slice.into())
-        .to_bytes()
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(byte_str_slice.into()).map(|s| s.to_bytes())
 }
 
-pub fn make6_byte_litemap<'a, S>(items: &LiteMap<&'a [u8], usize, S>) -> Vec<u8>
+pub fn make6_byte_litemap<'a, S>(items: &LiteMap<&'a [u8], usize, S>) -> Result<Vec<u8>, Error>
 where
     S: litemap::store::StoreSlice<&'a [u8], usize, Slice = [(&'a [u8], usize)]>,
 {
     let byte_slice = items.as_slice();
     let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
     AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(byte_str_slice.into())
-        .to_bytes()
+        .map(|s| s.to_bytes())
 }
 
-pub fn make6_byte_slice<'a>(items: &[(&'a [u8], usize)]) -> Vec<u8> {
+pub fn make6_byte_slice<'a>(items: &[(&'a [u8], usize)]) -> Result<Vec<u8>, Error> {
     let byte_str_slice = ByteStr::from_byte_slice_with_value(items);
-    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(byte_str_slice.into())
-        .to_bytes()
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(byte_str_slice.into()).map(|s| s.to_bytes())
 }

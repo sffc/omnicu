@@ -28,12 +28,6 @@ const P_REAL_MAX: u8 = 15;
 const Q_FAST_MAX: u8 = 95;
 const Q_REAL_MAX: u8 = 127;
 
-#[non_exhaustive]
-#[derive(Debug)]
-pub enum Error {
-    CouldNotSolve,
-}
-
 /// Like slice::split_at but returns an Option instead of panicking
 #[inline]
 fn debug_split_at(slice: &[u8], mid: usize) -> Option<(&[u8], &[u8])> {

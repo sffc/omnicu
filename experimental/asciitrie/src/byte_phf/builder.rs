@@ -2,10 +2,10 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use super::*;
+use crate::error::Error;
 use alloc::vec;
 use alloc::vec::Vec;
-
-use super::*;
 
 #[allow(unused_labels)] // for readability
 pub fn find(bytes: &[u8]) -> Result<(u8, Vec<u8>), Error> {
@@ -66,7 +66,7 @@ pub fn find(bytes: &[u8]) -> Result<(u8, Vec<u8>), Error> {
                                 continue 'p_loop;
                             } else if p == P_REAL_MAX {
                                 // println!("Could not solve PHF function");
-                                return Err(Error::CouldNotSolve);
+                                return Err(Error::CouldNotSolvePerfectHash);
                             } else {
                                 p += 1;
                                 continue 'p_loop;

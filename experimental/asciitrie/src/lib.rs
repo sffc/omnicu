@@ -15,6 +15,7 @@ extern crate alloc;
 mod alloc_impls;
 mod builder;
 pub mod byte_phf;
+mod error;
 pub mod reader;
 pub mod reader2;
 pub mod reader3;
@@ -41,4 +42,5 @@ pub use builder::{
     make4_litemap, make4_slice, make5_litemap, make5_slice, make6_byte_litemap, make6_byte_slice,
     make6_litemap, make6_slice,
 };
+pub use error::Error as AsciiTrieError;
 pub use trie::AsciiTrie;

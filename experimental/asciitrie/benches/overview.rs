@@ -214,7 +214,7 @@ fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(
     });
 
     g.bench_function("AsciiTrie6", |b| {
-        let trie6 = asciitrie::make6_litemap(&litemap);
+        let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
         b.iter(|| {
             for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = asciitrie::reader6::get(black_box(&trie6), key.as_bytes());
