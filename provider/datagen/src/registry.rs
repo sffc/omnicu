@@ -19,7 +19,6 @@ use icu_plurals::provider::*;
 use icu_properties::provider::bidi_data::BidiAuxiliaryPropertiesV1Marker;
 use icu_properties::provider::*;
 use icu_provider::hello_world::HelloWorldV1Marker;
-use icu_provider_adapters::fallback::provider::*;
 use icu_relativetime::provider::*;
 use icu_segmenter::provider::*;
 use icu_timezone::provider::*;
@@ -63,6 +62,7 @@ macro_rules! registry {
             ]
         );
 
+        #[cfg(feature = "provider_baked")]
         pub(crate) fn key_to_marker_bake(key: DataKey, env: &databake::CrateEnv) -> databake::TokenStream {
             use databake::Bake;
             // This is a bit naughty, we need the marker's type, but we're actually
@@ -280,7 +280,9 @@ registry!(
         RegionDisplayNamesV1Marker,
         LanguageDisplayNamesV1Marker,
         LocaleDisplayNamesV1Marker,
+        ScriptDirectionV1Marker,
         ScriptDisplayNamesV1Marker,
+        VariantDisplayNamesV1Marker,
         LongSecondRelativeTimeFormatDataV1Marker,
         ShortSecondRelativeTimeFormatDataV1Marker,
         NarrowSecondRelativeTimeFormatDataV1Marker,

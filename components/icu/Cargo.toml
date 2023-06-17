@@ -6,10 +6,12 @@
 name = "icu"
 description = "International Components for Unicode"
 version = "1.2.0"
+rust-version = "1.61.0"
 authors = ["The ICU4X Project Developers"]
 edition = "2021"
 readme = "README.md"
 repository = "https://github.com/unicode-org/icu4x"
+homepage = "https://icu4x.unicode.org"
 license = "Unicode-DFS-2016"
 categories = ["internationalization"]
 # Keep this in sync with other crates unless there are exceptions
@@ -94,6 +96,10 @@ serde = [
     "icu_segmenter/serde",
     "icu_timezone/serde",
 ]
+data = [
+    "icu_list/data",
+    "icu_plurals/data",
+]
 serde_human = [
     "icu_list/serde_human"
 ]
@@ -102,10 +108,12 @@ icu_datetime_experimental = [
 ]
 experimental = [
     "icu_casemapping",
+    "icu_compactdecimal",
     "icu_datetime_experimental",
     "icu_displaynames",
+    "icu_locid_transform/experimental",
+    "icu_plurals/experimental",
     "icu_relativetime",
-    "icu_compactdecimal",
 ]
 
 [package.metadata.cargo-all-features]

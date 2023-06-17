@@ -23,6 +23,17 @@ use icu_provider::DataMarker;
 mod serde_dfa;
 pub use serde_dfa::SerdeDFA;
 
+#[cfg(feature = "data")]
+pub(crate) struct Baked;
+
+#[cfg(feature = "data")]
+const _: () = {
+    use crate as icu_list;
+    icu_list_data::impl_list_and_v1!(Baked);
+    icu_list_data::impl_list_or_v1!(Baked);
+    icu_list_data::impl_list_unit_v1!(Baked);
+};
+
 /// Symbols and metadata required for [`ListFormatter`](crate::ListFormatter).
 ///
 /// <div class="stab unstable">
@@ -245,7 +256,7 @@ impl databake::Bake for ListJoinerPattern<'_> {
         let string = (&*self.string).bake(env);
         let index_1 = self.index_1.bake(env);
         databake::quote! {
-            ::icu_list::provider::ListJoinerPattern::from_parts(#string, #index_1)
+            icu_list::provider::ListJoinerPattern::from_parts(#string, #index_1)
         }
     }
 }

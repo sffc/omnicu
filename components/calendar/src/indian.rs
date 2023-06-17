@@ -49,12 +49,12 @@ use tinystr::tinystr;
 /// # Era codes
 ///
 /// This calendar has a single era: `"saka"`, with Saka 0 being 78 CE. Dates before this era use negative years.
-#[derive(Copy, Clone, Debug, Hash, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, Default, Eq, PartialEq, PartialOrd, Ord)]
 #[allow(clippy::exhaustive_structs)] // this type is stable
 pub struct Indian;
 
 /// The inner date type used for representing [`Date`]s of [`Indian`]. See [`Date`] and [`Indian`] for more details.
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct IndianDateInner(ArithmeticDate<Indian>);
 
 impl CalendarArithmetic for Indian {
@@ -80,6 +80,10 @@ impl CalendarArithmetic for Indian {
 
     fn is_leap_year(year: i32) -> bool {
         Iso::is_leap_year(year + 78)
+    }
+
+    fn last_month_day_in_year(_year: i32) -> (u8, u8) {
+        (12, 30)
     }
 
     fn days_in_provided_year(year: i32) -> u32 {

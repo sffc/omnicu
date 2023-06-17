@@ -92,10 +92,21 @@ pub mod versions {
     /// # Examples
     ///
     /// ```
-    /// assert_eq!("release-73-1", icu_testdata::versions::icu_tag());
+    /// assert_eq!("icu4x/2023-05-02/73.x", icu_testdata::versions::icu_tag());
     /// ```
     pub fn icu_tag() -> alloc::string::String {
         alloc::string::String::from(super::metadata::ICUEXPORT_TAG)
+    }
+
+    /// Gets the segmenter LSTM tag used as the test data source
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// assert_eq!("v0.1.0", icu_testdata::versions::segmenter_lstm_tag());
+    /// ```
+    pub fn segmenter_lstm_tag() -> alloc::string::String {
+        alloc::string::String::from(super::metadata::SEGMENTER_LSTM_TAG)
     }
 }
 
@@ -124,6 +135,7 @@ use icu_provider_adapters::fallback::LocaleFallbackProvider;
 /// The return type of this method is not considered stable, mirroring the unstable trait
 /// bounds of the constructors. For matching versions of `icu` and `icu_testdata`, however,
 /// these are guaranteed to match.
+#[cfg(feature = "icu_locid_transform")]
 pub fn unstable() -> LocaleFallbackProvider<UnstableDataProvider> {
     // The statically compiled data file is valid.
     #[allow(clippy::unwrap_used)]
@@ -140,6 +152,7 @@ pub fn unstable_no_fallback() -> UnstableDataProvider {
 }
 
 /// An [`AnyProvider`] backed by baked data.
+#[cfg(feature = "icu_locid_transform")]
 pub fn any() -> impl AnyProvider {
     // The baked data is valid.
     #[allow(clippy::unwrap_used)]
@@ -156,6 +169,7 @@ pub fn any_no_fallback() -> impl AnyProvider {
 /// This deserializes a large data blob from static memory, please cache the result if you
 /// are calling this repeatedly and care about performance
 #[cfg(feature = "buffer")]
+#[cfg(feature = "icu_locid_transform")]
 pub fn buffer() -> impl BufferProvider {
     // The statically compiled data file is valid.
     #[allow(clippy::unwrap_used)]
