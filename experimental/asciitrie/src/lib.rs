@@ -29,6 +29,7 @@ mod trie;
 mod varinta;
 mod varintb;
 mod varintx;
+mod zerotrie;
 #[cfg(feature = "zerovec")]
 mod zerovec;
 
