@@ -28,16 +28,6 @@ fn test_basic() {
             None => panic!("value should be in trie: {:?} => {}", key, expected),
         };
         assert_eq!(*expected, actual);
-        let actual2 = match asciitrie::reader2::get(trie2, key.as_bytes()) {
-            Some(v) => v,
-            None => panic!("value should be in trie2: {:?} => {}", key, expected),
-        };
-        assert_eq!(*expected, actual2);
-        let actual3 = match asciitrie::reader3::get(trie3, key.as_bytes()) {
-            Some(v) => v,
-            None => panic!("value should be in trie3: {:?} => {}", key, expected),
-        };
-        assert_eq!(*expected, actual3);
         let actual4 = match asciitrie::reader4::get(trie4, key.as_bytes()) {
             Some(v) => v,
             None => panic!("value should be in trie4: {:?} => {}", key, expected),
