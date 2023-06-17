@@ -176,7 +176,13 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             } else {
                 (x, 0)
             };
-            // FIXME: This function is 10% faster if we assert a max on w. Discuss what to do.
+            // DISCUSS: This function is 7% faster *on aarch64* if we assert a max on w.
+            //
+            // | Bench         | No Assert, x86_64 | No Assert, aarch64 | Assertion, x86_64 | Assertion, aarch64 |
+            // |---------------|-------------------|--------------------|-------------------|--------------------|
+            // | basic         | ~187.51 ns        | ~97.586 ns         | ~199.11 ns        | ~99.236 ns         |
+            // | subtags_10pct | ~9.5557 µs        | ~4.8696 µs         | ~9.5779 µs        | ~4.5649 µs         |
+            // | subtags_full  | ~137.75 µs        | ~76.016 µs         | ~142.02 µs        | ~70.254 µs         |
             debug_assert!(w <= 3, "get: w > 3 but we assume w <= 3");
             let w = w & 0x3;
             let x = if x == 0 { 256 } else { x };
