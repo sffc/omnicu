@@ -24,7 +24,7 @@ fn get_basic_bench(c: &mut Criterion) {
     let trie6 = testdata::basic::TRIE6;
     let data = testdata::basic::DATA;
 
-    g.bench_function("AsciiTrie", |b| {
+    g.bench_function("AsciiTrie1", |b| {
         let trie = AsciiTrie::from_bytes(&trie);
         b.iter(|| {
             for (key, expected) in black_box(data) {
@@ -162,7 +162,7 @@ fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(
     strings: &[&str],
     litemap: LiteMap<&asciitrie::AsciiStr, usize>,
 ) {
-    g.bench_function("AsciiTrie", |b| {
+    g.bench_function("AsciiTrie1", |b| {
         let trie1b = asciitrie::make1b_litemap(&litemap);
         let trie = AsciiTrie::from_bytes(&trie1b);
         b.iter(|| {
