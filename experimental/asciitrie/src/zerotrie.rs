@@ -5,6 +5,9 @@
 use crate::reader::get as get1;
 use crate::reader6::get as get6;
 
+use core::borrow::Borrow;
+use ref_cast::RefCast;
+
 pub struct ZeroTrie<S>(ZeroTrieInner<S>);
 
 enum ZeroTrieInner<S> {
@@ -20,10 +23,16 @@ pub struct ZeroTrieSimpleAscii<S: ?Sized> {
     pub(crate) store: S,
 }
 
+#[repr(transparent)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(ref_cast::RefCast)]
 pub struct ZeroTriePerfectHash<S: ?Sized> {
     pub(crate) store: S,
 }
 
+#[repr(transparent)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(ref_cast::RefCast)]
 pub struct ZeroTrieExtendedCapacity<S: ?Sized> {
     pub(crate) store: S,
 }
@@ -59,6 +68,20 @@ macro_rules! impl_zerotrie_subtype {
             }
             pub fn as_bytes(&self) -> &[u8] {
                 self.store.as_ref()
+            }
+            pub fn as_borrowed(&self) -> &$name<[u8]> {
+                $name::from_bytes(self.store.as_ref())
+            }
+        }
+        impl $name<[u8]> {
+            pub fn from_bytes(trie: &[u8]) -> &Self {
+                Self::ref_cast(trie)
+            }
+        }
+        // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
+        impl Borrow<$name<[u8]>> for $name<&[u8]> {
+            fn borrow(&self) -> &$name<[u8]> {
+                self.as_borrowed()
             }
         }
     };

@@ -20,7 +20,6 @@ pub mod reader;
 pub mod reader4;
 pub mod reader5;
 pub mod reader6;
-mod ref_cast;
 #[cfg(feature = "serde")]
 mod serde;
 mod varinta;
