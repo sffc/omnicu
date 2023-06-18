@@ -28,11 +28,11 @@ pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;
 
-use super::AsciiTrie;
+use super::ZeroTrieSimpleAscii;
 use builder::AsciiTrieBuilder;
 
-impl<const N: usize> AsciiTrie<[u8; N]> {
-    /// **Const Constructor:** Creates an [`AsciiTrie`] from a sorted slice of keys and values.
+impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
+    /// **Const Constructor:** Creates an [`ZeroTrieSimpleAscii`] from a sorted slice of keys and values.
     ///
     /// This function needs to know the exact length of the resulting trie at compile time.
     ///
@@ -44,13 +44,13 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     ///
     /// # Examples
     ///
-    /// Create a `const` AsciiTrie at compile time:
+    /// Create a `const` ZeroTrieSimpleAscii at compile time:
     ///
     /// ```
-    /// use asciitrie::{AsciiTrie, AsciiStr};
+    /// use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
     ///
     /// // The required capacity for this trie happens to be 19 bytes
-    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_asciistr_value_slice(&[
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 19]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
@@ -65,8 +65,8 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     /// Panics if strings are not sorted:
     ///
     /// ```compile_fail
-    /// # use asciitrie::{AsciiTrie, AsciiStr};
-    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_asciistr_value_slice(&[
+    /// # use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 19]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
@@ -76,8 +76,8 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     /// Panics if capacity is too small:
     ///
     /// ```compile_fail
-    /// # use asciitrie::{AsciiTrie, AsciiStr};
-    /// const TRIE: AsciiTrie<[u8; 15]> = AsciiTrie::from_asciistr_value_slice(&[
+    /// # use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 15]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
@@ -87,8 +87,8 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     /// Panics if capacity is too large:
     ///
     /// ```compile_fail
-    /// # use asciitrie::{AsciiTrie, AsciiStr};
-    /// const TRIE: AsciiTrie<[u8; 20]> = AsciiTrie::from_asciistr_value_slice(&[
+    /// # use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 20]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
@@ -98,7 +98,7 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
         AsciiTrieBuilder::<N>::from_tuple_slice(items).into_ascii_trie_or_panic()
     }
 
-    /// **Const Constructor:** Creates an [`AsciiTrie`] from a sorted slice of keys and values.
+    /// **Const Constructor:** Creates an [`ZeroTrieSimpleAscii`] from a sorted slice of keys and values.
     ///
     /// This function needs to know the exact length of the resulting trie at compile time.
     ///
@@ -111,13 +111,13 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     ///
     /// # Examples
     ///
-    /// Create a `const` AsciiTrie at compile time:
+    /// Create a `const` ZeroTrieSimpleAscii at compile time:
     ///
     /// ```
-    /// use asciitrie::{AsciiTrie, AsciiStr};
+    /// use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
     ///
     /// // The required capacity for this trie happens to be 19 bytes
-    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_str_value_array([
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 19]> = ZeroTrieSimpleAscii::from_str_value_array([
     ///     ("bar", 2),
     ///     ("bazzoo", 3),
     ///     ("foo", 1),
@@ -132,8 +132,8 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
     /// Panics if the strings are not ASCII:
     ///
     /// ```compile_fail
-    /// # use asciitrie::{AsciiTrie, AsciiStr};
-    /// const TRIE: AsciiTrie<[u8; 19]> = AsciiTrie::from_str_value_array([
+    /// # use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 19]> = ZeroTrieSimpleAscii::from_str_value_array([
     ///     ("bár", 2),
     ///     ("båzzöo", 3),
     ///     ("foo", 1),
@@ -152,14 +152,14 @@ impl<const N: usize> AsciiTrie<[u8; N]> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'a> FromIterator<(&'a AsciiStr, usize)> for AsciiTrie<Vec<u8>> {
+impl<'a> FromIterator<(&'a AsciiStr, usize)> for ZeroTrieSimpleAscii<Vec<u8>> {
     /// ***Enable this function with the `"alloc"` feature.***
     ///
     /// ```
     /// use asciitrie::AsciiStr;
-    /// use asciitrie::AsciiTrie;
+    /// use asciitrie::ZeroTrieSimpleAscii;
     ///
-    /// let trie: AsciiTrie<Vec<u8>> = [
+    /// let trie: ZeroTrieSimpleAscii<Vec<u8>> = [
     ///     ("foo", 1),
     ///     ("bar", 2),
     ///     ("bazzoo", 3),

@@ -4,7 +4,7 @@
 
 use crate::varint::read_varint;
 #[cfg(feature = "alloc")]
-use crate::{builder::AsciiByte, AsciiStr, AsciiTrie};
+use crate::{builder::AsciiByte, AsciiStr};
 #[cfg(feature = "alloc")]
 use alloc::{boxed::Box, vec::Vec};
 use core::ops::Range;
@@ -146,9 +146,9 @@ pub(crate) struct AsciiTrieIterator<'a> {
 
 #[cfg(feature = "alloc")]
 impl<'a> AsciiTrieIterator<'a> {
-    pub fn new<S: AsRef<[u8]> + ?Sized>(trie: &'a AsciiTrie<S>) -> Self {
+    pub fn new<S: AsRef<[u8]> + ?Sized>(store: &'a S) -> Self {
         AsciiTrieIterator {
-            state: alloc::vec![(trie.as_bytes(), alloc::vec![], 0)],
+            state: alloc::vec![(store.as_ref(), alloc::vec![], 0)],
         }
     }
 }

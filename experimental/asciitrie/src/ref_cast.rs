@@ -2,28 +2,28 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::AsciiTrie;
+use crate::ZeroTrieSimpleAscii;
 use core::borrow::Borrow;
 use ref_cast::RefCast;
 
-impl AsciiTrie<[u8]> {
+impl ZeroTrieSimpleAscii<[u8]> {
     pub fn from_bytes(trie: &[u8]) -> &Self {
         Self::ref_cast(trie)
     }
 }
 
 // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
-impl Borrow<AsciiTrie<[u8]>> for AsciiTrie<&[u8]> {
-    fn borrow(&self) -> &AsciiTrie<[u8]> {
+impl Borrow<ZeroTrieSimpleAscii<[u8]>> for ZeroTrieSimpleAscii<&[u8]> {
+    fn borrow(&self) -> &ZeroTrieSimpleAscii<[u8]> {
         self.as_borrowed()
     }
 }
 
-impl<S> AsciiTrie<S>
+impl<S> ZeroTrieSimpleAscii<S>
 where
     S: AsRef<[u8]> + ?Sized,
 {
-    pub fn as_borrowed(&self) -> &AsciiTrie<[u8]> {
-        AsciiTrie::from_bytes(self.0.as_ref())
+    pub fn as_borrowed(&self) -> &ZeroTrieSimpleAscii<[u8]> {
+        ZeroTrieSimpleAscii::from_bytes(self.store.as_ref())
     }
 }

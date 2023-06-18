@@ -23,7 +23,6 @@ pub mod reader6;
 mod ref_cast;
 #[cfg(feature = "serde")]
 mod serde;
-mod trie;
 mod varinta;
 mod varintx;
 mod zerotrie;
@@ -41,8 +40,6 @@ pub use builder::{
     make6_litemap, make6_slice,
 };
 pub use error::Error as AsciiTrieError;
-pub use trie::AsciiTrie;
-
 pub use zerotrie::ZeroTrie;
 pub use zerotrie::ZeroTrieSimpleAscii;
 pub use zerotrie::ZeroTriePerfectHash;

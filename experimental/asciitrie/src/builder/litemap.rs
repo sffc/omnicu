@@ -10,15 +10,15 @@ use crate::builder::bytestr::ByteStr;
 use crate::builder::AsciiTrieBuilder;
 use crate::error::Error;
 use crate::AsciiStr;
-use crate::AsciiTrie;
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use litemap::LiteMap;
+use crate::zerotrie::ZeroTrieSimpleAscii;
 
-impl AsciiTrie<Vec<u8>> {
-    /// Creates an [`AsciiTrie`] from a [`LiteMap`] mapping from [`AsciiStr`] to `usize`.
+impl ZeroTrieSimpleAscii<Vec<u8>> {
+    /// Creates an [`ZeroTrieSimpleAscii`] from a [`LiteMap`] mapping from [`AsciiStr`] to `usize`.
     ///
     /// ***Enable this function with the `"litemap"` feature.***
     ///
@@ -26,7 +26,7 @@ impl AsciiTrie<Vec<u8>> {
     ///
     /// ```
     /// use asciitrie::AsciiStr;
-    /// use asciitrie::AsciiTrie;
+    /// use asciitrie::ZeroTrieSimpleAscii;
     /// use litemap::LiteMap;
     ///
     /// let mut map = LiteMap::new_vec();
@@ -34,7 +34,7 @@ impl AsciiTrie<Vec<u8>> {
     /// map.insert(AsciiStr::try_from_str("bar")?, 2);
     /// map.insert(AsciiStr::try_from_str("bazzoo")?, 3);
     ///
-    /// let trie = AsciiTrie::from_litemap(&map);
+    /// let trie = ZeroTrieSimpleAscii::from_litemap(&map);
     ///
     /// assert_eq!(trie.get(b"foo"), Some(1));
     /// assert_eq!(trie.get(b"bar"), Some(2));
@@ -56,13 +56,14 @@ impl AsciiTrie<Vec<u8>> {
         /// ```
         const _: () = ();
 
-        AsciiTrieBuilder::<2048>::from_sorted_const_tuple_slice(items.as_slice().into())
-            .to_ascii_trie()
-            .to_owned()
+        Self {
+            store: AsciiTrieBuilder::<2048>::from_sorted_const_tuple_slice(items.as_slice().into())
+            .as_bytes().to_vec()
+        }
     }
 }
 
-impl<S> AsciiTrie<S>
+impl<S> ZeroTrieSimpleAscii<S>
 where
     S: AsRef<[u8]> + ?Sized,
 {
@@ -72,17 +73,17 @@ where
     ///
     /// ```
     /// use asciitrie::AsciiStr;
-    /// use asciitrie::AsciiTrie;
+    /// use asciitrie::ZeroTrieSimpleAscii;
     /// use litemap::LiteMap;
     ///
-    /// let trie = AsciiTrie::from_bytes(b"abc\x81def\x82");
+    /// let trie = ZeroTrieSimpleAscii::from_bytes(b"abc\x81def\x82");
     /// let items = trie.to_litemap();
     ///
     /// assert_eq!(items.len(), 2);
     /// assert_eq!(items.get("abc"), Some(&1));
     /// assert_eq!(items.get("abcdef"), Some(&2));
     ///
-    /// let recovered_trie = AsciiTrie::from_litemap(
+    /// let recovered_trie = ZeroTrieSimpleAscii::from_litemap(
     ///     &items.to_borrowed_keys::<_, Vec<_>>()
     /// );
     /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
@@ -92,7 +93,7 @@ where
     }
 }
 
-impl<'a, S> From<LiteMap<&'a AsciiStr, usize, S>> for AsciiTrie<Vec<u8>>
+impl<'a, S> From<LiteMap<&'a AsciiStr, usize, S>> for ZeroTrieSimpleAscii<Vec<u8>>
 where
     S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
 {
@@ -101,7 +102,7 @@ where
     }
 }
 
-impl<'a, S> From<&LiteMap<&'a AsciiStr, usize, S>> for AsciiTrie<Vec<u8>>
+impl<'a, S> From<&LiteMap<&'a AsciiStr, usize, S>> for ZeroTrieSimpleAscii<Vec<u8>>
 where
     S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
 {

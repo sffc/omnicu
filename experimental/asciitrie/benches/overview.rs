@@ -2,7 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use asciitrie::AsciiTrie;
+use asciitrie::ZeroTrieSimpleAscii;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use litemap::LiteMap;
 use std::collections::HashMap;
@@ -23,7 +23,7 @@ fn get_basic_bench(c: &mut Criterion) {
     let data = testdata::basic::DATA;
 
     g.bench_function("AsciiTrie1", |b| {
-        let trie = AsciiTrie::from_bytes(&trie);
+        let trie = ZeroTrieSimpleAscii::from_bytes(&trie);
         b.iter(|| {
             for (key, expected) in black_box(data) {
                 let actual = black_box(&trie).get(key.as_bytes());
@@ -144,7 +144,7 @@ fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(
 ) {
     g.bench_function("AsciiTrie1", |b| {
         let trie1b = asciitrie::make1b_litemap(&litemap);
-        let trie = AsciiTrie::from_bytes(&trie1b);
+        let trie = ZeroTrieSimpleAscii::from_bytes(&trie1b);
         b.iter(|| {
             for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = black_box(&trie).get(key.as_bytes());

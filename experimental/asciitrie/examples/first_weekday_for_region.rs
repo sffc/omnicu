@@ -2,13 +2,13 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-// This example demonstrates the use of AsciiTrie to look up data based on a region code.
+// This example demonstrates the use of ZeroTrieSimpleAscii to look up data based on a region code.
 
 #![no_main] // https://github.com/unicode-org/icu4x/issues/395
 #![allow(dead_code)]
 
 use asciitrie::AsciiStr;
-use asciitrie::AsciiTrie;
+use asciitrie::ZeroTrieSimpleAscii;
 
 icu_benchmark_macros::static_setup!();
 
@@ -173,7 +173,7 @@ static DATA: &[(&AsciiStr, usize)] = &[
     (AsciiStr::from_str_or_panic("ZA"), weekday::SUN),
     (AsciiStr::from_str_or_panic("ZW"), weekday::SUN),
 ];
-static TRIE: AsciiTrie<[u8; 561]> = AsciiTrie::from_asciistr_value_slice(DATA);
+static TRIE: ZeroTrieSimpleAscii<[u8; 561]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(DATA);
 
 static TRIE4: [u8; 610] = [
     219, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 0, 15, 0, 81,
@@ -246,7 +246,7 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     icu_benchmark_macros::main_setup!();
 
     // {
-    //     if AsciiTrie::get(black_box(&TRIE), b"MV") == Some(weekday::FRI) {
+    //     if ZeroTrieSimpleAscii::get(black_box(&TRIE), b"MV") == Some(weekday::FRI) {
     //         return 0;
     //     } else {
     //         return 1;

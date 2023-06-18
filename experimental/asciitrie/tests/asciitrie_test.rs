@@ -2,7 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use asciitrie::AsciiTrie;
+use asciitrie::ZeroTrieSimpleAscii;
 use postcard::ser_flavors::{AllocVec, Flavor};
 use serde::Serialize;
 use zerovec::ZeroMap;
@@ -21,7 +21,7 @@ fn test_basic() {
 
     // Check that the getter works
     for (key, expected) in data {
-        let actual = match AsciiTrie::from_bytes(trie).get(key.as_bytes()) {
+        let actual = match ZeroTrieSimpleAscii::from_bytes(trie).get(key.as_bytes()) {
             Some(v) => v,
             None => panic!("value should be in trie: {:?} => {}", key, expected),
         };

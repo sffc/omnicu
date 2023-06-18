@@ -9,22 +9,28 @@ use super::store::ConstStackChildrenStore;
 use super::AsciiByte;
 use super::AsciiStr;
 use crate::varint;
-use crate::AsciiTrie;
+use crate::ZeroTrieSimpleAscii;
 
-/// A low-level builder for AsciiTrie.
+/// A low-level builder for ZeroTrieSimpleAscii.
 pub(crate) struct AsciiTrieBuilder<const N: usize> {
     data: ConstAsciiTrieBuilderStore<N>,
 }
 
 impl<const N: usize> AsciiTrieBuilder<N> {
     #[cfg(feature = "alloc")]
-    pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
+    pub fn to_ascii_trie(&mut self) -> ZeroTrieSimpleAscii<&[u8]> {
         let slice = self.data.atbs_as_bytes();
-        AsciiTrie(slice.as_slice())
+        ZeroTrieSimpleAscii { store: slice.as_slice() }
     }
 
-    pub const fn into_ascii_trie_or_panic(self) -> AsciiTrie<[u8; N]> {
-        AsciiTrie(self.data.take_or_panic())
+    #[cfg(feature = "alloc")]
+    pub fn as_bytes(&mut self) -> &[u8] {
+        let slice = self.data.atbs_as_bytes();
+        slice.as_slice()
+    }
+
+    pub const fn into_ascii_trie_or_panic(self) -> ZeroTrieSimpleAscii<[u8; N]> {
+        ZeroTrieSimpleAscii { store: self.data.take_or_panic() }
     }
 
     pub const fn new() -> Self {

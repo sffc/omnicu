@@ -3,7 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::AsciiStr;
-use crate::AsciiTrie;
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -16,6 +15,7 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
+use crate::ZeroTrieSimpleAscii;
 
 #[cfg(feature = "zerovec")]
 use zerovec::ZeroVec;
@@ -95,7 +95,7 @@ impl<'de> Visitor<'de> for BytesVisitor {
     }
 }
 
-impl<'de, 'data> Deserialize<'de> for AsciiTrie<Cow<'data, [u8]>>
+impl<'de, 'data> Deserialize<'de> for ZeroTrieSimpleAscii<Cow<'data, [u8]>>
 where
     'de: 'data,
 {
@@ -106,17 +106,17 @@ where
         if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            let trie_vec = AsciiTrie::from_litemap(&lm);
+            let trie_vec = ZeroTrieSimpleAscii::from_litemap(&lm);
             Ok(trie_vec.wrap_bytes_into_cow())
         } else {
             let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
-            let trie_slice = AsciiTrie::from_bytes(bytes);
+            let trie_slice = ZeroTrieSimpleAscii { store: bytes };
             Ok(trie_slice.wrap_bytes_into_cow())
         }
     }
 }
 
-impl<'data> Serialize for AsciiTrie<Cow<'data, [u8]>> {
+impl<'data> Serialize for ZeroTrieSimpleAscii<Cow<'data, [u8]>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -132,7 +132,7 @@ impl<'data> Serialize for AsciiTrie<Cow<'data, [u8]>> {
 }
 
 #[cfg(feature = "zerovec")]
-impl<'de, 'data> Deserialize<'de> for AsciiTrie<ZeroVec<'data, u8>>
+impl<'de, 'data> Deserialize<'de> for ZeroTrieSimpleAscii<ZeroVec<'data, u8>>
 where
     'de: 'data,
 {
@@ -143,19 +143,19 @@ where
         if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            let trie_vec = AsciiTrie::from_litemap(&lm);
-            let zv = ZeroVec::new_owned(trie_vec.0);
-            Ok(AsciiTrie(zv))
+            let trie_vec = ZeroTrieSimpleAscii::from_litemap(&lm);
+            let zv = ZeroVec::new_owned(trie_vec.store);
+            Ok(ZeroTrieSimpleAscii { store: zv })
         } else {
             let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
             let zv = ZeroVec::new_borrowed(bytes);
-            Ok(AsciiTrie(zv))
+            Ok(ZeroTrieSimpleAscii { store: zv })
         }
     }
 }
 
 #[cfg(feature = "zerovec")]
-impl<'data> Serialize for AsciiTrie<ZeroVec<'data, u8>> {
+impl<'data> Serialize for ZeroTrieSimpleAscii<ZeroVec<'data, u8>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -181,23 +181,23 @@ mod tests {
     use super::*;
 
     #[derive(Serialize, Deserialize)]
-    pub struct AsciiTrieCow<'a> {
+    pub struct ZeroTrieSimpleAsciiCow<'a> {
         #[serde(borrow)]
-        trie: AsciiTrie<Cow<'a, [u8]>>,
+        trie: ZeroTrieSimpleAscii<Cow<'a, [u8]>>,
     }
 
     #[test]
     pub fn test_serde_cow() {
-        let trie = AsciiTrie::from_store(Cow::from(testdata::basic::TRIE));
-        let original = AsciiTrieCow { trie };
+        let trie = ZeroTrieSimpleAscii::from_store(Cow::from(testdata::basic::TRIE));
+        let original = ZeroTrieSimpleAsciiCow { trie };
         let json_str = serde_json::to_string(&original).unwrap();
         let bincode_bytes = bincode::serialize(&original).unwrap();
 
         assert_eq!(json_str, testdata::basic::JSON_STR);
         assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES);
 
-        let json_recovered: AsciiTrieCow = serde_json::from_str(&json_str).unwrap();
-        let bincode_recovered: AsciiTrieCow = bincode::deserialize(&bincode_bytes).unwrap();
+        let json_recovered: ZeroTrieSimpleAsciiCow = serde_json::from_str(&json_str).unwrap();
+        let bincode_recovered: ZeroTrieSimpleAsciiCow = bincode::deserialize(&bincode_bytes).unwrap();
 
         assert_eq!(original.trie, json_recovered.trie);
         assert_eq!(original.trie, bincode_recovered.trie);
@@ -216,23 +216,23 @@ mod tests_zerovec {
     use super::*;
 
     #[derive(Serialize, Deserialize)]
-    pub struct AsciiTrieZeroVec<'a> {
+    pub struct ZeroTrieSimpleAsciiZeroVec<'a> {
         #[serde(borrow)]
-        trie: AsciiTrie<ZeroVec<'a, u8>>,
+        trie: ZeroTrieSimpleAscii<ZeroVec<'a, u8>>,
     }
 
     #[test]
     pub fn test_serde_zerovec() {
-        let trie = AsciiTrie::from_store(ZeroVec::new_borrowed(testdata::basic::TRIE));
-        let original = AsciiTrieZeroVec { trie };
+        let trie = ZeroTrieSimpleAscii::from_store(ZeroVec::new_borrowed(testdata::basic::TRIE));
+        let original = ZeroTrieSimpleAsciiZeroVec { trie };
         let json_str = serde_json::to_string(&original).unwrap();
         let bincode_bytes = bincode::serialize(&original).unwrap();
 
         assert_eq!(json_str, testdata::basic::JSON_STR);
         assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES);
 
-        let json_recovered: AsciiTrieZeroVec = serde_json::from_str(&json_str).unwrap();
-        let bincode_recovered: AsciiTrieZeroVec = bincode::deserialize(&bincode_bytes).unwrap();
+        let json_recovered: ZeroTrieSimpleAsciiZeroVec = serde_json::from_str(&json_str).unwrap();
+        let bincode_recovered: ZeroTrieSimpleAsciiZeroVec = bincode::deserialize(&bincode_bytes).unwrap();
 
         assert_eq!(original.trie, json_recovered.trie);
         assert_eq!(original.trie, bincode_recovered.trie);

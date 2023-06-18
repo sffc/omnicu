@@ -13,16 +13,19 @@ enum ZeroTrieInner<S> {
     ExtendedCapacity(ZeroTrieExtendedCapacity<S>),
 }
 
+#[repr(transparent)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(ref_cast::RefCast)]
 pub struct ZeroTrieSimpleAscii<S: ?Sized> {
-    store: S,
+    pub(crate) store: S,
 }
 
 pub struct ZeroTriePerfectHash<S: ?Sized> {
-    store: S,
+    pub(crate) store: S,
 }
 
 pub struct ZeroTrieExtendedCapacity<S: ?Sized> {
-    store: S,
+    pub(crate) store: S,
 }
 
 macro_rules! impl_zerotrie_subtype {
@@ -30,6 +33,12 @@ macro_rules! impl_zerotrie_subtype {
         impl<S> $name<S> {
             pub fn into_zerotrie(self) -> ZeroTrie<S> {
                 ZeroTrie(ZeroTrieInner::$variant(self))
+            }
+            pub fn from_store(store: S) -> Self {
+                Self { store }
+            }
+            pub fn take_store(self) -> S {
+                self.store
             }
         }
         impl<S> $name<S>
