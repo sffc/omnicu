@@ -106,12 +106,13 @@ where
         if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            let trie_vec = ZeroTrieSimpleAscii::from_litemap(&lm);
-            Ok(trie_vec.wrap_bytes_into_cow())
+            let trie_vec = crate::builder::make1b_litemap(&lm);
+            let cow = Cow::Owned(trie_vec);
+            Ok(ZeroTrieSimpleAscii { store: cow })
         } else {
             let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
-            let trie_slice = ZeroTrieSimpleAscii { store: bytes };
-            Ok(trie_slice.wrap_bytes_into_cow())
+            let cow = Cow::Borrowed(bytes);
+            Ok(ZeroTrieSimpleAscii { store: cow })
         }
     }
 }

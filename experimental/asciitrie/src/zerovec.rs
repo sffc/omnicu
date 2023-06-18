@@ -4,27 +4,9 @@
 
 use crate::ZeroTrieSimpleAscii;
 use zerovec::ule::VarULE;
-use zerovec::ule::ULE;
 use zerovec::ZeroVecError;
 
 // TODO(#2778): Auto-derive these impls based on the repr(transparent).
-
-// Safety (based on the safety checklist on the ULE trait):
-//  1. ZeroTrieSimpleAscii<S> does not include any uninitialized or padding bytes (transparent over S, a ULE)
-//  2. ZeroTrieSimpleAscii<S> is aligned to 1 byte (transparent over S, a ULE)
-//  3. The impl of validate_byte_slice() returns an error if any byte is not valid (defers to S)
-//  4. The impl of validate_byte_slice() returns an error if there are extra bytes (defers to S)
-//  5. The other ULE methods use the default impl.
-//  6. CharULE byte equality is semantic equality
-unsafe impl<S> ULE for ZeroTrieSimpleAscii<S>
-where
-    S: ULE,
-{
-    #[inline]
-    fn validate_byte_slice(bytes: &[u8]) -> Result<(), ZeroVecError> {
-        S::validate_byte_slice(bytes)
-    }
-}
 
 // Safety (based on the safety checklist on the VarULE trait):
 //  1. ZeroTrieSimpleAscii<S> does not include any uninitialized or padding bytes (transparent over S, a VarULE)

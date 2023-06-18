@@ -5,7 +5,6 @@
 use crate::reader::AsciiTrieIterator;
 use crate::AsciiStr;
 use crate::ZeroTrieSimpleAscii;
-use alloc::borrow::Cow;
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -78,29 +77,5 @@ where
 
     pub fn iter(&self) -> impl Iterator<Item = (Box<AsciiStr>, usize)> + '_ {
         AsciiTrieIterator::new(self.as_bytes())
-    }
-}
-
-impl ZeroTrieSimpleAscii<Vec<u8>> {
-    pub fn wrap_bytes_into_cow(self) -> ZeroTrieSimpleAscii<Cow<'static, [u8]>> {
-        ZeroTrieSimpleAscii {
-            store: Cow::Owned(self.store),
-        }
-    }
-}
-
-impl ZeroTrieSimpleAscii<[u8]> {
-    pub fn wrap_bytes_into_cow<'a>(&'a self) -> ZeroTrieSimpleAscii<Cow<'a, [u8]>> {
-        ZeroTrieSimpleAscii {
-            store: Cow::Borrowed(self.as_bytes()),
-        }
-    }
-}
-
-impl<'a> ZeroTrieSimpleAscii<&'a [u8]> {
-    pub fn wrap_bytes_into_cow(self) -> ZeroTrieSimpleAscii<Cow<'a, [u8]>> {
-        ZeroTrieSimpleAscii {
-            store: Cow::Borrowed(self.store),
-        }
     }
 }
