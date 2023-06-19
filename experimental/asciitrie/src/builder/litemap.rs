@@ -9,13 +9,13 @@ use crate::builder::builder6::AsciiTrieBuilder6;
 use crate::builder::bytestr::ByteStr;
 use crate::builder::AsciiTrieBuilder;
 use crate::error::Error;
+use crate::zerotrie::ZeroTrieSimpleAscii;
 use crate::AsciiStr;
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use litemap::LiteMap;
-use crate::zerotrie::ZeroTrieSimpleAscii;
 
 impl ZeroTrieSimpleAscii<Vec<u8>> {
     /// Creates an [`ZeroTrieSimpleAscii`] from a [`LiteMap`] mapping from [`AsciiStr`] to `usize`.
@@ -58,7 +58,8 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
 
         Self {
             store: AsciiTrieBuilder::<2048>::from_sorted_const_tuple_slice(items.as_slice().into())
-            .as_bytes().to_vec()
+                .as_bytes()
+                .to_vec(),
         }
     }
 }

@@ -3,6 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::AsciiStr;
+use crate::ZeroTrieSimpleAscii;
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -15,7 +16,6 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
-use crate::ZeroTrieSimpleAscii;
 
 #[cfg(feature = "zerovec")]
 use zerovec::ZeroVec;
@@ -198,7 +198,8 @@ mod tests {
         assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES);
 
         let json_recovered: ZeroTrieSimpleAsciiCow = serde_json::from_str(&json_str).unwrap();
-        let bincode_recovered: ZeroTrieSimpleAsciiCow = bincode::deserialize(&bincode_bytes).unwrap();
+        let bincode_recovered: ZeroTrieSimpleAsciiCow =
+            bincode::deserialize(&bincode_bytes).unwrap();
 
         assert_eq!(original.trie, json_recovered.trie);
         assert_eq!(original.trie, bincode_recovered.trie);
@@ -233,7 +234,8 @@ mod tests_zerovec {
         assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES);
 
         let json_recovered: ZeroTrieSimpleAsciiZeroVec = serde_json::from_str(&json_str).unwrap();
-        let bincode_recovered: ZeroTrieSimpleAsciiZeroVec = bincode::deserialize(&bincode_bytes).unwrap();
+        let bincode_recovered: ZeroTrieSimpleAsciiZeroVec =
+            bincode::deserialize(&bincode_bytes).unwrap();
 
         assert_eq!(original.trie, json_recovered.trie);
         assert_eq!(original.trie, bincode_recovered.trie);

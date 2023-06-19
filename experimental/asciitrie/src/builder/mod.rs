@@ -20,9 +20,8 @@ pub mod tstore;
 
 #[cfg(feature = "litemap")]
 pub use self::litemap::{
-    make1b_litemap, make1b_slice,
-    make4_litemap, make4_slice, make5_litemap, make5_slice, make6_byte_litemap, make6_byte_slice,
-    make6_litemap, make6_slice,
+    make1b_litemap, make1b_slice, make4_litemap, make4_slice, make5_litemap, make5_slice,
+    make6_byte_litemap, make6_byte_slice, make6_litemap, make6_slice,
 };
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;

@@ -17,22 +17,19 @@ enum ZeroTrieInner<S> {
 }
 
 #[repr(transparent)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-#[derive(ref_cast::RefCast)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
 pub struct ZeroTrieSimpleAscii<S: ?Sized> {
     pub(crate) store: S,
 }
 
 #[repr(transparent)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-#[derive(ref_cast::RefCast)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
 pub struct ZeroTriePerfectHash<S: ?Sized> {
     pub(crate) store: S,
 }
 
 #[repr(transparent)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-#[derive(ref_cast::RefCast)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
 pub struct ZeroTrieExtendedCapacity<S: ?Sized> {
     pub(crate) store: S,
 }

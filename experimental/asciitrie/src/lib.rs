@@ -34,12 +34,11 @@ pub use builder::AsciiStr;
 pub use builder::NonAsciiError;
 #[cfg(feature = "litemap")]
 pub use builder::{
-    make1b_litemap, make1b_slice,
-    make4_litemap, make4_slice, make5_litemap, make5_slice, make6_byte_litemap, make6_byte_slice,
-    make6_litemap, make6_slice,
+    make1b_litemap, make1b_slice, make4_litemap, make4_slice, make5_litemap, make5_slice,
+    make6_byte_litemap, make6_byte_slice, make6_litemap, make6_slice,
 };
 pub use error::Error as AsciiTrieError;
 pub use zerotrie::ZeroTrie;
-pub use zerotrie::ZeroTrieSimpleAscii;
-pub use zerotrie::ZeroTriePerfectHash;
 pub use zerotrie::ZeroTrieExtendedCapacity;
+pub use zerotrie::ZeroTriePerfectHash;
+pub use zerotrie::ZeroTrieSimpleAscii;
