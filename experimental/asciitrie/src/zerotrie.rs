@@ -153,6 +153,36 @@ macro_rules! impl_zerotrie_subtype {
                 )
             }
         }
+        #[cfg(feature = "litemap")]
+        impl<S> $name<S>
+        where
+            S: AsRef<[u8]> + ?Sized,
+        {
+            /// ***Enable this function with the `"litemap"` feature.***
+            ///
+            /// # Examples
+            ///
+            /// ```
+            /// use asciitrie::AsciiStr;
+            /// use asciitrie::$name;
+            /// use litemap::LiteMap;
+            ///
+            /// let trie = $name::from_bytes(b"abc\x81def\x82");
+            /// let items = trie.to_litemap();
+            ///
+            /// assert_eq!(items.len(), 2);
+            /// assert_eq!(items.get("abc"), Some(&1));
+            /// assert_eq!(items.get("abcdef"), Some(&2));
+            ///
+            /// let recovered_trie = $name::from_litemap(
+            ///     &items.to_borrowed_keys::<_, Vec<_>>()
+            /// );
+            /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
+            /// ```
+            pub fn to_litemap(&self) -> litemap::LiteMap<alloc::boxed::Box<$iter_ty>, usize> {
+                self.iter().collect()
+            }
+        }
     };
 }
 

@@ -12,7 +12,6 @@ use crate::error::Error;
 use crate::zerotrie::ZeroTrieSimpleAscii;
 use crate::AsciiStr;
 use alloc::borrow::ToOwned;
-use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use litemap::LiteMap;
@@ -61,36 +60,6 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
                 .as_bytes()
                 .to_vec(),
         )
-    }
-}
-
-impl<S> ZeroTrieSimpleAscii<S>
-where
-    S: AsRef<[u8]> + ?Sized,
-{
-    /// ***Enable this function with the `"litemap"` feature.***
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use asciitrie::AsciiStr;
-    /// use asciitrie::ZeroTrieSimpleAscii;
-    /// use litemap::LiteMap;
-    ///
-    /// let trie = ZeroTrieSimpleAscii::from_bytes(b"abc\x81def\x82");
-    /// let items = trie.to_litemap();
-    ///
-    /// assert_eq!(items.len(), 2);
-    /// assert_eq!(items.get("abc"), Some(&1));
-    /// assert_eq!(items.get("abcdef"), Some(&2));
-    ///
-    /// let recovered_trie = ZeroTrieSimpleAscii::from_litemap(
-    ///     &items.to_borrowed_keys::<_, Vec<_>>()
-    /// );
-    /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
-    /// ```
-    pub fn to_litemap(&self) -> LiteMap<Box<AsciiStr>, usize> {
-        self.iter().collect()
     }
 }
 
