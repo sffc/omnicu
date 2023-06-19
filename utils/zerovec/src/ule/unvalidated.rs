@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use core::borrow::Borrow;
 use super::{AsULE, RawBytesULE, VarULE};
 use crate::ule::EqULE;
 use crate::{map::ZeroMapKV, VarZeroSlice, VarZeroVec, ZeroVecError};
@@ -127,6 +128,18 @@ impl Deref for UnvalidatedStr {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl Borrow<[u8]> for UnvalidatedStr {
+    fn borrow(&self) -> &[u8] {
+        self.deref()
+    }
+}
+
+impl Borrow<[u8]> for Box<UnvalidatedStr> {
+    fn borrow(&self) -> &[u8] {
+        self.deref()
     }
 }
 
