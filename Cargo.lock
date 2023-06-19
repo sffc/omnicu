@@ -76,6 +76,7 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "criterion 0.3.6",
+ "displaydoc",
  "icu_benchmark_macros",
  "litemap",
  "postcard",
