@@ -11,8 +11,6 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "alloc")]
-mod alloc_impls;
 mod builder;
 pub mod byte_phf;
 mod error;

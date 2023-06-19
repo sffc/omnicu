@@ -114,6 +114,45 @@ macro_rules! impl_zerotrie_subtype {
                 self.as_borrowed()
             }
         }
+        // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
+        #[cfg(feature = "alloc")]
+        impl Borrow<$name<[u8]>> for $name<alloc::boxed::Box<[u8]>> {
+            fn borrow(&self) -> &$name<[u8]> {
+                self.as_borrowed()
+            }
+        }
+        // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
+        #[cfg(feature = "alloc")]
+        impl Borrow<$name<[u8]>> for $name<alloc::vec::Vec<u8>> {
+            fn borrow(&self) -> &$name<[u8]> {
+                self.as_borrowed()
+            }
+        }
+        #[cfg(feature = "alloc")]
+        impl alloc::borrow::ToOwned for $name<[u8]> {
+            type Owned = $name<alloc::boxed::Box<[u8]>>;
+            /// This impl allows [`$name`] to be used inside of a [`Cow`](std::borrow::Cow).
+            ///
+            /// Note that it is also possible to use `$name<ZeroVec<u8>>` for a similar result.
+            ///
+            /// ***Enable this impl with the `"alloc"` feature.***
+            ///
+            /// # Examples
+            ///
+            /// ```
+            /// use std::borrow::Cow;
+            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
+            ///
+            #[doc = concat!("let trie: Cow<", stringify!($name), "<[u8]>> = Cow::Borrowed(", stringify!($name), "::from_bytes(b\"abc\\x85\"));")]
+            /// assert_eq!(trie.get(b"abc"), Some(5));
+            /// ```
+            fn to_owned(&self) -> Self::Owned {
+                let bytes: &[u8] = self.store.as_ref();
+                $name {
+                    store: alloc::vec::Vec::from(bytes).into_boxed_slice(),
+                }
+            }
+        }
     };
 }
 
