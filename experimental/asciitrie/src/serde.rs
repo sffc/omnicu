@@ -4,6 +4,7 @@
 
 use crate::AsciiStr;
 use crate::ZeroTrieSimpleAscii;
+use crate::ZeroTriePerfectHash;
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -171,6 +172,52 @@ impl<'data> Serialize for ZeroTrieSimpleAscii<ZeroVec<'data, u8>> {
     }
 }
 
+impl<'de, 'data> Deserialize<'de> for ZeroTriePerfectHash<Cow<'data, [u8]>>
+where
+    'de: 'data,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        if deserializer.is_human_readable() {
+            let lm = LiteMap::<Box<[u8]>, usize>::deserialize(deserializer)?;
+            let lm = lm.to_borrowed_keys::<_, Vec<_>>();
+            let trie_vec = crate::builder::make6_byte_litemap(&lm).map_err(|e| D::Error::custom(e))?;
+            let cow = Cow::Owned(trie_vec);
+            Ok(ZeroTriePerfectHash::from_store(cow))
+        } else {
+            let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
+            let cow = Cow::Borrowed(bytes);
+            Ok(ZeroTriePerfectHash::from_store(cow))
+        }
+    }
+}
+
+impl<'data> Serialize for ZeroTriePerfectHash<Cow<'data, [u8]>> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if serializer.is_human_readable() {
+            let lm = self.to_litemap();
+            if let Ok(lm2) = lm.iter().map(|(k, v)| {
+                match AsciiStr::try_from_bytes(k) {
+                    Ok(k2) => Ok((k2, v)),
+                    Err(e) => Err(e)
+                }
+            }).collect::<Result<LiteMap<_, _>, _>>() {
+                lm2.serialize(serializer)
+            } else {
+                lm.serialize(serializer)
+            }
+        } else {
+            let bytes = self.as_bytes();
+            bytes.serialize(serializer)
+        }
+    }
+}
+
 #[cfg(test)]
 mod testdata {
     use crate as asciitrie;
@@ -188,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_serde_cow() {
+    pub fn test_serde_simpleascii_cow() {
         let trie = ZeroTrieSimpleAscii::from_store(Cow::from(testdata::basic::TRIE));
         let original = ZeroTrieSimpleAsciiCow { trie };
         let json_str = serde_json::to_string(&original).unwrap();
@@ -199,6 +246,37 @@ mod tests {
 
         let json_recovered: ZeroTrieSimpleAsciiCow = serde_json::from_str(&json_str).unwrap();
         let bincode_recovered: ZeroTrieSimpleAsciiCow =
+            bincode::deserialize(&bincode_bytes).unwrap();
+
+        assert_eq!(original.trie, json_recovered.trie);
+        assert_eq!(original.trie, bincode_recovered.trie);
+
+        assert!(matches!(json_recovered.trie.take_store(), Cow::Owned(_)));
+        assert!(matches!(
+            bincode_recovered.trie.take_store(),
+            Cow::Borrowed(_)
+        ));
+    }
+
+    #[derive(Serialize, Deserialize)]
+    pub struct ZeroTriePerfectHashCow<'a> {
+        #[serde(borrow)]
+        trie: ZeroTriePerfectHash<Cow<'a, [u8]>>,
+    }
+
+    #[test]
+    pub fn test_serde_perfecthash_cow() {
+        // FIXME: Test doesn't pass yet
+        let trie = ZeroTriePerfectHash::from_store(Cow::from(testdata::basic::TRIE6));
+        let original = ZeroTriePerfectHashCow { trie };
+        let json_str = serde_json::to_string(&original).unwrap();
+        let bincode_bytes = bincode::serialize(&original).unwrap();
+
+        assert_eq!(json_str, testdata::basic::JSON_STR);
+        assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES6);
+
+        let json_recovered: ZeroTriePerfectHashCow = serde_json::from_str(&json_str).unwrap();
+        let bincode_recovered: ZeroTriePerfectHashCow =
             bincode::deserialize(&bincode_bytes).unwrap();
 
         assert_eq!(original.trie, json_recovered.trie);
