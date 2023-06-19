@@ -3,12 +3,13 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::AsciiStr;
-use crate::ZeroTrieSimpleAscii;
 use crate::ZeroTriePerfectHash;
+use crate::ZeroTrieSimpleAscii;
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::borrow::Borrow;
 use core::fmt;
 use litemap::LiteMap;
 use serde::de::Error;
@@ -78,6 +79,53 @@ impl Serialize for Box<AsciiStr> {
             self.as_str().serialize(serializer)
         } else {
             self.as_bytes().serialize(serializer)
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum BytesOrStr<'a> {
+    Borrowed(&'a [u8]),
+    Owned(Box<[u8]>),
+}
+
+impl Borrow<[u8]> for BytesOrStr<'_> {
+    fn borrow(&self) -> &[u8] {
+        match self {
+            Self::Borrowed(s) => &s,
+            Self::Owned(s) => &s,
+        }
+    }
+}
+
+struct BytesOrStrVisitor;
+impl<'de> Visitor<'de> for BytesOrStrVisitor {
+    type Value = Box<[u8]>;
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "a slice of borrowed bytes or a string")
+    }
+    fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E> {
+        Ok(Box::from(v))
+    }
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> {
+        Ok(Box::from(v.as_bytes()))
+    }
+}
+
+impl<'de, 'data> Deserialize<'de> for BytesOrStr<'data>
+where
+    'de: 'data,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        if deserializer.is_human_readable() {
+            let s = deserializer.deserialize_any(BytesOrStrVisitor)?;
+            Ok(BytesOrStr::Owned(s))
+        } else {
+            let s = <&'data [u8]>::deserialize(deserializer)?;
+            Ok(BytesOrStr::Borrowed(s))
         }
     }
 }
@@ -181,9 +229,10 @@ where
         D: Deserializer<'de>,
     {
         if deserializer.is_human_readable() {
-            let lm = LiteMap::<Box<[u8]>, usize>::deserialize(deserializer)?;
+            let lm = LiteMap::<BytesOrStr, usize>::deserialize(deserializer)?;
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            let trie_vec = crate::builder::make6_byte_litemap(&lm).map_err(|e| D::Error::custom(e))?;
+            let trie_vec =
+                crate::builder::make6_byte_litemap(&lm).map_err(|e| D::Error::custom(e))?;
             let cow = Cow::Owned(trie_vec);
             Ok(ZeroTriePerfectHash::from_store(cow))
         } else {
@@ -201,12 +250,14 @@ impl<'data> Serialize for ZeroTriePerfectHash<Cow<'data, [u8]>> {
     {
         if serializer.is_human_readable() {
             let lm = self.to_litemap();
-            if let Ok(lm2) = lm.iter().map(|(k, v)| {
-                match AsciiStr::try_from_bytes(k) {
+            if let Ok(lm2) = lm
+                .iter()
+                .map(|(k, v)| match AsciiStr::try_from_bytes(k) {
                     Ok(k2) => Ok((k2, v)),
-                    Err(e) => Err(e)
-                }
-            }).collect::<Result<LiteMap<_, _>, _>>() {
+                    Err(e) => Err(e),
+                })
+                .collect::<Result<LiteMap<_, _>, _>>()
+            {
                 lm2.serialize(serializer)
             } else {
                 lm.serialize(serializer)
