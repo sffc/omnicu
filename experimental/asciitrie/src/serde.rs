@@ -5,7 +5,6 @@
 use crate::AsciiStr;
 use crate::ZeroTriePerfectHash;
 use crate::ZeroTrieSimpleAscii;
-use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -18,9 +17,6 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
-
-#[cfg(feature = "zerovec")]
-use zerovec::ZeroVec;
 
 impl<'de, 'data> Deserialize<'de> for &'data AsciiStr
 where
@@ -144,9 +140,10 @@ impl<'de> Visitor<'de> for BytesVisitor {
     }
 }
 
-impl<'de, 'data> Deserialize<'de> for ZeroTrieSimpleAscii<Cow<'data, [u8]>>
+impl<'de, 'data, X> Deserialize<'de> for ZeroTrieSimpleAscii<X>
 where
     'de: 'data,
+    X: From<&'data [u8]> + From<Vec<u8>> + 'data,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -156,56 +153,20 @@ where
             let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
             let trie_vec = crate::builder::make1b_litemap(&lm);
-            let cow = Cow::Owned(trie_vec);
-            Ok(ZeroTrieSimpleAscii::from_store(cow))
+            let store = trie_vec.into();
+            Ok(ZeroTrieSimpleAscii::from_store(store))
         } else {
             let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
-            let cow = Cow::Borrowed(bytes);
-            Ok(ZeroTrieSimpleAscii::from_store(cow))
+            let store = bytes.into();
+            Ok(ZeroTrieSimpleAscii::from_store(store))
         }
     }
 }
 
-impl<'data> Serialize for ZeroTrieSimpleAscii<Cow<'data, [u8]>> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if serializer.is_human_readable() {
-            let lm = self.to_litemap();
-            lm.serialize(serializer)
-        } else {
-            let bytes = self.as_bytes();
-            bytes.serialize(serializer)
-        }
-    }
-}
-
-#[cfg(feature = "zerovec")]
-impl<'de, 'data> Deserialize<'de> for ZeroTrieSimpleAscii<ZeroVec<'data, u8>>
+impl<'data, X> Serialize for ZeroTrieSimpleAscii<X>
 where
-    'de: 'data,
+    X: AsRef<[u8]>
 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        if deserializer.is_human_readable() {
-            let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
-            let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            let trie_vec = ZeroTrieSimpleAscii::from_litemap(&lm);
-            let zv = ZeroVec::new_owned(trie_vec.store);
-            Ok(ZeroTrieSimpleAscii::from_store(zv))
-        } else {
-            let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
-            let zv = ZeroVec::new_borrowed(bytes);
-            Ok(ZeroTrieSimpleAscii::from_store(zv))
-        }
-    }
-}
-
-#[cfg(feature = "zerovec")]
-impl<'data> Serialize for ZeroTrieSimpleAscii<ZeroVec<'data, u8>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -282,6 +243,7 @@ mod testdata {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::borrow::Cow;
 
     #[derive(Serialize, Deserialize)]
     pub struct ZeroTrieSimpleAsciiCow<'a> {
@@ -349,6 +311,7 @@ mod tests {
 #[cfg(feature = "zerovec")]
 mod tests_zerovec {
     use super::*;
+    use zerovec::ZeroVec;
 
     #[derive(Serialize, Deserialize)]
     pub struct ZeroTrieSimpleAsciiZeroVec<'a> {
