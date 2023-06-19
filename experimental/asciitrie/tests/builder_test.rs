@@ -15,6 +15,8 @@ use testdata::strings_to_litemap;
 #[test]
 fn test_basic() {
     let litemap: LiteMap<&AsciiStr, usize> = testdata::basic::DATA.iter().copied().collect();
+    let litemap_u: LiteMap<&[u8], usize> = testdata::basic::DATA_U.iter().copied().collect();
+    let litemap_bin: LiteMap<&[u8], usize> = testdata::basic::DATA_BIN.iter().copied().collect();
 
     let expected_bytes = testdata::basic::TRIE;
     let trie: ZeroTrieSimpleAscii<Vec<u8>> = litemap.iter().map(|(k, v)| (*k, *v)).collect();
@@ -35,6 +37,16 @@ fn test_basic() {
     let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
     check_bytes_eq(26, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
+
+    let expected_bytes_u6 = testdata::basic::TRIE_U6;
+    let trie_u6 = asciitrie::make6_byte_litemap(&litemap_u).unwrap();
+    check_bytes_eq(39, &trie_u6, expected_bytes_u6);
+    check_ascii_trie6_bytes(&litemap_u, &trie_u6);
+
+    let expected_bytes_bin6 = testdata::basic::TRIE_BIN6;
+    let trie_bin6 = asciitrie::make6_byte_litemap(&litemap_bin).unwrap();
+    check_bytes_eq(26, &trie_bin6, expected_bytes_bin6);
+    check_ascii_trie6_bytes(&litemap_bin, &trie_bin6);
 
     let trie1b = asciitrie::make1b_litemap(&litemap);
     check_bytes_eq(28, &trie1b, expected_bytes);

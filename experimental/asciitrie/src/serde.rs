@@ -106,6 +106,16 @@ impl<'de> Visitor<'de> for BytesOrStrVisitor {
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> {
         Ok(Box::from(v.as_bytes()))
     }
+    fn visit_seq<A>(self, mut v: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::SeqAccess<'de>,
+    {
+        let mut result = Vec::with_capacity(v.size_hint().unwrap_or(0));
+        while let Some(x) = v.next_element::<u8>()? {
+            result.push(x);
+        }
+        Ok(Box::from(result))
+    }
 }
 
 impl<'de, 'data> Deserialize<'de> for BytesOrStr<'data>
@@ -169,7 +179,7 @@ where
 
 impl<'data, X> Serialize for ZeroTrieSimpleAscii<X>
 where
-    X: AsRef<[u8]>
+    X: AsRef<[u8]>,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -287,7 +297,6 @@ mod tests {
 
     #[test]
     pub fn test_serde_perfecthash_cow() {
-        // FIXME: Test doesn't pass yet
         let trie = ZeroTriePerfectHash::from_store(Cow::from(testdata::basic::TRIE6));
         let original = ZeroTriePerfectHashCow { trie };
         let json_str = serde_json::to_string(&original).unwrap();
@@ -295,6 +304,54 @@ mod tests {
 
         assert_eq!(json_str, testdata::basic::JSON_STR);
         assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES6);
+
+        let json_recovered: ZeroTriePerfectHashCow = serde_json::from_str(&json_str).unwrap();
+        let bincode_recovered: ZeroTriePerfectHashCow =
+            bincode::deserialize(&bincode_bytes).unwrap();
+
+        assert_eq!(original.trie, json_recovered.trie);
+        assert_eq!(original.trie, bincode_recovered.trie);
+
+        assert!(matches!(json_recovered.trie.take_store(), Cow::Owned(_)));
+        assert!(matches!(
+            bincode_recovered.trie.take_store(),
+            Cow::Borrowed(_)
+        ));
+    }
+
+    #[test]
+    pub fn test_serde_perfecthash_cow_u() {
+        let trie = ZeroTriePerfectHash::from_store(Cow::from(testdata::basic::TRIE_U6));
+        let original = ZeroTriePerfectHashCow { trie };
+        let json_str = serde_json::to_string(&original).unwrap();
+        let bincode_bytes = bincode::serialize(&original).unwrap();
+
+        assert_eq!(json_str, testdata::basic::JSON_STR_U);
+        assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES_U6);
+
+        let json_recovered: ZeroTriePerfectHashCow = serde_json::from_str(&json_str).unwrap();
+        let bincode_recovered: ZeroTriePerfectHashCow =
+            bincode::deserialize(&bincode_bytes).unwrap();
+
+        assert_eq!(original.trie, json_recovered.trie);
+        assert_eq!(original.trie, bincode_recovered.trie);
+
+        assert!(matches!(json_recovered.trie.take_store(), Cow::Owned(_)));
+        assert!(matches!(
+            bincode_recovered.trie.take_store(),
+            Cow::Borrowed(_)
+        ));
+    }
+
+    #[test]
+    pub fn test_serde_perfecthash_cow_bin() {
+        let trie = ZeroTriePerfectHash::from_store(Cow::from(testdata::basic::TRIE_BIN6));
+        let original = ZeroTriePerfectHashCow { trie };
+        let json_str = serde_json::to_string(&original).unwrap();
+        let bincode_bytes = bincode::serialize(&original).unwrap();
+
+        assert_eq!(json_str, testdata::basic::JSON_STR_BIN);
+        assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES_BIN6);
 
         let json_recovered: ZeroTriePerfectHashCow = serde_json::from_str(&json_str).unwrap();
         let bincode_recovered: ZeroTriePerfectHashCow =

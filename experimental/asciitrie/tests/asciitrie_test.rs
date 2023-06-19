@@ -19,6 +19,12 @@ fn test_basic() {
     let trie6 = testdata::basic::TRIE6;
     let data = testdata::basic::DATA;
 
+    let data_u = testdata::basic::DATA_U;
+    let trie_u6 = testdata::basic::TRIE_U6;
+
+    let data_bin = testdata::basic::DATA_BIN;
+    let trie_bin6 = testdata::basic::TRIE_BIN6;
+
     // Check that the getter works
     for (key, expected) in data {
         let actual = match ZeroTrieSimpleAscii::from_bytes(trie).get(key.as_bytes()) {
@@ -41,6 +47,22 @@ fn test_basic() {
             None => panic!("value should be in trie6: {:?} => {}", key, expected),
         };
         assert_eq!(*expected, actual6);
+    }
+
+    for (key, expected) in data_u {
+        let actual_u6 = match asciitrie::reader6::get(trie_u6, key) {
+            Some(v) => v,
+            None => panic!("value should be in trie6: {:?} => {}", key, expected),
+        };
+        assert_eq!(*expected, actual_u6);
+    }
+
+    for (key, expected) in data_bin {
+        let actual_bin6 = match asciitrie::reader6::get(trie_bin6, key) {
+            Some(v) => v,
+            None => panic!("value should be in trie6: {:?} => {}", key, expected),
+        };
+        assert_eq!(*expected, actual_bin6);
     }
 
     // Compare the size to a postcard ZeroMap
