@@ -220,9 +220,10 @@ impl<'data> Serialize for ZeroTrieSimpleAscii<ZeroVec<'data, u8>> {
     }
 }
 
-impl<'de, 'data> Deserialize<'de> for ZeroTriePerfectHash<Cow<'data, [u8]>>
+impl<'de, 'data, X> Deserialize<'de> for ZeroTriePerfectHash<X>
 where
     'de: 'data,
+    X: From<&'data [u8]> + From<Vec<u8>> + 'data,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -233,17 +234,20 @@ where
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
             let trie_vec =
                 crate::builder::make6_byte_litemap(&lm).map_err(|e| D::Error::custom(e))?;
-            let cow = Cow::Owned(trie_vec);
-            Ok(ZeroTriePerfectHash::from_store(cow))
+            let store = trie_vec.into();
+            Ok(ZeroTriePerfectHash::from_store(store))
         } else {
             let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
-            let cow = Cow::Borrowed(bytes);
-            Ok(ZeroTriePerfectHash::from_store(cow))
+            let store = bytes.into();
+            Ok(ZeroTriePerfectHash::from_store(store))
         }
     }
 }
 
-impl<'data> Serialize for ZeroTriePerfectHash<Cow<'data, [u8]>> {
+impl<'data, X> Serialize for ZeroTriePerfectHash<X>
+where
+    X: AsRef<[u8]>,
+{
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -353,7 +357,7 @@ mod tests_zerovec {
     }
 
     #[test]
-    pub fn test_serde_zerovec() {
+    pub fn test_serde_simpleascii_zerovec() {
         let trie = ZeroTrieSimpleAscii::from_store(ZeroVec::new_borrowed(testdata::basic::TRIE));
         let original = ZeroTrieSimpleAsciiZeroVec { trie };
         let json_str = serde_json::to_string(&original).unwrap();
@@ -364,6 +368,33 @@ mod tests_zerovec {
 
         let json_recovered: ZeroTrieSimpleAsciiZeroVec = serde_json::from_str(&json_str).unwrap();
         let bincode_recovered: ZeroTrieSimpleAsciiZeroVec =
+            bincode::deserialize(&bincode_bytes).unwrap();
+
+        assert_eq!(original.trie, json_recovered.trie);
+        assert_eq!(original.trie, bincode_recovered.trie);
+
+        assert!(json_recovered.trie.take_store().is_owned());
+        assert!(!bincode_recovered.trie.take_store().is_owned());
+    }
+
+    #[derive(Serialize, Deserialize)]
+    pub struct ZeroTriePerfectHashZeroVec<'a> {
+        #[serde(borrow)]
+        trie: ZeroTriePerfectHash<ZeroVec<'a, u8>>,
+    }
+
+    #[test]
+    pub fn test_serde_perfecthash_zerovec() {
+        let trie = ZeroTriePerfectHash::from_store(ZeroVec::new_borrowed(testdata::basic::TRIE6));
+        let original = ZeroTriePerfectHashZeroVec { trie };
+        let json_str = serde_json::to_string(&original).unwrap();
+        let bincode_bytes = bincode::serialize(&original).unwrap();
+
+        assert_eq!(json_str, testdata::basic::JSON_STR);
+        assert_eq!(bincode_bytes, testdata::basic::BINCODE_BYTES6);
+
+        let json_recovered: ZeroTriePerfectHashZeroVec = serde_json::from_str(&json_str).unwrap();
+        let bincode_recovered: ZeroTriePerfectHashZeroVec =
             bincode::deserialize(&bincode_bytes).unwrap();
 
         assert_eq!(original.trie, json_recovered.trie);
