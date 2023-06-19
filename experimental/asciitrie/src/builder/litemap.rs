@@ -56,11 +56,11 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
         /// ```
         const _: () = ();
 
-        Self {
-            store: AsciiTrieBuilder::<2048>::from_sorted_const_tuple_slice(items.as_slice().into())
+        Self::from_store(
+            AsciiTrieBuilder::<2048>::from_sorted_const_tuple_slice(items.as_slice().into())
                 .as_bytes()
                 .to_vec(),
-        }
+        )
     }
 }
 

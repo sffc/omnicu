@@ -20,9 +20,7 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     #[cfg(feature = "alloc")]
     pub fn to_ascii_trie(&mut self) -> ZeroTrieSimpleAscii<&[u8]> {
         let slice = self.data.atbs_as_bytes();
-        ZeroTrieSimpleAscii {
-            store: slice.as_slice(),
-        }
+        ZeroTrieSimpleAscii::from_store(slice.as_slice())
     }
 
     #[cfg(feature = "alloc")]
@@ -32,9 +30,7 @@ impl<const N: usize> AsciiTrieBuilder<N> {
     }
 
     pub const fn into_ascii_trie_or_panic(self) -> ZeroTrieSimpleAscii<[u8; N]> {
-        ZeroTrieSimpleAscii {
-            store: self.data.take_or_panic(),
-        }
+        ZeroTrieSimpleAscii::from_store(self.data.take_or_panic())
     }
 
     pub const fn new() -> Self {

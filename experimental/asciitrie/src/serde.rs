@@ -108,11 +108,11 @@ where
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
             let trie_vec = crate::builder::make1b_litemap(&lm);
             let cow = Cow::Owned(trie_vec);
-            Ok(ZeroTrieSimpleAscii { store: cow })
+            Ok(ZeroTrieSimpleAscii::from_store(cow))
         } else {
             let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
             let cow = Cow::Borrowed(bytes);
-            Ok(ZeroTrieSimpleAscii { store: cow })
+            Ok(ZeroTrieSimpleAscii::from_store(cow))
         }
     }
 }
@@ -146,11 +146,11 @@ where
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
             let trie_vec = ZeroTrieSimpleAscii::from_litemap(&lm);
             let zv = ZeroVec::new_owned(trie_vec.store);
-            Ok(ZeroTrieSimpleAscii { store: zv })
+            Ok(ZeroTrieSimpleAscii::from_store(zv))
         } else {
             let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
             let zv = ZeroVec::new_borrowed(bytes);
-            Ok(ZeroTrieSimpleAscii { store: zv })
+            Ok(ZeroTrieSimpleAscii::from_store(zv))
         }
     }
 }

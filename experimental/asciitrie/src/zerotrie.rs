@@ -40,10 +40,10 @@ pub struct ZeroTrieExtendedCapacity<S: ?Sized> {
 macro_rules! impl_zerotrie_subtype {
     ($name:ident, $variant:ident, $getter_fn:path, $iter_ty:ty, $iter_fn:path) => {
         impl<S> $name<S> {
-            pub fn into_zerotrie(self) -> ZeroTrie<S> {
+            pub const fn into_zerotrie(self) -> ZeroTrie<S> {
                 ZeroTrie(ZeroTrieInner::$variant(self))
             }
-            pub fn from_store(store: S) -> Self {
+            pub const fn from_store(store: S) -> Self {
                 Self { store }
             }
             pub fn take_store(self) -> S {
@@ -95,9 +95,9 @@ macro_rules! impl_zerotrie_subtype {
             /// assert_eq!(owned.get(b"abc"), Some(5));
             /// ```
             pub fn to_owned(&self) -> $name<alloc::vec::Vec<u8>> {
-                $name {
-                    store: alloc::vec::Vec::from(self.store.as_ref()),
-                }
+                $name::from_store(
+                    alloc::vec::Vec::from(self.store.as_ref()),
+                )
             }
             pub fn iter(&self) -> impl Iterator<Item = (alloc::boxed::Box<$iter_ty>, usize)> + '_ {
                  $iter_fn(self.as_bytes())
@@ -148,9 +148,9 @@ macro_rules! impl_zerotrie_subtype {
             /// ```
             fn to_owned(&self) -> Self::Owned {
                 let bytes: &[u8] = self.store.as_ref();
-                $name {
-                    store: alloc::vec::Vec::from(bytes).into_boxed_slice(),
-                }
+                $name::from_store(
+                    alloc::vec::Vec::from(bytes).into_boxed_slice(),
+                )
             }
         }
     };
