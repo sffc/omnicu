@@ -77,20 +77,24 @@ fn check_ascii_trie6(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
     for (k, v) in items.iter() {
         assert_eq!(asciitrie::reader6::get(trie, k.as_bytes()), Some(*v));
     }
-    // assert!(items
-    //     .iter()
-    //     .map(|(s, v)| (s.to_boxed(), *v))
-    //     .eq(trie.iter()));
+    // Note: We can't compare the iterators because trie6 might not return items in order.
+    let recovered_items: LiteMap<_, _> = asciitrie::reader6::get_iter(trie).collect();
+    assert_eq!(
+        items.to_borrowed_keys_values::<[u8], usize, Vec<_>>(),
+        recovered_items.to_borrowed_keys_values()
+    );
 }
 
 fn check_ascii_trie6_bytes(items: &LiteMap<&[u8], usize>, trie: &[u8]) {
     for (k, v) in items.iter() {
         assert_eq!(asciitrie::reader6::get(trie, k), Some(*v));
     }
-    // assert!(items
-    //     .iter()
-    //     .map(|(s, v)| (s.to_boxed(), *v))
-    //     .eq(trie.iter()));
+    // Note: We can't compare the iterators because trie6 might not return items in order.
+    let recovered_items: LiteMap<_, _> = asciitrie::reader6::get_iter(trie).collect();
+    assert_eq!(
+        items.to_borrowed_keys_values::<[u8], usize, Vec<_>>(),
+        recovered_items.to_borrowed_keys_values()
+    );
 }
 
 fn check_bytes_eq(len: usize, a: impl AsRef<[u8]>, b: &[u8]) {

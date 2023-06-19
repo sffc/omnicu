@@ -207,3 +207,94 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
         }
     }
 }
+
+#[cfg(feature = "alloc")]
+use alloc::{boxed::Box, vec::Vec};
+
+#[cfg(feature = "alloc")]
+pub(crate) struct ZeroTriePerfectHashIterator<'a> {
+    state: Vec<(&'a [u8], Vec<u8>, usize)>,
+}
+
+#[cfg(feature = "alloc")]
+impl<'a> ZeroTriePerfectHashIterator<'a> {
+    pub fn new<S: AsRef<[u8]> + ?Sized>(store: &'a S) -> Self {
+        ZeroTriePerfectHashIterator {
+            state: alloc::vec![(store.as_ref(), alloc::vec![], 0)],
+        }
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'a> Iterator for ZeroTriePerfectHashIterator<'a> {
+    type Item = (Box<[u8]>, usize);
+    fn next(&mut self) -> Option<Self::Item> {
+        let (mut trie, mut string, mut branch_idx);
+        (trie, string, branch_idx) = self.state.pop()?;
+        loop {
+            let (b, x, span, search);
+            let return_trie = trie;
+            (b, trie) = match trie.split_first() {
+                Some(tpl) => tpl,
+                None => {
+                    // At end of current branch; step back to the branch node.
+                    // If there are no more branches, we are finished.
+                    (trie, string, branch_idx) = self.state.pop()?;
+                    continue;
+                }
+            };
+            let byte_type = byte_type(*b);
+            if matches!(byte_type, ByteType::Ascii) {
+                string.push(*b);
+                continue;
+            }
+            (x, trie) = match byte_type {
+                ByteType::Ascii => (0, trie),
+                ByteType::Span | ByteType::Value => read_varint2(*b, trie)?,
+                ByteType::Match => read_varint(*b, trie)?,
+            };
+            if matches!(byte_type, ByteType::Span) {
+                (span, trie) = debug_split_at(trie, x)?;
+                string.extend(span);
+                continue;
+            }
+            if matches!(byte_type, ByteType::Value) {
+                let retval = string.clone().into_boxed_slice();
+                // Return to this position on the next step
+                self.state.push((trie, string, 0));
+                return Some((retval, x));
+            }
+            // Match node
+            let (x, w) = if x >= 256 { (x & 0xff, x >> 8) } else { (x, 0) };
+            let x = if x == 0 { 256 } else { x };
+            if branch_idx + 1 < x {
+                // Return to this branch node at the next index
+                self.state
+                    .push((return_trie, string.clone(), branch_idx + 1));
+            }
+            let byte = if x < 16 {
+                // binary search
+                (search, trie) = debug_split_at(trie, x)?;
+                debug_get(search, branch_idx)?
+            } else {
+                // phf
+                (search, trie) = debug_split_at(trie, x * 2 + 1)?;
+                debug_get(search, branch_idx + x + 1)?
+            };
+            string.push(byte);
+            trie = if w == 0 {
+                get_branch_w0(trie, branch_idx, x)
+            } else {
+                get_branch(trie, branch_idx, x, w)
+            }?;
+            branch_idx = 0;
+        }
+    }
+}
+
+#[cfg(feature = "alloc")]
+pub fn get_iter<S: AsRef<[u8]> + ?Sized>(
+    store: &S,
+) -> impl Iterator<Item = (Box<[u8]>, usize)> + '_ {
+    ZeroTriePerfectHashIterator::new(store)
+}
