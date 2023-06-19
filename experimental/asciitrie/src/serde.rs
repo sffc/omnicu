@@ -143,6 +143,10 @@ impl<'de> Visitor<'de> for BytesVisitor {
 impl<'de, 'data, X> Deserialize<'de> for ZeroTrieSimpleAscii<X>
 where
     'de: 'data,
+    // DISCUSS: There are several possibilities for the bounds here that would
+    // get the job done. I could look for Deserialize, but this would require
+    // creating a custom Deserializer for the map case. I also considered
+    // introducing a new trait instead of relying on From.
     X: From<&'data [u8]> + From<Vec<u8>> + 'data,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
