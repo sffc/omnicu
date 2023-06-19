@@ -196,3 +196,10 @@ impl<'a> Iterator for AsciiTrieIterator<'a> {
         }
     }
 }
+
+#[cfg(feature = "alloc")]
+pub fn get_iter<S: AsRef<[u8]> + ?Sized>(
+    store: &S,
+) -> impl Iterator<Item = (Box<AsciiStr>, usize)> + '_ {
+    AsciiTrieIterator::new(store)
+}

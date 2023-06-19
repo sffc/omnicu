@@ -2,8 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::reader::AsciiTrieIterator;
-use crate::AsciiStr;
 use crate::ZeroTrieSimpleAscii;
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
@@ -46,36 +44,5 @@ impl ToOwned for ZeroTrieSimpleAscii<[u8]> {
         ZeroTrieSimpleAscii {
             store: Vec::from(bytes).into_boxed_slice(),
         }
-    }
-}
-
-impl<S> ZeroTrieSimpleAscii<S>
-where
-    S: AsRef<[u8]> + ?Sized,
-{
-    /// Converts a possibly-borrowed ZeroTrieSimpleAscii to an owned one.
-    ///
-    /// ***Enable this impl with the `"alloc"` feature.***
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::borrow::Cow;
-    /// use asciitrie::ZeroTrieSimpleAscii;
-    ///
-    /// let trie: &ZeroTrieSimpleAscii<[u8]> = ZeroTrieSimpleAscii::from_bytes(b"abc\x85");
-    /// let owned: ZeroTrieSimpleAscii<Vec<u8>> = trie.to_owned();
-    ///
-    /// assert_eq!(trie.get(b"abc"), Some(5));
-    /// assert_eq!(owned.get(b"abc"), Some(5));
-    /// ```
-    pub fn to_owned(&self) -> ZeroTrieSimpleAscii<Vec<u8>> {
-        ZeroTrieSimpleAscii {
-            store: Vec::from(self.store.as_ref()),
-        }
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (Box<AsciiStr>, usize)> + '_ {
-        AsciiTrieIterator::new(self.as_bytes())
     }
 }

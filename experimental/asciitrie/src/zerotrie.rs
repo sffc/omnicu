@@ -3,7 +3,10 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::reader::get as get1;
+use crate::reader::get_iter as get_iter1;
 use crate::reader6::get as get6;
+use crate::reader6::get_iter as get_iter6;
+use crate::AsciiStr;
 
 use core::borrow::Borrow;
 use ref_cast::RefCast;
@@ -35,7 +38,7 @@ pub struct ZeroTrieExtendedCapacity<S: ?Sized> {
 }
 
 macro_rules! impl_zerotrie_subtype {
-    ($name:ident, $variant:ident, $getter_fn:path) => {
+    ($name:ident, $variant:ident, $getter_fn:path, $iter_ty:ty, $iter_fn:path) => {
         impl<S> $name<S> {
             pub fn into_zerotrie(self) -> ZeroTrie<S> {
                 ZeroTrie(ZeroTrieInner::$variant(self))
@@ -70,6 +73,36 @@ macro_rules! impl_zerotrie_subtype {
                 $name::from_bytes(self.store.as_ref())
             }
         }
+        #[cfg(feature = "alloc")]
+        impl<S> $name<S>
+        where
+            S: AsRef<[u8]> + ?Sized,
+        {
+            /// Converts a possibly-borrowed $name to an owned one.
+            ///
+            /// ***Enable this impl with the `"alloc"` feature.***
+            ///
+            /// # Examples
+            ///
+            /// ```
+            /// use std::borrow::Cow;
+            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
+            ///
+            #[doc = concat!("let trie: &", stringify!($name), "<[u8]> = ", stringify!($name), "::from_bytes(b\"abc\\x85\");")]
+            #[doc = concat!("let owned: ", stringify!($name), "<Vec<u8>> = trie.to_owned();")]
+            ///
+            /// assert_eq!(trie.get(b"abc"), Some(5));
+            /// assert_eq!(owned.get(b"abc"), Some(5));
+            /// ```
+            pub fn to_owned(&self) -> $name<alloc::vec::Vec<u8>> {
+                $name {
+                    store: alloc::vec::Vec::from(self.store.as_ref()),
+                }
+            }
+            pub fn iter(&self) -> impl Iterator<Item = (alloc::boxed::Box<$iter_ty>, usize)> + '_ {
+                 $iter_fn(self.as_bytes())
+            }
+        }
         impl $name<[u8]> {
             pub fn from_bytes(trie: &[u8]) -> &Self {
                 Self::ref_cast(trie)
@@ -84,9 +117,15 @@ macro_rules! impl_zerotrie_subtype {
     };
 }
 
-impl_zerotrie_subtype!(ZeroTrieSimpleAscii, SimpleAscii, get1);
-impl_zerotrie_subtype!(ZeroTriePerfectHash, PerfectHash, get6);
-impl_zerotrie_subtype!(ZeroTrieExtendedCapacity, ExtendedCapacity, get6);
+impl_zerotrie_subtype!(ZeroTrieSimpleAscii, SimpleAscii, get1, AsciiStr, get_iter1);
+impl_zerotrie_subtype!(ZeroTriePerfectHash, PerfectHash, get6, [u8], get_iter6);
+impl_zerotrie_subtype!(
+    ZeroTrieExtendedCapacity,
+    ExtendedCapacity,
+    get6,
+    [u8],
+    get_iter6
+);
 
 macro_rules! impl_dispatch {
     ($self:ident, $inner_fn:ident) => {
