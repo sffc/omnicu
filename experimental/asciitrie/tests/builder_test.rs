@@ -48,7 +48,7 @@ fn test_basic() {
     check_bytes_eq(26, &trie_bin6, expected_bytes_bin6);
     check_ascii_trie6_bytes(&litemap_bin, &trie_bin6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(28, &trie1b, expected_bytes);
 }
 
@@ -146,7 +146,7 @@ fn test_single_empty_value() {
     check_bytes_eq(1, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(1, &trie1b, expected_bytes);
 }
 
@@ -174,7 +174,7 @@ fn test_single_byte_string() {
     check_bytes_eq(2, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(2, &trie1b, expected_bytes);
 }
 
@@ -204,7 +204,7 @@ fn test_single_string() {
     check_bytes_eq(4, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(4, &trie1b, expected_bytes);
 }
 
@@ -233,7 +233,7 @@ fn test_prefix_strings() {
     check_bytes_eq(4, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(4, &trie1b, expected_bytes);
 }
 
@@ -267,7 +267,7 @@ fn test_single_byte_branch() {
     check_bytes_eq(6, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(7, &trie1b, expected_bytes);
 }
 
@@ -311,7 +311,7 @@ fn test_multi_byte_branch() {
     check_bytes_eq(9, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(10, &trie1b, expected_bytes);
 }
 
@@ -347,7 +347,7 @@ fn test_linear_varint_values() {
     check_bytes_eq(10, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(10, &trie1b, expected_bytes);
 }
 
@@ -502,7 +502,7 @@ fn test_varint_branch() {
     check_bytes_eq(246, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(178, &trie1b, expected_bytes);
 }
 
@@ -639,7 +639,7 @@ fn test_below_wide() {
     check_bytes_eq(277, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(276, &trie1b, expected_bytes);
 }
 
@@ -781,7 +781,7 @@ fn test_at_wide() {
     check_bytes_eq(288, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(287, &trie1b, expected_bytes);
 }
 
@@ -923,7 +923,7 @@ fn test_at_wide_plus() {
     check_bytes_eq(289, &trie4, expected_bytes4);
     check_ascii_trie4(&litemap, &trie4);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(288, &trie1b, expected_bytes);
 }
 
@@ -1129,7 +1129,7 @@ fn test_everything() {
     check_bytes_eq(36, &trie6, expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(40, &trie1b, expected_bytes);
 
     let zhm: zerovec::ZeroMap<[u8], usize> =
@@ -1303,7 +1303,7 @@ fn test_short_subtags_10pct() {
     assert_eq!(trie6.len(), 1100);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(1077, &trie1b, trie.as_bytes());
 
     let zhm: zerovec::ZeroMap<[u8], usize> =
@@ -1347,7 +1347,7 @@ fn test_short_subtags() {
     assert_eq!(trie6.len(), 9400);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie1b = asciitrie::make1b_litemap(&litemap);
+    let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     assert_eq!(trie1b.len(), 9204);
     check_ascii_trie(&litemap, ZeroTrieSimpleAscii::from_bytes(&trie1b));
 

@@ -81,19 +81,17 @@ where
     }
 }
 
-pub fn make1b_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>
+pub fn make1b_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Result<Vec<u8>, Error>
 where
     S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
 {
     AsciiTrieBuilder1b::<10000>::from_sorted_const_tuple_slice(items.as_slice().into())
-        .as_bytes()
-        .to_owned()
+        .map(|x| x.as_bytes().to_owned())
 }
 
-pub fn make1b_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Vec<u8> {
+pub fn make1b_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error> {
     AsciiTrieBuilder1b::<10000>::from_tuple_slice(items.into())
-        .as_bytes()
-        .to_owned()
+        .map(|x| x.as_bytes().to_owned())
 }
 
 pub fn make4_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>

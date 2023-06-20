@@ -10,6 +10,7 @@ use super::store::ConstLengthsStack1b;
 use super::AsciiByte;
 use super::AsciiStr;
 use crate::varint;
+use crate::error::Error;
 
 extern crate std;
 
@@ -82,7 +83,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
     }
 
     /// Panics if the items are not sorted
-    pub fn from_tuple_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Self {
+    pub fn from_tuple_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Self, Error> {
         let items = ConstSlice::from_slice(items);
         let mut prev: Option<&'a AsciiStr> = None;
         const_for_each!(items, (ascii_str, _), {
@@ -100,18 +101,18 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
     }
 
     /// Assumes that the items are sorted
-    pub fn from_sorted_const_tuple_slice<'a>(items: ConstSlice<(&'a AsciiStr, usize)>) -> Self {
+    pub fn from_sorted_const_tuple_slice<'a>(items: ConstSlice<(&'a AsciiStr, usize)>) -> Result<Self, Error> {
         let mut result = Self::new();
         let total_size;
-        (result, total_size) = result.create(items);
+        (result, total_size) = result.create(items)?;
         debug_assert!(total_size == result.data.atbs_len());
-        result
+        Ok(result)
     }
 
     #[must_use]
-    fn create<'a>(mut self, all_items: ConstSlice<(&'a AsciiStr, usize)>) -> (Self, usize) {
+    fn create<'a>(mut self, all_items: ConstSlice<(&'a AsciiStr, usize)>) -> Result<(Self, usize), Error> {
         if all_items.is_empty() {
-            return (Self::new(), 0);
+            return Ok((Self::new(), 0));
         }
         let mut lengths_stack = ConstLengthsStack1b::<100>::new();
         let mut prefix_len = all_items.last().unwrap().0.len();
@@ -203,8 +204,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                         length: current_len,
                         local_length: current_len,
                         count: 1,
-                    })
-                    .unwrap();
+                    })?;
             } else {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
                 lengths_stack = lengths_stack
@@ -213,8 +213,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                         length: length + current_len,
                         local_length: current_len,
                         count: count + 1,
-                    })
-                    .unwrap();
+                    })?;
             }
             if diff_i != 0 {
                 j = i;
@@ -265,6 +264,6 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
             j = new_j;
         }
         assert!(lengths_stack.is_empty());
-        (self, current_len)
+        Ok((self, current_len))
     }
 }

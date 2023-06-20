@@ -143,7 +143,7 @@ fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(
     litemap: LiteMap<&asciitrie::AsciiStr, usize>,
 ) {
     g.bench_function("AsciiTrie1", |b| {
-        let trie1b = asciitrie::make1b_litemap(&litemap);
+        let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
         let trie = ZeroTrieSimpleAscii::from_bytes(&trie1b);
         b.iter(|| {
             for (i, key) in black_box(strings).iter().enumerate() {
