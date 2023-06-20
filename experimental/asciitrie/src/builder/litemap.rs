@@ -90,8 +90,7 @@ where
 }
 
 pub fn make1b_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error> {
-    AsciiTrieBuilder1b::<10000>::from_tuple_slice(items.into())
-        .map(|x| x.as_bytes().to_owned())
+    AsciiTrieBuilder1b::<10000>::from_tuple_slice(items.into()).map(|x| x.as_bytes().to_owned())
 }
 
 pub fn make4_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>

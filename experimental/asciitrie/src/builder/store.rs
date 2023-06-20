@@ -142,12 +142,15 @@ impl<const N: usize> ConstLengthsStack1b<N> {
     }
 
     #[must_use]
-    pub fn pop_or_panic(mut self) -> (Self, BranchMeta) {
+    pub const fn pop_or_panic(mut self) -> (Self, BranchMeta) {
         if self.idx == 0 {
             panic!("AsciiTrie Builder: Attempted to pop from an empty stack");
         }
         self.idx -= 1;
-        let value = self.data[self.idx].unwrap();
+        let value = match self.data[self.idx] {
+            Some(x) => x,
+            None => unreachable!(),
+        };
         (self, value)
     }
 

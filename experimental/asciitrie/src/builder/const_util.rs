@@ -150,6 +150,7 @@ impl<const N: usize> ConstArrayBuilder<N, u8> {
     // Can't be generic because T has a destructor
     pub const fn const_push_front(mut self, value: u8) -> Self {
         if self.start == 0 {
+            // TODO: Fail gracefully
             panic!("AsciiTrieBuilder buffer out of capacity");
         }
         self.start -= 1;
@@ -159,6 +160,7 @@ impl<const N: usize> ConstArrayBuilder<N, u8> {
     // Can't be generic because T has a destructor
     pub const fn const_extend_front(mut self, other: ConstSlice<u8>) -> Self {
         if self.start < other.len() {
+            // TODO: Fail gracefully
             panic!("AsciiTrieBuilder buffer out of capacity");
         }
         self.start -= other.len();

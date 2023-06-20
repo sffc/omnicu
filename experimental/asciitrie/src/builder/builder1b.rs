@@ -9,8 +9,8 @@ use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstLengthsStack1b;
 use super::AsciiByte;
 use super::AsciiStr;
-use crate::varint;
 use crate::error::Error;
+use crate::varint;
 
 extern crate std;
 
@@ -57,7 +57,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
     }
 
     #[must_use]
-    fn prepend_branch(self, value: usize) -> (Self, usize) {
+    const fn prepend_branch(self, value: usize) -> (Self, usize) {
         let mut data = self.data;
         let varint_array = varint::write_varint(value);
         data = data.atbs_extend_front(varint_array.as_const_slice());
@@ -83,7 +83,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
     }
 
     /// Panics if the items are not sorted
-    pub fn from_tuple_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Self, Error> {
+    pub const fn from_tuple_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Self, Error> {
         let items = ConstSlice::from_slice(items);
         let mut prev: Option<&'a AsciiStr> = None;
         const_for_each!(items, (ascii_str, _), {
@@ -101,21 +101,30 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
     }
 
     /// Assumes that the items are sorted
-    pub fn from_sorted_const_tuple_slice<'a>(items: ConstSlice<(&'a AsciiStr, usize)>) -> Result<Self, Error> {
+    pub const fn from_sorted_const_tuple_slice<'a>(
+        items: ConstSlice<(&'a AsciiStr, usize)>,
+    ) -> Result<Self, Error> {
         let mut result = Self::new();
         let total_size;
-        (result, total_size) = result.create(items)?;
+        (result, total_size) = match result.create(items) {
+            Ok(x) => x,
+            Err(e) => return Err(e),
+        };
         debug_assert!(total_size == result.data.atbs_len());
         Ok(result)
     }
 
     #[must_use]
-    fn create<'a>(mut self, all_items: ConstSlice<(&'a AsciiStr, usize)>) -> Result<(Self, usize), Error> {
-        if all_items.is_empty() {
-            return Ok((Self::new(), 0));
-        }
+    const fn create<'a>(
+        mut self,
+        all_items: ConstSlice<(&'a AsciiStr, usize)>,
+    ) -> Result<(Self, usize), Error> {
+        let mut prefix_len = match all_items.last() {
+            Some(x) => x.0.len(),
+            // Empty slice:
+            None => return Ok((Self::new(), 0)),
+        };
         let mut lengths_stack = ConstLengthsStack1b::<100>::new();
-        let mut prefix_len = all_items.last().unwrap().0.len();
         let mut i = all_items.len() - 1;
         let mut j = all_items.len();
         let mut current_len = 0;
@@ -138,7 +147,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
             let mut diff_j = 0;
             let mut ascii_i = item_i.0.ascii_at_or_panic(prefix_len);
             let mut ascii_j = item_j.0.ascii_at_or_panic(prefix_len);
-            assert_eq!(ascii_i, ascii_j);
+            assert!(ascii_i.get() == ascii_j.get());
             let key_ascii = ascii_i;
             loop {
                 if new_i == 0 {
@@ -159,7 +168,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                     break;
                 }
                 let candidate = candidate.ascii_at_or_panic(prefix_len);
-                if candidate != ascii_i {
+                if candidate.get() != ascii_i.get() {
                     diff_i += 1;
                     ascii_i = candidate;
                 }
@@ -182,7 +191,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                     panic!("A shorter string should be earlier in the sequence");
                 }
                 let candidate = candidate.ascii_at_or_panic(prefix_len);
-                if candidate != ascii_j {
+                if candidate.get() != ascii_j.get() {
                     diff_j += 1;
                     ascii_j = candidate;
                 }
@@ -193,27 +202,31 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                 current_len += len;
                 assert!(i == new_i || i == new_i + 1);
                 i = new_i;
-                assert_eq!(j, new_j);
+                assert!(j == new_j);
                 continue;
             }
             // Branch
             if diff_j == 0 {
-                lengths_stack = lengths_stack
-                    .push(BranchMeta {
-                        ascii: key_ascii.get(),
-                        length: current_len,
-                        local_length: current_len,
-                        count: 1,
-                    })?;
+                lengths_stack = match lengths_stack.push(BranchMeta {
+                    ascii: key_ascii.get(),
+                    length: current_len,
+                    local_length: current_len,
+                    count: 1,
+                }) {
+                    Ok(v) => v,
+                    Err(e) => return Err(e),
+                };
             } else {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
-                lengths_stack = lengths_stack
-                    .push(BranchMeta {
-                        ascii: key_ascii.get(),
-                        length: length + current_len,
-                        local_length: current_len,
-                        count: count + 1,
-                    })?;
+                lengths_stack = match lengths_stack.push(BranchMeta {
+                    ascii: key_ascii.get(),
+                    length: length + current_len,
+                    local_length: current_len,
+                    count: count + 1,
+                }) {
+                    Ok(v) => v,
+                    Err(e) => return Err(e),
+                };
             }
             if diff_i != 0 {
                 j = i;
