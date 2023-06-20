@@ -159,20 +159,6 @@ impl<'data> Serialize for BytesOrStr<'data> {
     }
 }
 
-/// To ensure that we use `deserialize_bytes` instead of `deserialize_seq`,
-/// use a helper struct for deserializing the bytes.
-/// <https://github.com/serde-rs/serde/issues/309>
-struct BytesVisitor;
-impl<'de> Visitor<'de> for BytesVisitor {
-    type Value = &'de [u8];
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "a slice of borrowed bytes")
-    }
-    fn visit_borrowed_bytes<E>(self, v: &'de [u8]) -> Result<Self::Value, E> {
-        Ok(v)
-    }
-}
-
 impl<'de, 'data, X> Deserialize<'de> for ZeroTrieSimpleAscii<X>
 where
     'de: 'data,
@@ -193,7 +179,8 @@ where
             let store = trie_vec.into();
             Ok(ZeroTrieSimpleAscii::from_store(store))
         } else {
-            let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
+            // Note: `impl Deserialize for &[u8]` uses visit_borrowed_bytes
+            let bytes = <&[u8]>::deserialize(deserializer)?;
             let store = bytes.into();
             Ok(ZeroTrieSimpleAscii::from_store(store))
         }
@@ -235,7 +222,8 @@ where
             let store = trie_vec.into();
             Ok(ZeroTriePerfectHash::from_store(store))
         } else {
-            let bytes = deserializer.deserialize_bytes(BytesVisitor)?;
+            // Note: `impl Deserialize for &[u8]` uses visit_borrowed_bytes
+            let bytes = <&[u8]>::deserialize(deserializer)?;
             let store = bytes.into();
             Ok(ZeroTriePerfectHash::from_store(store))
         }
