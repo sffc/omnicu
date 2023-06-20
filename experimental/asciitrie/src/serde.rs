@@ -172,18 +172,15 @@ where
     where
         D: Deserializer<'de>,
     {
-        if deserializer.is_human_readable() {
+        let store = if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            let trie_vec = crate::builder::make1b_litemap(&lm);
-            let store = trie_vec.into();
-            Ok(ZeroTrieSimpleAscii::from_store(store))
+            crate::builder::make1b_litemap(&lm).into()
         } else {
             // Note: `impl Deserialize for &[u8]` uses visit_borrowed_bytes
-            let bytes = <&[u8]>::deserialize(deserializer)?;
-            let store = bytes.into();
-            Ok(ZeroTrieSimpleAscii::from_store(store))
-        }
+            <&[u8]>::deserialize(deserializer)?.into()
+        };
+        Ok(ZeroTrieSimpleAscii::from_store(store))
     }
 }
 
@@ -214,19 +211,17 @@ where
     where
         D: Deserializer<'de>,
     {
-        if deserializer.is_human_readable() {
+        let store = if deserializer.is_human_readable() {
             let lm = LiteMap::<BytesOrStr, usize>::deserialize(deserializer)?;
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            let trie_vec =
-                crate::builder::make6_byte_litemap(&lm).map_err(|e| D::Error::custom(e))?;
-            let store = trie_vec.into();
-            Ok(ZeroTriePerfectHash::from_store(store))
+            crate::builder::make6_byte_litemap(&lm)
+                .map_err(|e| D::Error::custom(e))?
+                .into()
         } else {
             // Note: `impl Deserialize for &[u8]` uses visit_borrowed_bytes
-            let bytes = <&[u8]>::deserialize(deserializer)?;
-            let store = bytes.into();
-            Ok(ZeroTriePerfectHash::from_store(store))
-        }
+            <&[u8]>::deserialize(deserializer)?.into()
+        };
+        Ok(ZeroTriePerfectHash::from_store(store))
     }
 }
 
