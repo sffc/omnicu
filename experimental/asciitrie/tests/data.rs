@@ -240,8 +240,8 @@ pub mod basic {
 
     // Note: Cow and ZeroVec have the same serialized form
     pub static JSON_STR: &str = "{\"trie\":{\"ab\":1,\"abc\":2,\"abcd\":3,\"abcdghi\":4,\"abcejk\":5,\"abcfl\":6,\"abcfmn\":7}}";
-    // TODO: This JSON str should be UTF-8
-    pub static JSON_STR_U: &str = "{\"trie\":[[[100,97,115],1],[[100,101,114],2],[[100,105,101],3],[[102,195,188,114],4],[[103,114,111,195,159],5],[[107,195,182,110,110,101,110],6]]}";
+    pub static JSON_STR_U: &str =
+        "{\"trie\":{\"das\":1,\"der\":2,\"die\":3,\"für\":4,\"groß\":5,\"können\":6}}";
     pub static JSON_STR_BIN: &str = "{\"trie\":[[[0,144],3],[[129,130],1],[[129,131],2],[[144,144],4],[[240,255],5],[[240,255,255],6]]}";
     pub static BINCODE_BYTES: &[u8] = &[
         28, 0, 0, 0, 0, 0, 0, 0, 97, 98, 129, 99, 130, 195, 100, 101, 102, 0, 5, 8, 131, 103, 104,

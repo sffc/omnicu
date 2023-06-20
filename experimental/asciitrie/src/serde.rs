@@ -85,12 +85,18 @@ enum BytesOrStr<'a> {
     Owned(Box<[u8]>),
 }
 
-impl Borrow<[u8]> for BytesOrStr<'_> {
-    fn borrow(&self) -> &[u8] {
+impl BytesOrStr<'_> {
+    pub fn as_bytes(&self) -> &[u8] {
         match self {
             Self::Borrowed(s) => &s,
             Self::Owned(s) => &s,
         }
+    }
+}
+
+impl Borrow<[u8]> for BytesOrStr<'_> {
+    fn borrow(&self) -> &[u8] {
+        self.as_bytes()
     }
 }
 
@@ -132,6 +138,23 @@ where
         } else {
             let s = <&'data [u8]>::deserialize(deserializer)?;
             Ok(BytesOrStr::Borrowed(s))
+        }
+    }
+}
+
+impl<'data> Serialize for BytesOrStr<'data> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let bytes = self.as_bytes();
+        if serializer.is_human_readable() {
+            match core::str::from_utf8(bytes) {
+                Ok(s) => serializer.serialize_str(s),
+                Err(_) => serializer.serialize_bytes(bytes),
+            }
+        } else {
+            serializer.serialize_bytes(bytes)
         }
     }
 }
@@ -229,18 +252,11 @@ where
     {
         if serializer.is_human_readable() {
             let lm = self.to_litemap();
-            if let Ok(lm2) = lm
+            let lm = lm
                 .iter()
-                .map(|(k, v)| match AsciiStr::try_from_bytes(k) {
-                    Ok(k2) => Ok((k2, v)),
-                    Err(e) => Err(e),
-                })
-                .collect::<Result<LiteMap<_, _>, _>>()
-            {
-                lm2.serialize(serializer)
-            } else {
-                lm.serialize(serializer)
-            }
+                .map(|(k, v)| (BytesOrStr::Borrowed(k), v))
+                .collect::<LiteMap<_, _>>();
+            lm.serialize(serializer)
         } else {
             let bytes = self.as_bytes();
             bytes.serialize(serializer)
