@@ -184,7 +184,7 @@ impl<const N: usize> ConstLengthsStack1b<N> {
             let i = self.idx - ix - 1;
             result = result.push_front(match self.data[i] {
                 Some(x) => x,
-                None => panic!("Not enough items in the ConstLengthsStack")
+                None => panic!("Not enough items in the ConstLengthsStack"),
             });
             ix += 1;
         }

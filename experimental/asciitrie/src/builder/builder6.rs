@@ -25,9 +25,15 @@ pub enum AsciiMode {
     BinarySpans,
 }
 
+pub enum CapacityMode {
+    Normal,
+    Extended,
+}
+
 pub struct ZeroTrieBuilderOptions {
     pub phf_mode: PhfMode,
     pub ascii_mode: AsciiMode,
+    pub capacity_mode: CapacityMode,
 }
 
 /// A low-level builder for AsciiTrie.
@@ -65,7 +71,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
         if ascii <= 127 {
             self.data.atbs_push_front(ascii);
             1
-        } else {
+        } else if matches!(self.options.ascii_mode, AsciiMode::BinarySpans) {
             let old_byte_len = self.data.atbs_len();
             if old_byte_len != 0 {
                 let old_front = self.data.atbs_split_first_or_panic();
@@ -87,6 +93,8 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             self.data.atbs_push_front(ascii);
             self.data.atbs_push_front(0b10100001);
             2
+        } else {
+            panic!("Tried inserting non-ASCII into ASCII-only trie");
         }
     }
 
@@ -309,7 +317,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             current_len = total_length;
             const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
             let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8;
-            if w > 3 {
+            if w > 3 && matches!(self.options.capacity_mode, CapacityMode::Normal) {
                 return Err(Error::CapacityExceeded);
             }
             let mut k = 0;

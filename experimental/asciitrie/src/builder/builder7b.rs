@@ -123,7 +123,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
             Ok(x) => x,
             Err(e) => return Err(e),
         };
-        // debug_assert!(total_size == result.data.atbs_len());
+        debug_assert!(total_size == result.data.atbs_len());
         Ok(result)
     }
 

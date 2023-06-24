@@ -7,6 +7,7 @@ use crate::builder::builder4::AsciiTrieBuilder4;
 use crate::builder::builder5::AsciiTrieBuilder5;
 use crate::builder::builder6::AsciiMode;
 use crate::builder::builder6::AsciiTrieBuilder6;
+use crate::builder::builder6::CapacityMode;
 use crate::builder::builder6::PhfMode;
 use crate::builder::builder6::ZeroTrieBuilderOptions;
 use crate::builder::builder7b::AsciiTrieBuilder7b;
@@ -139,6 +140,7 @@ where
         ZeroTrieBuilderOptions {
             phf_mode: PhfMode::UsePhf,
             ascii_mode: AsciiMode::AsciiOnly,
+            capacity_mode: CapacityMode::Normal,
         },
     )
     .map(|s| s.to_bytes())
@@ -151,6 +153,7 @@ pub fn make6_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error
         ZeroTrieBuilderOptions {
             phf_mode: PhfMode::UsePhf,
             ascii_mode: AsciiMode::AsciiOnly,
+            capacity_mode: CapacityMode::Normal,
         },
     )
     .map(|s| s.to_bytes())
@@ -167,6 +170,7 @@ where
         ZeroTrieBuilderOptions {
             phf_mode: PhfMode::UsePhf,
             ascii_mode: AsciiMode::BinarySpans,
+            capacity_mode: CapacityMode::Normal,
         },
     )
     .map(|s| s.to_bytes())
@@ -179,6 +183,7 @@ pub fn make6_byte_slice<'a>(items: &[(&'a [u8], usize)]) -> Result<Vec<u8>, Erro
         ZeroTrieBuilderOptions {
             phf_mode: PhfMode::UsePhf,
             ascii_mode: AsciiMode::BinarySpans,
+            capacity_mode: CapacityMode::Normal,
         },
     )
     .map(|s| s.to_bytes())
@@ -195,6 +200,7 @@ where
         ZeroTrieBuilderOptions {
             phf_mode: PhfMode::BinaryOnly,
             ascii_mode: AsciiMode::AsciiOnly,
+            capacity_mode: CapacityMode::Normal,
         },
     )
     .map(|s| s.to_bytes())
@@ -207,6 +213,7 @@ pub fn make7_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error
         ZeroTrieBuilderOptions {
             phf_mode: PhfMode::BinaryOnly,
             ascii_mode: AsciiMode::AsciiOnly,
+            capacity_mode: CapacityMode::Normal,
         },
     )
     .map(|s| s.to_bytes())
