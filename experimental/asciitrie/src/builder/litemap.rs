@@ -46,7 +46,7 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
     {
         let ascii_str_slice = items.as_slice();
         let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
-        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
+        ZeroTrieBuilder::<VecDeque<u8>>::from_sorted_tuple_slice(
             byte_str_slice,
             Self::BUILDER_OPTIONS,
         )
@@ -101,7 +101,7 @@ impl ZeroTriePerfectHash<Vec<u8>> {
     {
         let byte_slice = items.as_slice();
         let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
-        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
+        ZeroTrieBuilder::<VecDeque<u8>>::from_sorted_tuple_slice(
             byte_str_slice,
             Self::BUILDER_OPTIONS,
         )
@@ -142,7 +142,7 @@ impl ZeroTrieExtendedCapacity<Vec<u8>> {
     {
         let byte_slice = items.as_slice();
         let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
-        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
+        ZeroTrieBuilder::<VecDeque<u8>>::from_sorted_tuple_slice(
             byte_str_slice,
             Self::BUILDER_OPTIONS,
         )

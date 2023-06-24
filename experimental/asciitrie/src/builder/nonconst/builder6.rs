@@ -36,33 +36,15 @@ pub struct ZeroTrieBuilderOptions {
 }
 
 /// A low-level builder for AsciiTrie.
-pub(crate) struct AsciiTrieBuilder6<S> {
+pub(crate) struct ZeroTrieBuilder<S> {
     data: S,
     phf_cache: PerfectByteHashMapCacheOwned,
     options: ZeroTrieBuilderOptions,
 }
 
-impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
-    // #[cfg(feature = "alloc")]
-    // pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
-    //     let slice = self.data.atbs_as_bytes();
-    //     AsciiTrie(slice.as_slice())
-    // }
-
+impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
     pub fn to_bytes(&self) -> Vec<u8> {
         self.data.atbs_to_bytes()
-    }
-
-    // pub const fn into_ascii_trie_or_panic(self) -> AsciiTrie<[u8; N]> {
-    //     AsciiTrie(self.data.take_or_panic())
-    // }
-
-    pub fn new(options: ZeroTrieBuilderOptions) -> Self {
-        Self {
-            data: S::atbs_new_empty(),
-            phf_cache: PerfectByteHashMapCacheOwned::new_empty(),
-            options,
-        }
     }
 
     #[must_use]
@@ -122,6 +104,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
         }
     }
 
+    /// Builds a ZeroTrie from an iterator of bytes. It first collects and sorts the iterator.
     pub fn from_bytes_iter<'a, I: IntoIterator<Item = (&'a [u8], usize)>>(
         iter: I,
         options: ZeroTrieBuilderOptions,
@@ -133,6 +116,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
         Self::from_sorted_tuple_slice(byte_str_slice, options)
     }
 
+    /// Builds a ZeroTrie from an iterator of AsciiStr. It first collects and sorts the iterator.
     pub fn from_asciistr_iter<'a, I: IntoIterator<Item = (&'a AsciiStr, usize)>>(
         iter: I,
         options: ZeroTrieBuilderOptions,
@@ -145,12 +129,20 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
         Self::from_sorted_tuple_slice(byte_str_slice, options)
     }
 
-    /// Assumes that the items are sorted
+    /// Builds a ZeroTrie with the given items and options. Assumes that the items are sorted.
+    ///
+    /// # Panics
+    ///
+    /// May panic if the items are not sorted.
     pub fn from_sorted_tuple_slice<'a>(
         items: &[(&'a ByteStr, usize)],
         options: ZeroTrieBuilderOptions,
     ) -> Result<Self, Error> {
-        let mut result = Self::new(options);
+        let mut result = Self {
+            data: S::atbs_new_empty(),
+            phf_cache: PerfectByteHashMapCacheOwned::new_empty(),
+            options,
+        };
         let total_size = result.create(items)?;
         debug_assert!(total_size == result.data.atbs_len());
         Ok(result)

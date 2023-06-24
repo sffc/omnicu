@@ -251,8 +251,8 @@ macro_rules! impl_zerotrie_subtype {
             /// assert_eq!(trie.get(b"unknown"), None);
             /// ```
             fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
-                use crate::builder::nonconst::AsciiTrieBuilder6;
-                AsciiTrieBuilder6::<VecDeque<u8>>::from_asciistr_iter(
+                use crate::builder::nonconst::ZeroTrieBuilder;
+                ZeroTrieBuilder::<VecDeque<u8>>::from_asciistr_iter(
                     iter,
                     Self::BUILDER_OPTIONS
                 )
@@ -286,8 +286,8 @@ macro_rules! impl_zerotrie_subtype {
             /// assert_eq!(trie.get(b"unknown"), None);
             /// ```
             fn from_iter<T: IntoIterator<Item = (&'a [u8], usize)>>(iter: T) -> Self {
-                use crate::builder::nonconst::AsciiTrieBuilder6;
-                AsciiTrieBuilder6::<VecDeque<u8>>::from_bytes_iter(
+                use crate::builder::nonconst::ZeroTrieBuilder;
+                ZeroTrieBuilder::<VecDeque<u8>>::from_bytes_iter(
                     iter,
                     Self::BUILDER_OPTIONS
                 )
