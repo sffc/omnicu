@@ -5,7 +5,11 @@
 use crate::builder::builder1b::AsciiTrieBuilder1b;
 use crate::builder::builder4::AsciiTrieBuilder4;
 use crate::builder::builder5::AsciiTrieBuilder5;
+use crate::builder::builder6::AsciiMode;
 use crate::builder::builder6::AsciiTrieBuilder6;
+use crate::builder::builder6::PhfMode;
+use crate::builder::builder6::ZeroTrieBuilderOptions;
+use crate::builder::builder7b::AsciiTrieBuilder7b;
 use crate::builder::bytestr::ByteStr;
 use crate::builder::AsciiTrieBuilder;
 use crate::error::Error;
@@ -90,7 +94,8 @@ where
 }
 
 pub fn make1b_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error> {
-    AsciiTrieBuilder1b::<10000>::from_tuple_slice::<100>(items.into()).map(|x| x.as_bytes().to_owned())
+    AsciiTrieBuilder1b::<10000>::from_tuple_slice::<100>(items.into())
+        .map(|x| x.as_bytes().to_owned())
 }
 
 pub fn make4_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>
@@ -129,13 +134,26 @@ where
 {
     let ascii_str_slice = items.as_slice();
     let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
-    AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(byte_str_slice.into())
-        .map(|s| s.to_bytes())
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(
+        byte_str_slice.into(),
+        ZeroTrieBuilderOptions {
+            phf_mode: PhfMode::UsePhf,
+            ascii_mode: AsciiMode::AsciiOnly,
+        },
+    )
+    .map(|s| s.to_bytes())
 }
 
 pub fn make6_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error> {
     let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(items);
-    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(byte_str_slice.into()).map(|s| s.to_bytes())
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(
+        byte_str_slice.into(),
+        ZeroTrieBuilderOptions {
+            phf_mode: PhfMode::UsePhf,
+            ascii_mode: AsciiMode::AsciiOnly,
+        },
+    )
+    .map(|s| s.to_bytes())
 }
 
 pub fn make6_byte_litemap<'a, S>(items: &LiteMap<&'a [u8], usize, S>) -> Result<Vec<u8>, Error>
@@ -144,11 +162,65 @@ where
 {
     let byte_slice = items.as_slice();
     let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
-    AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(byte_str_slice.into())
-        .map(|s| s.to_bytes())
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(
+        byte_str_slice.into(),
+        ZeroTrieBuilderOptions {
+            phf_mode: PhfMode::UsePhf,
+            ascii_mode: AsciiMode::BinarySpans,
+        },
+    )
+    .map(|s| s.to_bytes())
 }
 
 pub fn make6_byte_slice<'a>(items: &[(&'a [u8], usize)]) -> Result<Vec<u8>, Error> {
     let byte_str_slice = ByteStr::from_byte_slice_with_value(items);
-    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(byte_str_slice.into()).map(|s| s.to_bytes())
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(
+        byte_str_slice.into(),
+        ZeroTrieBuilderOptions {
+            phf_mode: PhfMode::UsePhf,
+            ascii_mode: AsciiMode::BinarySpans,
+        },
+    )
+    .map(|s| s.to_bytes())
+}
+
+pub fn make7_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Result<Vec<u8>, Error>
+where
+    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
+{
+    let ascii_str_slice = items.as_slice();
+    let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(
+        byte_str_slice.into(),
+        ZeroTrieBuilderOptions {
+            phf_mode: PhfMode::BinaryOnly,
+            ascii_mode: AsciiMode::AsciiOnly,
+        },
+    )
+    .map(|s| s.to_bytes())
+}
+
+pub fn make7_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error> {
+    let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(items);
+    AsciiTrieBuilder6::<VecDeque<u8>>::from_tuple_slice(
+        byte_str_slice.into(),
+        ZeroTrieBuilderOptions {
+            phf_mode: PhfMode::BinaryOnly,
+            ascii_mode: AsciiMode::AsciiOnly,
+        },
+    )
+    .map(|s| s.to_bytes())
+}
+
+pub fn make7b_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Result<Vec<u8>, Error>
+where
+    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
+{
+    AsciiTrieBuilder7b::<10000>::from_sorted_const_tuple_slice::<100>(items.as_slice().into())
+        .map(|x| x.as_bytes().to_owned())
+}
+
+pub fn make7b_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error> {
+    AsciiTrieBuilder7b::<10000>::from_tuple_slice::<100>(items.into())
+        .map(|x| x.as_bytes().to_owned())
 }

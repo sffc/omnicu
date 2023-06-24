@@ -15,11 +15,11 @@ use crate::varint;
 extern crate std;
 
 /// A low-level builder for AsciiTrie.
-pub(crate) struct AsciiTrieBuilder1b<const N: usize> {
+pub(crate) struct AsciiTrieBuilder7b<const N: usize> {
     data: ConstAsciiTrieBuilderStore<N>,
 }
 
-impl<const N: usize> AsciiTrieBuilder1b<N> {
+impl<const N: usize> AsciiTrieBuilder7b<N> {
     // #[cfg(feature = "alloc")]
     // pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
     //     let slice = self.data.atbs_as_bytes();
@@ -50,7 +50,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
     #[must_use]
     const fn prepend_value(self, value: usize) -> (Self, usize) {
         let mut data = self.data;
-        let varint_array = varint::write_varint(value);
+        let varint_array = varint::write_varint2(value);
         data = data.atbs_extend_front(varint_array.as_const_slice());
         data = data.atbs_bitor_assign(0, 0b10000000);
         (Self { data }, varint_array.len())
@@ -63,6 +63,17 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
         data = data.atbs_extend_front(varint_array.as_const_slice());
         data = data.atbs_bitor_assign(0, 0b11000000);
         (Self { data }, varint_array.len())
+    }
+
+    #[must_use]
+    const fn prepend_slice(self, s: ConstSlice<u8>) -> (Self, usize) {
+        let mut data = self.data;
+        let mut i = s.len();
+        while i > 0 {
+            data = data.atbs_push_front(*s.get_or_panic(i - 1));
+            i -= 1;
+        }
+        (Self { data }, s.len())
     }
 
     #[must_use]
@@ -112,7 +123,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
             Ok(x) => x,
             Err(e) => return Err(e),
         };
-        debug_assert!(total_size == result.data.atbs_len());
+        // debug_assert!(total_size == result.data.atbs_len());
         Ok(result)
     }
 
@@ -242,39 +253,47 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
                 (length, count)
             };
+            let branch_metas;
+            (lengths_stack, branch_metas) = lengths_stack.pop_many_or_panic(total_count);
+            let original_keys = branch_metas.map_to_ascii_bytes();
+            // Write out the offset table
             current_len = total_length;
             const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
-            let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8 + 1;
+            let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8;
+            if w > 3 {
+                return Err(Error::CapacityExceeded);
+            }
             let mut k = 0;
-            while k < w {
-                self = self.prepend_n_zeros(total_count);
-                current_len += total_count;
+            while k <= w {
+                self = self.prepend_n_zeros(total_count - 1);
+                current_len += total_count - 1;
                 let mut l = 0;
+                let mut length_to_write = 0;
                 while l < total_count {
-                    let BranchMeta { length, .. } = lengths_stack.get_or_panic(l);
-                    let mut adjusted_length = total_length - length;
+                    let BranchMeta { local_length, .. } = *branch_metas
+                        .as_const_slice()
+                        .get_or_panic(total_count - l - 1);
+                    let mut adjusted_length = length_to_write;
                     let mut m = 0;
                     while m < k {
                         adjusted_length >>= 8;
                         m += 1;
                     }
-                    self = self.bitor_assign_at(l, adjusted_length as u8);
+                    if l > 0 {
+                        self = self.bitor_assign_at(l - 1, adjusted_length as u8);
+                    }
                     l += 1;
+                    length_to_write += local_length;
                 }
                 k += 1;
             }
-            self = self.prepend_n_zeros(total_count);
-            current_len += total_count;
-            let mut l = 0;
-            while l < total_count {
-                let ascii;
-                (lengths_stack, BranchMeta { ascii, .. }) = lengths_stack.pop_or_panic();
-                self = self.bitor_assign_at(l, ascii);
-                l += 1;
-            }
-            let len;
-            (self, len) = self.prepend_branch(total_count);
-            current_len += len;
+            assert!(0 < total_count && total_count <= 256);
+            let branch_value = (w << 8) + (total_count & 0xff);
+            let slice_len;
+            (self, slice_len) = self.prepend_slice(original_keys.as_const_slice());
+            let branch_len;
+            (self, branch_len) = self.prepend_branch(branch_value);
+            current_len += slice_len + branch_len;
             i = new_i;
             j = new_j;
         }

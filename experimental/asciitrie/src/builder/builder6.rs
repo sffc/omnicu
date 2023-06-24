@@ -15,10 +15,26 @@ use alloc::vec::Vec;
 
 extern crate std;
 
+pub enum PhfMode {
+    BinaryOnly,
+    UsePhf,
+}
+
+pub enum AsciiMode {
+    AsciiOnly,
+    BinarySpans,
+}
+
+pub struct ZeroTrieBuilderOptions {
+    pub phf_mode: PhfMode,
+    pub ascii_mode: AsciiMode,
+}
+
 /// A low-level builder for AsciiTrie.
 pub(crate) struct AsciiTrieBuilder6<S> {
     data: S,
     phf_cache: PerfectByteHashMapCacheOwned,
+    options: ZeroTrieBuilderOptions,
 }
 
 impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
@@ -36,10 +52,11 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
     //     AsciiTrie(self.data.take_or_panic())
     // }
 
-    pub fn new() -> Self {
+    pub fn new(options: ZeroTrieBuilderOptions) -> Self {
         Self {
             data: S::atbs_new_empty(),
             phf_cache: PerfectByteHashMapCacheOwned::new_empty(),
+            options,
         }
     }
 
@@ -98,7 +115,10 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
     }
 
     /// Panics if the items are not sorted
-    pub fn from_tuple_slice<'a>(items: &[(&'a ByteStr, usize)]) -> Result<Self, Error> {
+    pub fn from_tuple_slice<'a>(
+        items: &[(&'a ByteStr, usize)],
+        options: ZeroTrieBuilderOptions,
+    ) -> Result<Self, Error> {
         let items = ConstSlice::from_slice(items);
         let mut prev: Option<&'a ByteStr> = None;
         const_for_each!(items, (ascii_str, _), {
@@ -112,14 +132,15 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             };
             prev = Some(ascii_str)
         });
-        Self::from_sorted_const_tuple_slice(items)
+        Self::from_sorted_const_tuple_slice(items, options)
     }
 
     /// Assumes that the items are sorted
     pub fn from_sorted_const_tuple_slice<'a>(
         items: ConstSlice<(&'a ByteStr, usize)>,
+        options: ZeroTrieBuilderOptions,
     ) -> Result<Self, Error> {
-        let mut result = Self::new();
+        let mut result = Self::new(options);
         let total_size = result.create(items)?;
         debug_assert!(total_size == result.data.atbs_len());
         Ok(result)
@@ -244,7 +265,8 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             let mut branch_metas;
             (lengths_stack, branch_metas) = lengths_stack.pop_many_or_panic(total_count);
             let original_keys = branch_metas.map_to_ascii_bytes();
-            let opt_phf_vec = if total_count > 15 {
+            let use_phf = matches!(self.options.phf_mode, PhfMode::UsePhf);
+            let opt_phf_vec = if total_count > 15 && use_phf {
                 let phf_vec = self
                     .phf_cache
                     .try_get_or_insert(original_keys.as_const_slice().as_slice().to_vec())?;
@@ -286,7 +308,6 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             // Write out the offset table
             current_len = total_length;
             const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
-            // let max_len = total_length - branch_metas.as_const_slice().get_or_panic(0).local_length;
             let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8;
             if w > 3 {
                 return Err(Error::CapacityExceeded);
@@ -301,7 +322,6 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                     let BranchMeta { local_length, .. } = *branch_metas
                         .as_const_slice()
                         .get_or_panic(total_count - l - 1);
-                    // std::println!("length_to_write = {length_to_write:?}");
                     let mut adjusted_length = length_to_write;
                     let mut m = 0;
                     while m < k {

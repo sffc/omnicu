@@ -171,10 +171,22 @@ impl<const N: usize> ConstLengthsStack1b<N> {
         }
     }
 
-    pub fn pop_many_or_panic(mut self, len: usize) -> (Self, ConstArrayBuilder<256, BranchMeta>) {
+    pub const fn pop_many_or_panic(
+        mut self,
+        len: usize,
+    ) -> (Self, ConstArrayBuilder<256, BranchMeta>) {
         let mut result = ConstArrayBuilder::new_empty([BranchMeta::const_default(); 256], 256);
-        for i in (self.idx - len..self.idx).rev() {
-            result = result.push_front(self.data[i].unwrap());
+        let mut ix = 0;
+        loop {
+            if ix == len {
+                break;
+            }
+            let i = self.idx - ix - 1;
+            result = result.push_front(match self.data[i] {
+                Some(x) => x,
+                None => panic!("Not enough items in the ConstLengthsStack")
+            });
+            ix += 1;
         }
         self.idx -= len;
         (self, result)

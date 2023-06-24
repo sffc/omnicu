@@ -18,6 +18,7 @@ pub mod reader;
 pub mod reader4;
 pub mod reader5;
 pub mod reader6;
+pub mod reader7;
 #[cfg(feature = "serde")]
 mod serde;
 mod varinta;
@@ -33,7 +34,8 @@ pub use builder::NonAsciiError;
 #[cfg(feature = "litemap")]
 pub use builder::{
     make1b_litemap, make1b_slice, make4_litemap, make4_slice, make5_litemap, make5_slice,
-    make6_byte_litemap, make6_byte_slice, make6_litemap, make6_slice,
+    make6_byte_litemap, make6_byte_slice, make6_litemap, make6_slice, make7_litemap, make7_slice,
+    make7b_litemap, make7b_slice,
 };
 pub use error::Error as AsciiTrieError;
 pub use zerotrie::ZeroTrie;

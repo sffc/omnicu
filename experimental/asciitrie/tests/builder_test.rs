@@ -109,6 +109,18 @@ fn check_ascii_trie6_bytes(items: &LiteMap<&[u8], usize>, trie: &[u8]) {
     );
 }
 
+fn check_ascii_trie7(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
+    for (k, v) in items.iter() {
+        assert_eq!(asciitrie::reader7::get(trie, k.as_bytes()), Some(*v));
+    }
+    // Note: We can't compare the iterators because trie7 might not return items in order.
+    let recovered_items: LiteMap<_, _> = asciitrie::reader7::get_iter(trie).collect();
+    assert_eq!(
+        items.to_borrowed_keys_values::<[u8], usize, Vec<_>>(),
+        recovered_items.to_borrowed_keys_values()
+    );
+}
+
 fn check_bytes_eq(len: usize, a: impl AsRef<[u8]>, b: &[u8]) {
     assert_eq!(len, a.as_ref().len());
     assert_eq!(a.as_ref(), b);
@@ -1303,6 +1315,13 @@ fn test_short_subtags_10pct() {
     assert_eq!(trie6.len(), 1100);
     check_ascii_trie6(&litemap, &trie6);
 
+    let trie7 = asciitrie::make7_litemap(&litemap).unwrap();
+    assert_eq!(trie7.len(), 1050);
+    check_ascii_trie7(&litemap, &trie7);
+
+    let trie7b = asciitrie::make7b_litemap(&litemap).unwrap();
+    check_bytes_eq(1050, trie7, &trie7b);
+
     let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     check_bytes_eq(1077, &trie1b, trie.as_bytes());
 
@@ -1346,6 +1365,13 @@ fn test_short_subtags() {
     let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
     assert_eq!(trie6.len(), 9400);
     check_ascii_trie6(&litemap, &trie6);
+
+    let trie7 = asciitrie::make7_litemap(&litemap).unwrap();
+    assert_eq!(trie7.len(), 8793);
+    check_ascii_trie7(&litemap, &trie7);
+
+    let trie7b = asciitrie::make7b_litemap(&litemap).unwrap();
+    check_bytes_eq(8793, trie7, &trie7b);
 
     let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
     assert_eq!(trie1b.len(), 9204);
