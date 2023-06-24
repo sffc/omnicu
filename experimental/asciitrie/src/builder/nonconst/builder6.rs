@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::AsciiStr;
 use super::super::branch_meta::BranchMeta;
 use super::tstore::MutableLengthsStack1b;
 use super::tstore::TrieBuilderStore;
@@ -118,6 +119,22 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             self.data.atbs_push_front(*s.get(i - 1).unwrap());
             i -= 1;
         }
+    }
+
+    pub fn from_bytes_iter<'a, I: IntoIterator<Item = (&'a [u8], usize)>>(iter: I, options: ZeroTrieBuilderOptions) -> Result<Self, Error> {
+        let mut items = Vec::<(&[u8], usize)>::from_iter(iter);
+        items.sort();
+        let ascii_str_slice = items.as_slice();
+        let byte_str_slice = crate::builder::ByteStr::from_byte_slice_with_value(ascii_str_slice);
+        Self::from_sorted_tuple_slice(byte_str_slice, options)
+    }
+
+    pub fn from_asciistr_iter<'a, I: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: I, options: ZeroTrieBuilderOptions) -> Result<Self, Error> {
+        let mut items = Vec::<(&AsciiStr, usize)>::from_iter(iter);
+        items.sort();
+        let ascii_str_slice = items.as_slice();
+        let byte_str_slice = crate::builder::ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
+        Self::from_sorted_tuple_slice(byte_str_slice, options)
     }
 
     /// Assumes that the items are sorted
