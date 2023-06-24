@@ -8,7 +8,6 @@ use super::const_util::const_for_each;
 use super::const_util::ConstArrayBuilder;
 use super::const_util::ConstSlice;
 use super::AsciiByte;
-use crate::error::Error;
 
 #[derive(Default)]
 pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
@@ -25,12 +24,12 @@ impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
     pub const fn atbs_len(&self) -> usize {
         self.data.len()
     }
-    pub const fn atbs_push_front(mut self, byte: u8) -> Self {
-        self.data = self.data.const_push_front(byte);
+    pub const fn atbs_push_front_or_panic(mut self, byte: u8) -> Self {
+        self.data = self.data.const_push_front_or_panic(byte);
         self
     }
-    pub const fn atbs_extend_front(mut self, other: ConstSlice<u8>) -> Self {
-        self.data = self.data.const_extend_front(other);
+    pub const fn atbs_extend_front_or_panic(mut self, other: ConstSlice<u8>) -> Self {
+        self.data = self.data.const_extend_front_or_panic(other);
         self
     }
     #[cfg(feature = "alloc")]
@@ -89,17 +88,17 @@ impl<const N: usize> ConstLengthsStack1b<N> {
     }
 
     #[must_use]
-    pub const fn push(mut self, meta: BranchMeta) -> Result<Self, Error> {
+    pub const fn push_or_panic(mut self, meta: BranchMeta) -> Self {
         if self.idx >= N {
-            return Err(Error::ConstBuilder(concat!(
+            panic!(concat!(
                 "AsciiTrie Builder: Need more stack (max ",
                 stringify!(N),
                 ")"
-            )));
+            ));
         }
         self.data[self.idx] = Some(meta);
         self.idx += 1;
-        Ok(self)
+        self
     }
 
     pub const fn peek_or_panic(&self) -> BranchMeta {
@@ -131,7 +130,7 @@ impl<const N: usize> ConstLengthsStack1b<N> {
                 break;
             }
             let i = self.idx - ix - 1;
-            result = result.push_front(match self.data[i] {
+            result = result.push_front_or_panic(match self.data[i] {
                 Some(x) => x,
                 None => panic!("Not enough items in the ConstLengthsStack"),
             });
@@ -151,7 +150,7 @@ impl<const N: usize> ConstArrayBuilder<N, BranchMeta> {
         let mut result = ConstArrayBuilder::new_empty([0; N], N);
         let self_as_slice = self.as_const_slice();
         const_for_each!(self_as_slice, value, {
-            result = result.const_push_front(value.ascii);
+            result = result.const_push_front_or_panic(value.ascii);
         });
         result
     }

@@ -145,25 +145,23 @@ impl<const N: usize> ConstArrayBuilder<N, u8> {
     // Can't be generic because T has a destructor
     pub const fn const_take_or_panic(self) -> [u8; N] {
         if self.start != 0 || self.limit != N {
-            panic!("AsciiTrieBuilder buffer is too large");
+            panic!("AsciiTrieBuilder buffer too large");
         }
         self.full_array
     }
     // Can't be generic because T has a destructor
-    pub const fn const_push_front(mut self, value: u8) -> Self {
+    pub const fn const_push_front_or_panic(mut self, value: u8) -> Self {
         if self.start == 0 {
-            // TODO: Fail gracefully
-            panic!("AsciiTrieBuilder buffer out of capacity");
+            panic!("AsciiTrieBuilder buffer too small");
         }
         self.start -= 1;
         self.full_array[self.start] = value;
         self
     }
     // Can't be generic because T has a destructor
-    pub const fn const_extend_front(mut self, other: ConstSlice<u8>) -> Self {
+    pub const fn const_extend_front_or_panic(mut self, other: ConstSlice<u8>) -> Self {
         if self.start < other.len() {
-            // TODO: Fail gracefully
-            panic!("AsciiTrieBuilder buffer out of capacity");
+            panic!("AsciiTrieBuilder buffer too small");
         }
         self.start -= other.len();
         let mut i = self.start;
@@ -176,9 +174,9 @@ impl<const N: usize> ConstArrayBuilder<N, u8> {
 }
 
 impl<const N: usize, T: Copy> ConstArrayBuilder<N, T> {
-    pub const fn push_front(mut self, value: T) -> Self {
+    pub const fn push_front_or_panic(mut self, value: T) -> Self {
         if self.start == 0 {
-            panic!("AsciiTrieBuilder buffer out of capacity");
+            panic!("AsciiTrieBuilder buffer too small");
         }
         self.start -= 1;
         self.full_array[self.start] = value;

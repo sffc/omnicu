@@ -47,7 +47,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
 
     #[must_use]
     const fn prepend_ascii(self, ascii: AsciiByte) -> (Self, usize) {
-        let data = self.data.atbs_push_front(ascii.get());
+        let data = self.data.atbs_push_front_or_panic(ascii.get());
         (Self { data }, 1)
     }
 
@@ -55,7 +55,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
     const fn prepend_value(self, value: usize) -> (Self, usize) {
         let mut data = self.data;
         let varint_array = varint::write_varint2(value);
-        data = data.atbs_extend_front(varint_array.as_const_slice());
+        data = data.atbs_extend_front_or_panic(varint_array.as_const_slice());
         data = data.atbs_bitor_assign(0, 0b10000000);
         (Self { data }, varint_array.len())
     }
@@ -64,7 +64,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
     const fn prepend_branch(self, value: usize) -> (Self, usize) {
         let mut data = self.data;
         let varint_array = varint::write_varint(value);
-        data = data.atbs_extend_front(varint_array.as_const_slice());
+        data = data.atbs_extend_front_or_panic(varint_array.as_const_slice());
         data = data.atbs_bitor_assign(0, 0b11000000);
         (Self { data }, varint_array.len())
     }
@@ -74,7 +74,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
         let mut data = self.data;
         let mut i = s.len();
         while i > 0 {
-            data = data.atbs_push_front(*s.get_or_panic(i - 1));
+            data = data.atbs_push_front_or_panic(*s.get_or_panic(i - 1));
             i -= 1;
         }
         (Self { data }, s.len())
@@ -85,7 +85,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
         let mut data = self.data;
         let mut i = 0;
         while i < n {
-            data = data.atbs_push_front(0);
+            data = data.atbs_push_front_or_panic(0);
             i += 1;
         }
         Self { data }
@@ -123,23 +123,20 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
     ) -> Result<Self, Error> {
         let mut result = Self::new();
         let total_size;
-        (result, total_size) = match result.create::<K>(items) {
-            Ok(x) => x,
-            Err(e) => return Err(e),
-        };
+        (result, total_size) = result.create_or_panic::<K>(items);
         debug_assert!(total_size == result.data.atbs_len());
         Ok(result)
     }
 
     #[must_use]
-    const fn create<'a, const K: usize>(
+    const fn create_or_panic<'a, const K: usize>(
         mut self,
         all_items: ConstSlice<(&'a AsciiStr, usize)>,
-    ) -> Result<(Self, usize), Error> {
+    ) -> (Self, usize) {
         let mut prefix_len = match all_items.last() {
             Some(x) => x.0.len(),
             // Empty slice:
-            None => return Ok((Self::new(), 0)),
+            None => return (Self::new(), 0),
         };
         let mut lengths_stack = ConstLengthsStack1b::<K>::new();
         let mut i = all_items.len() - 1;
@@ -224,26 +221,20 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
             }
             // Branch
             if diff_j == 0 {
-                lengths_stack = match lengths_stack.push(BranchMeta {
+                lengths_stack = lengths_stack.push_or_panic(BranchMeta {
                     ascii: key_ascii.get(),
                     length: current_len,
                     local_length: current_len,
                     count: 1,
-                }) {
-                    Ok(v) => v,
-                    Err(e) => return Err(e),
-                };
+                });
             } else {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
-                lengths_stack = match lengths_stack.push(BranchMeta {
+                lengths_stack = lengths_stack.push_or_panic(BranchMeta {
                     ascii: key_ascii.get(),
                     length: length + current_len,
                     local_length: current_len,
                     count: count + 1,
-                }) {
-                    Ok(v) => v,
-                    Err(e) => return Err(e),
-                };
+                });
             }
             if diff_i != 0 {
                 j = i;
@@ -265,7 +256,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
             const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
             let w = (USIZE_BITS - (total_length.leading_zeros() as usize) - 1) / 8;
             if w > 3 {
-                return Err(Error::CapacityExceeded);
+                panic!("ZeroTrie capacity exceeded");
             }
             let mut k = 0;
             while k <= w {
@@ -302,6 +293,6 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
             j = new_j;
         }
         assert!(lengths_stack.is_empty());
-        Ok((self, current_len))
+        (self, current_len)
     }
 }
