@@ -6,44 +6,7 @@
 
 use super::const_util::const_for_each;
 use super::const_util::ConstArrayBuilder;
-use super::const_util::ConstSlice;
 use super::AsciiByte;
-
-#[derive(Default)]
-pub(crate) struct ConstAsciiTrieBuilderStore<const N: usize> {
-    data: ConstArrayBuilder<N, u8>,
-}
-
-// Note: This impl block is intended to be a trait, but we can't use traits in const.
-impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
-    pub const fn atbs_new_empty() -> Self {
-        Self {
-            data: ConstArrayBuilder::new_empty([0; N], N),
-        }
-    }
-    pub const fn atbs_len(&self) -> usize {
-        self.data.len()
-    }
-    pub const fn atbs_push_front_or_panic(mut self, byte: u8) -> Self {
-        self.data = self.data.const_push_front_or_panic(byte);
-        self
-    }
-    pub const fn atbs_extend_front_or_panic(mut self, other: ConstSlice<u8>) -> Self {
-        self.data = self.data.const_extend_front_or_panic(other);
-        self
-    }
-    #[cfg(feature = "alloc")]
-    pub const fn atbs_as_bytes(&self) -> ConstSlice<u8> {
-        self.data.as_const_slice()
-    }
-    pub const fn atbs_bitor_assign(mut self, index: usize, other: u8) -> Self {
-        self.data = self.data.const_bitor_assign(index, other);
-        self
-    }
-    pub const fn take_or_panic(self) -> [u8; N] {
-        self.data.const_take_or_panic()
-    }
-}
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct BranchMeta {

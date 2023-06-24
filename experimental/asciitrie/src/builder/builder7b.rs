@@ -2,10 +2,10 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use super::const_util::ConstArrayBuilder;
 use super::const_util::const_for_each;
 use super::const_util::ConstSlice;
 use super::store::BranchMeta;
-use super::store::ConstAsciiTrieBuilderStore;
 use super::store::ConstLengthsStack1b;
 use super::AsciiByte;
 use super::AsciiStr;
@@ -16,7 +16,7 @@ extern crate std;
 
 /// A low-level builder for AsciiTrie.
 pub(crate) struct AsciiTrieBuilder7b<const N: usize> {
-    data: ConstAsciiTrieBuilderStore<N>,
+    data: ConstArrayBuilder<N, u8>,
 }
 
 impl<const N: usize> AsciiTrieBuilder7b<N> {
@@ -28,7 +28,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
 
     #[cfg(feature = "alloc")]
     pub fn as_bytes(&self) -> &[u8] {
-        self.data.atbs_as_bytes().as_slice()
+        self.data.as_const_slice().as_slice()
     }
 
     // pub const fn into_ascii_trie_or_panic(self) -> AsciiTrie<[u8; N]> {
@@ -36,18 +36,18 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
     // }
 
     pub const fn take_or_panic(self) -> [u8; N] {
-        self.data.take_or_panic()
+        self.data.const_take_or_panic()
     }
 
     pub const fn new() -> Self {
         Self {
-            data: ConstAsciiTrieBuilderStore::atbs_new_empty(),
+            data: ConstArrayBuilder::new_empty([0; N], N),
         }
     }
 
     #[must_use]
     const fn prepend_ascii(self, ascii: AsciiByte) -> (Self, usize) {
-        let data = self.data.atbs_push_front_or_panic(ascii.get());
+        let data = self.data.const_push_front_or_panic(ascii.get());
         (Self { data }, 1)
     }
 
@@ -55,8 +55,8 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
     const fn prepend_value(self, value: usize) -> (Self, usize) {
         let mut data = self.data;
         let varint_array = varint::write_varint2(value);
-        data = data.atbs_extend_front_or_panic(varint_array.as_const_slice());
-        data = data.atbs_bitor_assign(0, 0b10000000);
+        data = data.const_extend_front_or_panic(varint_array.as_const_slice());
+        data = data.const_bitor_assign(0, 0b10000000);
         (Self { data }, varint_array.len())
     }
 
@@ -64,8 +64,8 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
     const fn prepend_branch(self, value: usize) -> (Self, usize) {
         let mut data = self.data;
         let varint_array = varint::write_varint(value);
-        data = data.atbs_extend_front_or_panic(varint_array.as_const_slice());
-        data = data.atbs_bitor_assign(0, 0b11000000);
+        data = data.const_extend_front_or_panic(varint_array.as_const_slice());
+        data = data.const_bitor_assign(0, 0b11000000);
         (Self { data }, varint_array.len())
     }
 
@@ -74,7 +74,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
         let mut data = self.data;
         let mut i = s.len();
         while i > 0 {
-            data = data.atbs_push_front_or_panic(*s.get_or_panic(i - 1));
+            data = data.const_push_front_or_panic(*s.get_or_panic(i - 1));
             i -= 1;
         }
         (Self { data }, s.len())
@@ -85,7 +85,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
         let mut data = self.data;
         let mut i = 0;
         while i < n {
-            data = data.atbs_push_front_or_panic(0);
+            data = data.const_push_front_or_panic(0);
             i += 1;
         }
         Self { data }
@@ -93,7 +93,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
 
     const fn bitor_assign_at(self, index: usize, byte: u8) -> Self {
         let mut data = self.data;
-        data = data.atbs_bitor_assign(index, byte);
+        data = data.const_bitor_assign(index, byte);
         Self { data }
     }
 
@@ -124,7 +124,7 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
         let mut result = Self::new();
         let total_size;
         (result, total_size) = result.create_or_panic::<K>(items);
-        debug_assert!(total_size == result.data.atbs_len());
+        debug_assert!(total_size == result.data.len());
         Ok(result)
     }
 
