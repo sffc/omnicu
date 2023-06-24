@@ -14,6 +14,16 @@ use ref_cast::RefCast;
 #[cfg(feature = "alloc")]
 use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
 
+/// A data structure that compactly maps from byte sequences to integers.
+///
+/// There are several variants of `ZeroTrie` which are very similar but are optimized
+/// for different use cases:
+///
+/// - [`ZeroTrieSimpleAscii`] is the most compact structure. Very fast for small data.
+///   Only stores ASCII-encoded strings. Can be const-constructed!
+/// - [`ZeroTriePerfectHash`] is also compact, but it also supports arbitrary binary
+///   strings. It also scales better to large data. Cannot be const-constructed.
+/// - [`ZeroTrieExtendedCapacity`] can be used if more than 2^32 bytes are required.
 pub struct ZeroTrie<S>(ZeroTrieInner<S>);
 
 enum ZeroTrieInner<S> {
@@ -22,18 +32,21 @@ enum ZeroTrieInner<S> {
     ExtendedCapacity(ZeroTrieExtendedCapacity<S>),
 }
 
+/// A data structure that compactly maps from ASCII strings to integers.
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
 pub struct ZeroTrieSimpleAscii<S: ?Sized> {
     pub(crate) store: S,
 }
 
+/// A data structure that compactly maps from byte strings to integers.
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
 pub struct ZeroTriePerfectHash<S: ?Sized> {
     pub(crate) store: S,
 }
 
+/// A data structure that maps from a large number of byte strings to integers.
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
 pub struct ZeroTrieExtendedCapacity<S: ?Sized> {
@@ -43,12 +56,17 @@ pub struct ZeroTrieExtendedCapacity<S: ?Sized> {
 macro_rules! impl_zerotrie_subtype {
     ($name:ident, $variant:ident, $getter_fn:path, $iter_ty:ty, $iter_fn:path) => {
         impl<S> $name<S> {
+            /// Wrap this specific ZeroTrie variant into a ZeroTrie.
             pub const fn into_zerotrie(self) -> ZeroTrie<S> {
                 ZeroTrie(ZeroTrieInner::$variant(self))
             }
+            /// Create a trie directly from a store.
+            ///
+            /// If the store does not contain valid bytes, unexpected behavior may occur.
             pub const fn from_store(store: S) -> Self {
                 Self { store }
             }
+            /// Takes the byte store from this trie.
             pub fn take_store(self) -> S {
                 self.store
             }
@@ -57,21 +75,39 @@ macro_rules! impl_zerotrie_subtype {
         where
             S: AsRef<[u8]> + ?Sized,
         {
+            /// Queries the trie for a byte string.
             pub fn get(&self, key: &[u8]) -> Option<usize> {
                 $getter_fn(self.store.as_ref(), key)
             }
+            /// Queries the trie for a UTF-8 string.
             pub fn get_str(&self, key: &str) -> Option<usize> {
                 self.get(key.as_bytes())
             }
+            /// Returns `true` if the trie is empty.
             pub fn is_empty(&self) -> bool {
                 self.store.as_ref().is_empty()
             }
+            /// Returns the size of the trie in number of bytes. 
+            ///
+            /// To get the number of keys in the trie, use `.iter().count()`:
+            ///
+            /// ```
+            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
+            ///
+            /// // A trie with two values: "abc" and "abcdef"
+            #[doc = concat!("let trie: &", stringify!($name), "<[u8]> = ", stringify!($name), "::from_bytes(b\"abc\\x80def\\x81\");")]
+            ///
+            /// assert_eq!(8, trie.byte_len());
+            /// assert_eq!(2, trie.iter().count());
+            /// ```
             pub fn byte_len(&self) -> usize {
                 self.store.as_ref().len()
             }
+            /// Returns the bytes contained in the underlying store.
             pub fn as_bytes(&self) -> &[u8] {
                 self.store.as_ref()
             }
+            /// Returns this trie as a reference transparent over a byte slice.
             pub fn as_borrowed(&self) -> &$name<[u8]> {
                 $name::from_bytes(self.store.as_ref())
             }
@@ -107,6 +143,9 @@ macro_rules! impl_zerotrie_subtype {
             }
         }
         impl $name<[u8]> {
+            /// Casts from a byte slice to a reference to a trie with the same lifetime.
+            ///
+            /// If the bytes are not a valid trie, unexpected behavior may occur.
             pub fn from_bytes(trie: &[u8]) -> &Self {
                 Self::ref_cast(trie)
             }
@@ -309,18 +348,25 @@ impl<S> ZeroTrie<S>
 where
     S: AsRef<[u8]>,
 {
+    /// Queries the trie for a byte string.
     pub fn get(&self, key: &[u8]) -> Option<usize> {
         impl_dispatch!(self, get(key))
     }
+    /// Queries the trie for a UTF-8 string.
     pub fn get_str(&self, key: &str) -> Option<usize> {
         impl_dispatch!(self, get_str(key))
     }
+    /// Returns `true` if the trie is empty.
     pub fn is_empty(&self) -> bool {
         impl_dispatch!(self, is_empty)
     }
+    /// Returns the size of the trie in number of bytes. 
+    ///
+    /// To get the number of keys in the trie, use `.iter().count()`.
     pub fn byte_len(&self) -> usize {
         impl_dispatch!(self, byte_len)
     }
+    /// Returns the bytes contained in the underlying store.
     pub fn as_bytes(&self) -> &[u8] {
         impl_dispatch!(self, as_bytes)
     }
