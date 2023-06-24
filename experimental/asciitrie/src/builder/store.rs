@@ -131,14 +131,10 @@ impl<const N: usize> ConstLengthsStack1b<N> {
                 break;
             }
             let i = self.idx - ix - 1;
-            result = match result.push_front(match self.data[i] {
+            result = result.push_front(match self.data[i] {
                 Some(x) => x,
                 None => panic!("Not enough items in the ConstLengthsStack"),
-            }) {
-                Ok(x) => x,
-                // Note: unreachable!("message") is not const
-                Err(_) => panic!("unreachable: len <= 256")
-            };
+            });
             ix += 1;
         }
         self.idx -= len;

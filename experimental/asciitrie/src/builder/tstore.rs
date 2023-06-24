@@ -127,13 +127,10 @@ impl MutableLengthsStack1b {
                 break;
             }
             let i = self.data.len() - ix - 1;
-            result = match result.push_front(match self.data.get(i) {
+            result = result.push_front(match self.data.get(i) {
                 Some(x) => *x,
                 None => panic!("Not enough items in the ConstLengthsStack"),
-            }) {
-                Ok(x) => x,
-                Err(_) => unreachable!("len <= 256")
-            };
+            });
             ix += 1;
         }
         self.data.truncate(self.data.len() - len);
