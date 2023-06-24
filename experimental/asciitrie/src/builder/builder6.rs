@@ -2,7 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use super::const_util::const_for_each;
 use super::const_util::ConstSlice;
 use super::store::BranchMeta;
 use super::store::ConstLengthsStack1b;
@@ -120,27 +119,6 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             self.data.atbs_push_front(*s.get_or_panic(i - 1));
             i -= 1;
         }
-    }
-
-    /// Panics if the items are not sorted
-    pub fn from_tuple_slice<'a>(
-        items: &[(&'a ByteStr, usize)],
-        options: ZeroTrieBuilderOptions,
-    ) -> Result<Self, Error> {
-        let items = ConstSlice::from_slice(items);
-        let mut prev: Option<&'a ByteStr> = None;
-        const_for_each!(items, (ascii_str, _), {
-            match prev {
-                None => (),
-                Some(prev) => {
-                    if !prev.is_less_then(ascii_str) {
-                        panic!("Strings in ByteStr constructor are not sorted");
-                    }
-                }
-            };
-            prev = Some(ascii_str)
-        });
-        Self::from_sorted_const_tuple_slice(items, options)
     }
 
     /// Assumes that the items are sorted

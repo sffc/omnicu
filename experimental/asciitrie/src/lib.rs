@@ -19,7 +19,6 @@ pub mod reader7;
 #[cfg(feature = "serde")]
 mod serde;
 mod varinta;
-mod varintx;
 mod zerotrie;
 #[cfg(feature = "zerovec")]
 mod zerovec;

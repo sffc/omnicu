@@ -41,6 +41,7 @@ impl<'a, T> ConstSlice<'a, T> {
         &self.full_slice[index + self.start]
     }
 
+    #[cfg(test)]
     pub const fn first(&self) -> Option<&T> {
         if self.len() == 0 {
             None
@@ -57,6 +58,7 @@ impl<'a, T> ConstSlice<'a, T> {
         }
     }
 
+    #[cfg(test)]
     pub const fn get_subslice_or_panic(
         &self,
         new_start: usize,
@@ -188,40 +190,6 @@ impl<const N: usize, T: Copy> ConstArrayBuilder<N, T> {
         self.full_array[self.start + j] = temp;
         self
     }
-    pub fn swap_ranges(mut self, mut start: usize, mut mid: usize, mut limit: usize) -> Self {
-        if start > mid || mid > limit {
-            panic!("Invalid args to swap_ranges(): start > mid || mid > limit");
-        }
-        if limit > self.len() {
-            panic!(
-                "Invalid args to swap_ranges(): limit out of range: {limit} > {}",
-                self.len()
-            );
-        }
-        loop {
-            if start == mid || mid == limit {
-                return self;
-            }
-            let len0 = mid - start;
-            let len1 = limit - mid;
-            let mut i = self.start + start;
-            let mut j = self.start + limit - core::cmp::min(len0, len1);
-            while j < self.start + limit {
-                let temp = self.full_array[i];
-                self.full_array[i] = self.full_array[j];
-                self.full_array[j] = temp;
-                i += 1;
-                j += 1;
-            }
-            if len0 < len1 {
-                mid = start + len0;
-                limit -= len0;
-            } else {
-                start += len1;
-                mid = limit - len1;
-            }
-        }
-    }
 }
 
 macro_rules! const_for_each {
@@ -236,16 +204,3 @@ macro_rules! const_for_each {
 }
 
 pub(crate) use const_for_each;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_swap_ranges() {
-        let s = b"...abcdefghijkl==";
-        let s = ConstArrayBuilder::from_manual_slice(*s, 1, 16);
-        let s = s.swap_ranges(2, 7, 14);
-        assert_eq!(s.as_slice(), b"..fghijklabcde=");
-    }
-}

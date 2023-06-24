@@ -26,20 +26,6 @@ impl ByteStr {
         self.0.len()
     }
 
-    pub(crate) const fn is_less_then(&self, other: &Self) -> bool {
-        let mut i = 0;
-        while i < self.len() && i < other.len() {
-            if self.0[i] < other.0[i] {
-                return true;
-            }
-            if self.0[i] > other.0[i] {
-                return false;
-            }
-            i += 1;
-        }
-        self.len() < other.len()
-    }
-
     #[allow(dead_code)] // may want this in the future
     pub(crate) fn byte_at(&self, index: usize) -> Option<u8> {
         self.0.get(index).copied()

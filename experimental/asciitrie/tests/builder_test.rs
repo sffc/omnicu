@@ -81,18 +81,6 @@ where S: AsRef<[u8]> + ?Sized
     );
 }
 
-fn check_ascii_trie7(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
-    for (k, v) in items.iter() {
-        assert_eq!(asciitrie::reader7::get(trie, k.as_bytes()), Some(*v));
-    }
-    // Note: We can't compare the iterators because trie7 might not return items in order.
-    let recovered_items: LiteMap<_, _> = asciitrie::reader7::get_iter(trie).collect();
-    assert_eq!(
-        items.to_borrowed_keys_values::<[u8], usize, Vec<_>>(),
-        recovered_items.to_borrowed_keys_values()
-    );
-}
-
 fn check_bytes_eq(len: usize, a: impl AsRef<[u8]>, b: &[u8]) {
     assert_eq!(len, a.as_ref().len());
     assert_eq!(a.as_ref(), b);

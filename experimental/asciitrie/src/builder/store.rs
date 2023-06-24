@@ -41,47 +41,8 @@ impl<const N: usize> ConstAsciiTrieBuilderStore<N> {
         self.data = self.data.const_bitor_assign(index, other);
         self
     }
-    pub fn atbs_swap_ranges(mut self, start: usize, mid: usize, limit: usize) -> Self {
-        self.data = self.data.swap_ranges(start, mid, limit);
-        self
-    }
     pub const fn take_or_panic(self) -> [u8; N] {
         self.data.const_take_or_panic()
-    }
-}
-
-pub(crate) struct ConstStackChildrenStore {
-    // There are 128 ASCII bytes, so this should always be enough.
-    // Note: This needs 1160 stack bytes on x64.
-    ascii: [AsciiByte; 128],
-    sizes: [usize; 128],
-    len: usize,
-}
-
-// Note: This impl block is intended to be a trait, but we can't use traits in const.
-impl ConstStackChildrenStore {
-    pub const fn cs_new_empty() -> Self {
-        Self {
-            ascii: [AsciiByte::nul(); 128],
-            sizes: [0; 128],
-            len: 0,
-        }
-    }
-    pub const fn cs_len(&self) -> usize {
-        self.len
-    }
-
-    pub const fn cs_push(mut self, ascii: AsciiByte, size: usize) -> Self {
-        self.ascii[self.len] = ascii;
-        self.sizes[self.len] = size;
-        self.len += 1;
-        self
-    }
-    pub const fn cs_ascii_slice(&self) -> ConstSlice<AsciiByte> {
-        ConstSlice::from_manual_slice(&self.ascii, 0, self.len)
-    }
-    pub const fn cs_sizes_slice(&self) -> ConstSlice<usize> {
-        ConstSlice::from_manual_slice(&self.sizes, 0, self.len)
     }
 }
 
@@ -139,19 +100,6 @@ impl<const N: usize> ConstLengthsStack1b<N> {
         self.data[self.idx] = Some(meta);
         self.idx += 1;
         Ok(self)
-    }
-
-    #[must_use]
-    pub const fn pop_or_panic(mut self) -> (Self, BranchMeta) {
-        if self.idx == 0 {
-            panic!("AsciiTrie Builder: Attempted to pop from an empty stack");
-        }
-        self.idx -= 1;
-        let value = match self.data[self.idx] {
-            Some(x) => x,
-            None => unreachable!(),
-        };
-        (self, value)
     }
 
     pub const fn peek_or_panic(&self) -> BranchMeta {
