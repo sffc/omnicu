@@ -66,24 +66,25 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
     }
 
     #[must_use]
-    fn prepend_ascii(&mut self, ascii: u8) -> usize {
+    fn prepend_ascii(&mut self, ascii: u8) -> Result<usize, Error> {
         if ascii <= 127 {
             self.data.atbs_push_front(ascii);
-            1
+            Ok(1)
         } else if matches!(self.options.ascii_mode, AsciiMode::BinarySpans) {
-            let old_byte_len = self.data.atbs_len();
-            if old_byte_len != 0 {
-                let old_front = self.data.atbs_split_first_or_panic();
+            if let Some(old_front) = self.data.atbs_split_first() {
+                let old_byte_len = self.data.atbs_len() + 1;
                 if old_front & 0b11100000 == 0b10100000 {
                     // Extend an existing span
+                    // Unwrap OK: there is a varint at this location in the buffer
+                    #[allow(clippy::unwrap_used)]
                     let old_span_size =
-                        varint::read_varint2_from_tstore_or_panic(old_front, &mut self.data);
+                        varint::try_read_varint2_from_tstore(old_front, &mut self.data).unwrap();
                     self.data.atbs_push_front(ascii);
                     let varint_array = varint::write_varint2(old_span_size + 1);
                     self.data.atbs_extend_front(varint_array.as_slice());
                     self.data.atbs_bitor_assign(0, 0b10100000);
                     let new_byte_len = self.data.atbs_len();
-                    return new_byte_len - old_byte_len;
+                    return Ok(new_byte_len - old_byte_len);
                 } else {
                     self.data.atbs_push_front(old_front);
                 }
@@ -91,9 +92,9 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             // Create a new span
             self.data.atbs_push_front(ascii);
             self.data.atbs_push_front(0b10100001);
-            2
+            Ok(2)
         } else {
-            panic!("Tried inserting non-ASCII into ASCII-only trie");
+            Err(Error::NonAsciiError)
         }
     }
 
@@ -233,7 +234,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                 }
             }
             if diff_i == 0 && diff_j == 0 {
-                let len = self.prepend_ascii(ascii_i);
+                let len = self.prepend_ascii(ascii_i)?;
                 current_len += len;
                 assert!(i == new_i || i == new_i + 1);
                 i = new_i;

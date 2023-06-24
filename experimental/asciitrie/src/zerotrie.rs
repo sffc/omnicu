@@ -87,7 +87,7 @@ macro_rules! impl_zerotrie_subtype {
             pub fn is_empty(&self) -> bool {
                 self.store.as_ref().is_empty()
             }
-            /// Returns the size of the trie in number of bytes. 
+            /// Returns the size of the trie in number of bytes.
             ///
             /// To get the number of keys in the trie, use `.iter().count()`:
             ///
@@ -360,7 +360,7 @@ where
     pub fn is_empty(&self) -> bool {
         impl_dispatch!(self, is_empty)
     }
-    /// Returns the size of the trie in number of bytes. 
+    /// Returns the size of the trie in number of bytes.
     ///
     /// To get the number of keys in the trie, use `.iter().count()`.
     pub fn byte_len(&self) -> usize {

@@ -55,14 +55,14 @@ pub const fn read_varint2(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])>
     Some((value, remainder))
 }
 
-pub(crate) fn read_varint2_from_tstore_or_panic<S: TrieBuilderStore>(
+pub(crate) fn try_read_varint2_from_tstore<S: TrieBuilderStore>(
     start: u8,
     remainder: &mut S,
-) -> usize {
+) -> Option<usize> {
     let mut value = (start & 0b00001111) as usize;
     if (start & 0b00010000) != 0 {
         loop {
-            let next = remainder.atbs_split_first_or_panic();
+            let next = remainder.atbs_split_first()?;
             // Note: value << 7 could drop high bits. The first addition can't overflow.
             // The second addition could overflow; in such a case we just inform the
             // developer via the debug assertion.
@@ -72,7 +72,7 @@ pub(crate) fn read_varint2_from_tstore_or_panic<S: TrieBuilderStore>(
             }
         }
     }
-    value
+    Some(value)
 }
 
 #[cfg(test)]
