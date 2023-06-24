@@ -174,8 +174,8 @@ macro_rules! impl_zerotrie_subtype {
             /// let items = trie.to_litemap();
             ///
             /// assert_eq!(items.len(), 2);
-            /// assert_eq!(items.get("abc"), Some(&1));
-            /// assert_eq!(items.get("abcdef"), Some(&2));
+            /// assert_eq!(items.get("abc".as_bytes()), Some(&1));
+            /// assert_eq!(items.get("abcdef".as_bytes()), Some(&2));
             ///
             #[doc = concat!("let recovered_trie = ", stringify!($name), "::try_from_litemap(")]
             ///     &items.to_borrowed_keys::<_, Vec<_>>()
