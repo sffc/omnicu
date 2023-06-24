@@ -83,7 +83,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
     }
 
     /// Panics if the items are not sorted
-    pub const fn from_tuple_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Self, Error> {
+    pub const fn from_tuple_slice<'a, const K: usize>(items: &[(&'a AsciiStr, usize)]) -> Result<Self, Error> {
         let items = ConstSlice::from_slice(items);
         let mut prev: Option<&'a AsciiStr> = None;
         const_for_each!(items, (ascii_str, _), {
@@ -97,16 +97,16 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
             };
             prev = Some(ascii_str)
         });
-        Self::from_sorted_const_tuple_slice(items)
+        Self::from_sorted_const_tuple_slice::<K>(items)
     }
 
     /// Assumes that the items are sorted
-    pub const fn from_sorted_const_tuple_slice<'a>(
+    pub const fn from_sorted_const_tuple_slice<'a, const K: usize>(
         items: ConstSlice<(&'a AsciiStr, usize)>,
     ) -> Result<Self, Error> {
         let mut result = Self::new();
         let total_size;
-        (result, total_size) = match result.create(items) {
+        (result, total_size) = match result.create::<K>(items) {
             Ok(x) => x,
             Err(e) => return Err(e),
         };
@@ -115,7 +115,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
     }
 
     #[must_use]
-    const fn create<'a>(
+    const fn create<'a, const K: usize>(
         mut self,
         all_items: ConstSlice<(&'a AsciiStr, usize)>,
     ) -> Result<(Self, usize), Error> {
@@ -124,7 +124,7 @@ impl<const N: usize> AsciiTrieBuilder1b<N> {
             // Empty slice:
             None => return Ok((Self::new(), 0)),
         };
-        let mut lengths_stack = ConstLengthsStack1b::<100>::new();
+        let mut lengths_stack = ConstLengthsStack1b::<K>::new();
         let mut i = all_items.len() - 1;
         let mut j = all_items.len();
         let mut current_len = 0;
