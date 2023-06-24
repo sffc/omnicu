@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use asciitrie::ZeroTriePerfectHash;
 use asciitrie::AsciiStr;
 use asciitrie::ZeroTrieSimpleAscii;
 use litemap::LiteMap;
@@ -34,18 +35,18 @@ fn test_basic() {
     check_ascii_trie5(&litemap, &trie5);
 
     let expected_bytes6 = testdata::basic::TRIE6;
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    check_bytes_eq(26, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    check_bytes_eq(26, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
     let expected_bytes_u6 = testdata::basic::TRIE_U6;
-    let trie_u6 = asciitrie::make6_byte_litemap(&litemap_u).unwrap();
-    check_bytes_eq(39, &trie_u6, expected_bytes_u6);
+    let trie_u6 = ZeroTriePerfectHash::try_from_litemap(&litemap_u).unwrap();
+    check_bytes_eq(39, trie_u6.as_bytes(), expected_bytes_u6);
     check_ascii_trie6_bytes(&litemap_u, &trie_u6);
 
     let expected_bytes_bin6 = testdata::basic::TRIE_BIN6;
-    let trie_bin6 = asciitrie::make6_byte_litemap(&litemap_bin).unwrap();
-    check_bytes_eq(26, &trie_bin6, expected_bytes_bin6);
+    let trie_bin6 = ZeroTriePerfectHash::try_from_litemap(&litemap_bin).unwrap();
+    check_bytes_eq(26, trie_bin6.as_bytes(), expected_bytes_bin6);
     check_ascii_trie6_bytes(&litemap_bin, &trie_bin6);
 }
 
@@ -82,24 +83,28 @@ fn check_ascii_trie5(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
     //     .eq(trie.iter()));
 }
 
-fn check_ascii_trie6(items: &LiteMap<&AsciiStr, usize>, trie: &[u8]) {
+fn check_ascii_trie6<S>(items: &LiteMap<&AsciiStr, usize>, trie: &ZeroTriePerfectHash<S>)
+where S: AsRef<[u8]> + ?Sized
+{
     for (k, v) in items.iter() {
-        assert_eq!(asciitrie::reader6::get(trie, k.as_bytes()), Some(*v));
+        assert_eq!(trie.get(k.as_bytes()), Some(*v));
     }
     // Note: We can't compare the iterators because trie6 might not return items in order.
-    let recovered_items: LiteMap<_, _> = asciitrie::reader6::get_iter(trie).collect();
+    let recovered_items: LiteMap<_, _> = trie.iter().collect();
     assert_eq!(
         items.to_borrowed_keys_values::<[u8], usize, Vec<_>>(),
         recovered_items.to_borrowed_keys_values()
     );
 }
 
-fn check_ascii_trie6_bytes(items: &LiteMap<&[u8], usize>, trie: &[u8]) {
+fn check_ascii_trie6_bytes<S>(items: &LiteMap<&[u8], usize>, trie: &ZeroTriePerfectHash<S>)
+where S: AsRef<[u8]> + ?Sized
+{
     for (k, v) in items.iter() {
-        assert_eq!(asciitrie::reader6::get(trie, k), Some(*v));
+        assert_eq!(trie.get(k), Some(*v));
     }
     // Note: We can't compare the iterators because trie6 might not return items in order.
-    let recovered_items: LiteMap<_, _> = asciitrie::reader6::get_iter(trie).collect();
+    let recovered_items: LiteMap<_, _> = trie.iter().collect();
     assert_eq!(
         items.to_borrowed_keys_values::<[u8], usize, Vec<_>>(),
         recovered_items.to_borrowed_keys_values()
@@ -151,8 +156,8 @@ fn test_single_empty_value() {
     check_ascii_trie4(&litemap, &trie4);
 
     let expected_bytes6 = &[0b10001010];
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    check_bytes_eq(1, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    check_bytes_eq(1, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
 
@@ -176,8 +181,8 @@ fn test_single_byte_string() {
     check_ascii_trie4(&litemap, &trie4);
 
     let expected_bytes6 = &[b'x', 0b10001010];
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    check_bytes_eq(2, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    check_bytes_eq(2, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
 
@@ -203,8 +208,8 @@ fn test_single_string() {
     check_ascii_trie4(&litemap, &trie4);
 
     let expected_bytes6 = &[b'x', b'y', b'z', 0b10001010];
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    check_bytes_eq(4, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    check_bytes_eq(4, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
 
@@ -229,8 +234,8 @@ fn test_prefix_strings() {
     check_ascii_trie4(&litemap, &trie4);
 
     let expected_bytes6 = &[b'x', 0b10000000, b'y', 0b10000001];
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    check_bytes_eq(4, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    check_bytes_eq(4, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
 
@@ -260,8 +265,8 @@ fn test_single_byte_branch() {
     check_ascii_trie5(&litemap, &trie5);
 
     let expected_bytes6 = &[0b11000010, b'x', b'y', 1, 0b10000000, 0b10000001];
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    check_bytes_eq(6, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    check_bytes_eq(6, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
 
@@ -301,8 +306,8 @@ fn test_multi_byte_branch() {
     let expected_bytes6 = &[
         b'a', 0b11000010, b'x', b'y', 2, b'b', 0b10000000, b'c', 0b10000001,
     ];
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    check_bytes_eq(9, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    check_bytes_eq(9, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
 
@@ -334,8 +339,8 @@ fn test_linear_varint_values() {
     check_ascii_trie5(&litemap, &trie5);
 
     let expected_bytes6 = &[0x90, 0x54, b'x', 0x93, 0x64, b'y', b'z', 0x90, 0x96, 0x78];
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    check_bytes_eq(10, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    check_bytes_eq(10, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
 
@@ -484,8 +489,8 @@ fn test_varint_branch() {
         0x80 | 11, 0x80 | 12, 0x80 | 13, 0x80 | 14, 0x90, 16+0, 0x90, 26-16, 0x90, 27-16, 0x90, 28-16,
         0x90, 16+13, 0x90, 29-16, 0x90, 31-16, 0x90, 30-16,
     ];
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    check_bytes_eq(246, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    check_bytes_eq(246, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
 
@@ -1097,8 +1102,8 @@ fn test_everything() {
         b'l',       //
         0b10001000, // value 8
     ];
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    check_bytes_eq(36, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    check_bytes_eq(36, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
     let zhm: zerovec::ZeroMap<[u8], usize> =
@@ -1229,8 +1234,8 @@ fn test_non_ascii() {
         0b10001010, // value 10
         0b10001011, // value 11
     ];
-    let trie6 = asciitrie::make6_byte_litemap(&litemap).unwrap();
-    check_bytes_eq(73, &trie6, expected_bytes6);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap).unwrap();
+    check_bytes_eq(73, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6_bytes(&litemap, &trie6);
 }
 
@@ -1247,8 +1252,8 @@ fn test_max_branch() {
     for s in all_bytes_prefixed.iter() {
         litemap.insert(s, s[1] as usize);
     }
-    let trie6 = asciitrie::make6_byte_litemap(&litemap).unwrap();
-    assert_eq!(trie6.len(), 3042);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap).unwrap();
+    assert_eq!(trie6.byte_len(), 3042);
     check_ascii_trie6_bytes(&litemap, &trie6);
 }
 
@@ -1268,16 +1273,12 @@ fn test_short_subtags_10pct() {
     assert_eq!(trie5.len(), 1091);
     check_ascii_trie5(&litemap, &trie5);
 
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    assert_eq!(trie6.len(), 1100);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    assert_eq!(trie6.byte_len(), 1100);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie7 = asciitrie::make7_litemap(&litemap).unwrap();
-    assert_eq!(trie7.len(), 1050);
-    check_ascii_trie7(&litemap, &trie7);
-
     let trie7b = asciitrie::make7b_litemap(&litemap).unwrap();
-    check_bytes_eq(1050, trie7, &trie7b);
+    check_bytes_eq(1050, trie.as_bytes(), &trie7b);
 
     let zhm: zerovec::ZeroMap<[u8], usize> =
         litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
@@ -1308,6 +1309,10 @@ fn test_short_subtags_10pct() {
 fn test_short_subtags() {
     let litemap = strings_to_litemap(testdata::short_subtags::STRINGS).unwrap();
 
+    let trie = ZeroTrieSimpleAscii::try_from_litemap(&litemap).unwrap();
+    assert_eq!(trie.byte_len(), 8793);
+    check_ascii_trie(&litemap, &trie);
+
     let trie4 = asciitrie::make4_litemap(&litemap);
     assert_eq!(trie4.len(), 10211);
     check_ascii_trie4(&litemap, &trie4);
@@ -1316,16 +1321,12 @@ fn test_short_subtags() {
     assert_eq!(trie5.len(), 9434);
     check_ascii_trie5(&litemap, &trie5);
 
-    let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-    assert_eq!(trie6.len(), 9400);
+    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    assert_eq!(trie6.byte_len(), 9400);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie7 = asciitrie::make7_litemap(&litemap).unwrap();
-    assert_eq!(trie7.len(), 8793);
-    check_ascii_trie7(&litemap, &trie7);
-
     let trie7b = asciitrie::make7b_litemap(&litemap).unwrap();
-    check_bytes_eq(8793, trie7, &trie7b);
+    check_bytes_eq(8793, trie.as_bytes(), &trie7b);
 
     let zm: zerovec::ZeroMap<[u8], usize> =
         litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();

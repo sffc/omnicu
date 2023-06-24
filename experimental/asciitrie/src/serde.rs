@@ -175,8 +175,9 @@ where
         let store = if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            crate::builder::make7_litemap(&lm)
+            ZeroTrieSimpleAscii::try_from_litemap(&lm)
                 .map_err(|e| D::Error::custom(e))?
+                .take_store()
                 .into()
         } else {
             // Note: `impl Deserialize for &[u8]` uses visit_borrowed_bytes
@@ -216,8 +217,9 @@ where
         let store = if deserializer.is_human_readable() {
             let lm = LiteMap::<BytesOrStr, usize>::deserialize(deserializer)?;
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            crate::builder::make6_byte_litemap(&lm)
+            ZeroTriePerfectHash::try_from_litemap(&lm)
                 .map_err(|e| D::Error::custom(e))?
+                .take_store()
                 .into()
         } else {
             // Note: `impl Deserialize for &[u8]` uses visit_borrowed_bytes
