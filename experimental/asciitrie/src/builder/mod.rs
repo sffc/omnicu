@@ -4,28 +4,21 @@
 
 mod asciistr;
 mod branch_meta;
-mod builder6;
-mod builder7b;
 mod bytestr;
-pub(crate) mod const_util;
+pub(crate) mod konst;
 #[cfg(feature = "litemap")]
 mod litemap;
-mod store;
 #[cfg(feature = "alloc")]
 use alloc::{collections::VecDeque, vec::Vec};
 #[cfg(feature = "alloc")]
-pub mod tstore;
+pub(crate) mod nonconst;
 
-#[cfg(feature = "litemap")]
-pub use self::litemap::{make7b_litemap, make7b_slice};
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;
-pub(crate) use branch_meta::BranchMeta;
 pub(crate) use bytestr::ByteStr;
 
 use super::ZeroTrieSimpleAscii;
-use builder7b::AsciiTrieBuilder7b;
 
 impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// **Const Constructor:** Creates an [`ZeroTrieSimpleAscii`] from a sorted slice of keys and values.
@@ -91,6 +84,7 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// ]);
     /// ```
     pub const fn from_asciistr_value_slice(items: &[(&AsciiStr, usize)]) -> Self {
+        use konst::*;
         let result = AsciiTrieBuilder7b::<N>::from_tuple_slice::<100>(items);
         match result {
             Ok(s) => Self::from_store(s.take_or_panic()),
@@ -177,13 +171,13 @@ impl<'a> FromIterator<(&'a AsciiStr, usize)> for ZeroTrieSimpleAscii<Vec<u8>> {
     /// assert_eq!(trie.get(b"unknown"), None);
     /// ```
     fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
-        use builder6::*;
+        use nonconst::*;
         let mut items = Vec::<(&AsciiStr, usize)>::from_iter(iter);
         items.sort();
         let ascii_str_slice = items.as_slice();
         let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
-        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(
-            byte_str_slice.into(),
+        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
+            byte_str_slice,
             ZeroTrieBuilderOptions {
                 phf_mode: PhfMode::BinaryOnly,
                 ascii_mode: AsciiMode::AsciiOnly,

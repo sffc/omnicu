@@ -2,10 +2,9 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use super::const_util::ConstSlice;
 use super::tstore::MutableLengthsStack1b;
 use super::tstore::TrieBuilderStore;
-use super::BranchMeta;
+use super::super::branch_meta::BranchMeta;
 use crate::builder::bytestr::ByteStr;
 use crate::byte_phf::PerfectByteHashMapCacheOwned;
 use crate::error::Error;
@@ -113,17 +112,17 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
         varint_array.len()
     }
 
-    fn prepend_slice(&mut self, s: ConstSlice<u8>) {
+    fn prepend_slice(&mut self, s: &[u8]) {
         let mut i = s.len();
         while i > 0 {
-            self.data.atbs_push_front(*s.get_or_panic(i - 1));
+            self.data.atbs_push_front(*s.get(i - 1).unwrap());
             i -= 1;
         }
     }
 
     /// Assumes that the items are sorted
-    pub fn from_sorted_const_tuple_slice<'a>(
-        items: ConstSlice<(&'a ByteStr, usize)>,
+    pub fn from_sorted_tuple_slice<'a>(
+        items: &[(&'a ByteStr, usize)],
         options: ZeroTrieBuilderOptions,
     ) -> Result<Self, Error> {
         let mut result = Self::new(options);
@@ -133,7 +132,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
     }
 
     #[must_use]
-    fn create<'a>(&mut self, all_items: ConstSlice<(&'a ByteStr, usize)>) -> Result<usize, Error> {
+    fn create<'a>(&mut self, all_items: &[(&'a ByteStr, usize)]) -> Result<usize, Error> {
         if all_items.is_empty() {
             return Ok(0);
         }
@@ -143,8 +142,8 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
         let mut j = all_items.len();
         let mut current_len = 0;
         loop {
-            let item_i = all_items.get_or_panic(i);
-            let item_j = all_items.get_or_panic(j - 1);
+            let item_i = all_items.get(i).unwrap();
+            let item_j = all_items.get(j - 1).unwrap();
             assert!(item_i.0.prefix_eq(item_j.0, prefix_len));
             if item_i.0.len() == prefix_len {
                 let len = self.prepend_value(item_i.1);
@@ -166,7 +165,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                 if new_i == 0 {
                     break;
                 }
-                let candidate = all_items.get_or_panic(new_i - 1).0;
+                let candidate = all_items.get(new_i - 1).unwrap().0;
                 if candidate.len() < prefix_len {
                     // Too short
                     break;
@@ -190,7 +189,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                 if new_j == all_items.len() {
                     break;
                 }
-                let candidate = all_items.get_or_panic(new_j).0;
+                let candidate = all_items.get(new_j).unwrap().0;
                 if candidate.len() < prefix_len {
                     // Too short
                     break;
@@ -237,7 +236,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             if diff_i != 0 {
                 j = i;
                 i -= 1;
-                prefix_len = all_items.get_or_panic(i).0.len();
+                prefix_len = all_items.get(i).unwrap().0.len();
                 current_len = 0;
                 continue;
             }
@@ -329,7 +328,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                 let branch_len = self.prepend_branch(branch_value);
                 current_len += phf_len + branch_len;
             } else {
-                self.prepend_slice(original_keys.as_const_slice());
+                self.prepend_slice(original_keys.as_slice());
                 let branch_len = self.prepend_branch(branch_value);
                 current_len += total_count + branch_len;
             }

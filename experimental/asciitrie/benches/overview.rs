@@ -3,6 +3,8 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use asciitrie::ZeroTrieSimpleAscii;
+use asciitrie::ZeroTriePerfectHash;
+use asciitrie::ZeroTrieExtendedCapacity;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use litemap::LiteMap;
 use std::collections::HashMap;
@@ -16,15 +18,11 @@ mod testdata {
 fn get_basic_bench(c: &mut Criterion) {
     let mut g = c.benchmark_group("get/basic");
 
+    // NOTE: All the trie data are the same for basic data
     let trie = testdata::basic::TRIE;
-    let trie4 = testdata::basic::TRIE4;
-    let trie5 = testdata::basic::TRIE5;
-    let trie6 = testdata::basic::TRIE6;
-    // NOTE: No difference between trie6 and trie7 for the basic data
-    let trie7 = testdata::basic::TRIE6;
     let data = testdata::basic::DATA;
 
-    g.bench_function("AsciiTrie1", |b| {
+    g.bench_function("SimpleAscii", |b| {
         let trie = ZeroTrieSimpleAscii::from_bytes(&trie);
         b.iter(|| {
             for (key, expected) in black_box(data) {
@@ -34,37 +32,21 @@ fn get_basic_bench(c: &mut Criterion) {
         });
     });
 
-    g.bench_function("AsciiTrie4", |b| {
+    g.bench_function("PerfectHash", |b| {
+        let trie = ZeroTriePerfectHash::from_bytes(&trie);
         b.iter(|| {
             for (key, expected) in black_box(data) {
-                let actual = asciitrie::reader4::get(black_box(&trie4), key.as_bytes());
+                let actual = black_box(&trie).get(key.as_bytes());
                 assert_eq!(Some(*expected), actual);
             }
         });
     });
 
-    g.bench_function("AsciiTrie5", |b| {
+    g.bench_function("ExtendedCapacity", |b| {
+        let trie = ZeroTrieExtendedCapacity::from_bytes(&trie);
         b.iter(|| {
             for (key, expected) in black_box(data) {
-                let actual = asciitrie::reader5::get(black_box(&trie5), key.as_bytes());
-                assert_eq!(Some(*expected), actual);
-            }
-        });
-    });
-
-    g.bench_function("AsciiTrie6", |b| {
-        b.iter(|| {
-            for (key, expected) in black_box(data) {
-                let actual = asciitrie::reader6::get(black_box(&trie6), key.as_bytes());
-                assert_eq!(Some(*expected), actual);
-            }
-        });
-    });
-
-    g.bench_function("AsciiTrie7", |b| {
-        b.iter(|| {
-            for (key, expected) in black_box(data) {
-                let actual = asciitrie::reader7::get(black_box(&trie7), key.as_bytes());
+                let actual = black_box(&trie).get(key.as_bytes());
                 assert_eq!(Some(*expected), actual);
             }
         });
@@ -153,9 +135,8 @@ fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(
     strings: &[&str],
     litemap: LiteMap<&asciitrie::AsciiStr, usize>,
 ) {
-    g.bench_function("AsciiTrie1", |b| {
-        let trie1b = asciitrie::make1b_litemap(&litemap).unwrap();
-        let trie = ZeroTrieSimpleAscii::from_bytes(&trie1b);
+    g.bench_function("SimpleAscii", |b| {
+        let trie = ZeroTrieSimpleAscii::try_from_litemap(&litemap).unwrap();
         b.iter(|| {
             for (i, key) in black_box(strings).iter().enumerate() {
                 let actual = black_box(&trie).get(key.as_bytes());
@@ -164,41 +145,23 @@ fn get_subtags_bench_helper<M: criterion::measurement::Measurement>(
         });
     });
 
-    g.bench_function("AsciiTrie4", |b| {
-        let trie4 = asciitrie::make4_litemap(&litemap);
+    let bytes_litemap = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+
+    g.bench_function("PerfectHash", |b| {
+        let trie = ZeroTriePerfectHash::try_from_litemap(&bytes_litemap).unwrap();
         b.iter(|| {
             for (i, key) in black_box(strings).iter().enumerate() {
-                let actual = asciitrie::reader4::get(black_box(&trie4), key.as_bytes());
+                let actual = black_box(&trie).get(key.as_bytes());
                 assert_eq!(Some(i), actual);
             }
         });
     });
 
-    g.bench_function("AsciiTrie5", |b| {
-        let trie5 = asciitrie::make5_litemap(&litemap);
+    g.bench_function("ExtendedCapacity", |b| {
+        let trie = ZeroTrieExtendedCapacity::try_from_litemap(&bytes_litemap).unwrap();
         b.iter(|| {
             for (i, key) in black_box(strings).iter().enumerate() {
-                let actual = asciitrie::reader5::get(black_box(&trie5), key.as_bytes());
-                assert_eq!(Some(i), actual);
-            }
-        });
-    });
-
-    g.bench_function("AsciiTrie6", |b| {
-        let trie6 = asciitrie::make6_litemap(&litemap).unwrap();
-        b.iter(|| {
-            for (i, key) in black_box(strings).iter().enumerate() {
-                let actual = asciitrie::reader6::get(black_box(&trie6), key.as_bytes());
-                assert_eq!(Some(i), actual);
-            }
-        });
-    });
-
-    g.bench_function("AsciiTrie7", |b| {
-        let trie7 = asciitrie::make7_litemap(&litemap).unwrap();
-        b.iter(|| {
-            for (i, key) in black_box(strings).iter().enumerate() {
-                let actual = asciitrie::reader7::get(black_box(&trie7), key.as_bytes());
+                let actual = black_box(&trie).get(key.as_bytes());
                 assert_eq!(Some(i), actual);
             }
         });

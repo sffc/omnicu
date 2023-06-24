@@ -8,8 +8,8 @@
 //! - Trail bytes: top bit is varint extender; add rest to current value * 2^7
 //! - Add the "latent value" to the final result: (1<<5) + (1<<7) + (1<<14) + ...
 
-use crate::builder::const_util::ConstArrayBuilder;
-use crate::builder::tstore::TrieBuilderStore;
+use crate::builder::konst::ConstArrayBuilder;
+use crate::builder::nonconst::TrieBuilderStore;
 
 pub const fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
     let mut value = (start & 0b00011111) as usize;

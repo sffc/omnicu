@@ -6,7 +6,7 @@
 
 use super::const_util::const_for_each;
 use super::const_util::ConstArrayBuilder;
-use super::BranchMeta;
+use super::super::branch_meta::BranchMeta;
 
 pub(crate) struct ConstLengthsStack1b<const N: usize> {
     data: [Option<BranchMeta>; N],

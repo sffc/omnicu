@@ -33,10 +33,6 @@ impl<'a, T> ConstSlice<'a, T> {
         self.limit - self.start
     }
 
-    pub const fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     pub const fn get_or_panic(&self, index: usize) -> &T {
         &self.full_slice[index + self.start]
     }

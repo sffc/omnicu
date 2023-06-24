@@ -6,9 +6,9 @@ use super::const_util::const_for_each;
 use super::const_util::ConstArrayBuilder;
 use super::const_util::ConstSlice;
 use super::store::ConstLengthsStack1b;
-use super::AsciiByte;
-use super::AsciiStr;
-use super::BranchMeta;
+use super::super::AsciiByte;
+use super::super::AsciiStr;
+use super::super::branch_meta::BranchMeta;
 use crate::error::Error;
 use crate::varint;
 

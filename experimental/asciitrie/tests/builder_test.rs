@@ -885,8 +885,8 @@ fn test_short_subtags_10pct() {
     assert_eq!(trie6.byte_len(), 1100);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie7b = asciitrie::make7b_litemap(&litemap).unwrap();
-    check_bytes_eq(1050, trie.as_bytes(), &trie7b);
+    let trie7b = ZeroTrieSimpleAscii::try_from_litemap_with_const_builder(&litemap).unwrap();
+    check_bytes_eq(1050, trie.as_bytes(), trie7b.as_bytes());
 
     let zhm: zerovec::ZeroMap<[u8], usize> =
         litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
@@ -926,8 +926,8 @@ fn test_short_subtags() {
     assert_eq!(trie6.byte_len(), 9400);
     check_ascii_trie6(&litemap, &trie6);
 
-    let trie7b = asciitrie::make7b_litemap(&litemap).unwrap();
-    check_bytes_eq(8793, trie.as_bytes(), &trie7b);
+    let trie7b = ZeroTrieSimpleAscii::try_from_litemap_with_const_builder(&litemap).unwrap();
+    check_bytes_eq(8793, trie.as_bytes(), trie7b.as_bytes());
 
     let zm: zerovec::ZeroMap<[u8], usize> =
         litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();

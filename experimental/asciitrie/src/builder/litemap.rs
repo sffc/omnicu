@@ -2,19 +2,14 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::builder::builder6::AsciiMode;
-use crate::builder::builder6::AsciiTrieBuilder6;
-use crate::builder::builder6::CapacityMode;
-use crate::builder::builder6::PhfMode;
-use crate::builder::builder6::ZeroTrieBuilderOptions;
-use crate::builder::builder7b::AsciiTrieBuilder7b;
+use super::konst::*;
+use super::nonconst::*;
 use crate::builder::bytestr::ByteStr;
 use crate::error::Error;
 use crate::zerotrie::ZeroTrieExtendedCapacity;
 use crate::zerotrie::ZeroTriePerfectHash;
 use crate::zerotrie::ZeroTrieSimpleAscii;
 use crate::AsciiStr;
-use alloc::borrow::ToOwned;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 use litemap::LiteMap;
@@ -51,8 +46,8 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
     {
         let ascii_str_slice = items.as_slice();
         let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
-        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(
-            byte_str_slice.into(),
+        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
+            byte_str_slice,
             ZeroTrieBuilderOptions {
                 phf_mode: PhfMode::BinaryOnly,
                 ascii_mode: AsciiMode::AsciiOnly,
@@ -61,6 +56,20 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
         )
         .map(|s| Self {
             store: s.to_bytes(),
+        })
+    }
+
+    #[doc(hidden)]
+    pub fn try_from_litemap_with_const_builder<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Result<Self, Error>
+    where
+        S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
+    {
+        let ascii_str_slice = items.as_slice();
+        AsciiTrieBuilder7b::<10000>::from_sorted_const_tuple_slice::<100>(
+            ascii_str_slice.into(),
+        )
+        .map(|s| Self {
+            store: s.as_bytes().to_vec(),
         })
     }
 }
@@ -96,8 +105,8 @@ impl ZeroTriePerfectHash<Vec<u8>> {
     {
         let byte_slice = items.as_slice();
         let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
-        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(
-            byte_str_slice.into(),
+        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
+            byte_str_slice,
             ZeroTrieBuilderOptions {
                 phf_mode: PhfMode::UsePhf,
                 ascii_mode: AsciiMode::BinarySpans,
@@ -141,8 +150,8 @@ impl ZeroTrieExtendedCapacity<Vec<u8>> {
     {
         let byte_slice = items.as_slice();
         let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
-        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(
-            byte_str_slice.into(),
+        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
+            byte_str_slice,
             ZeroTrieBuilderOptions {
                 phf_mode: PhfMode::UsePhf,
                 ascii_mode: AsciiMode::BinarySpans,
@@ -180,17 +189,4 @@ where
     fn from(other: &LiteMap<&'a AsciiStr, usize, S>) -> Self {
         Self::try_from_litemap(other).unwrap()
     }
-}
-
-pub fn make7b_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Result<Vec<u8>, Error>
-where
-    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
-{
-    AsciiTrieBuilder7b::<10000>::from_sorted_const_tuple_slice::<100>(items.as_slice().into())
-        .map(|x| x.as_bytes().to_owned())
-}
-
-pub fn make7b_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error> {
-    AsciiTrieBuilder7b::<10000>::from_tuple_slice::<100>(items.into())
-        .map(|x| x.as_bytes().to_owned())
 }
