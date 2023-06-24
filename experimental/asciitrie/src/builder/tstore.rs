@@ -3,6 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use super::const_util::ConstArrayBuilder;
+use super::BranchMeta;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
@@ -88,8 +89,6 @@ impl TrieBuilderStore for VecDeque<u8> {
         self.pop_front().unwrap()
     }
 }
-
-use super::store::BranchMeta;
 
 pub(crate) struct MutableLengthsStack1b {
     data: Vec<BranchMeta>,

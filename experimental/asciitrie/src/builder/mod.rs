@@ -3,6 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 mod asciistr;
+mod branch_meta;
 mod builder6;
 mod builder7b;
 mod bytestr;
@@ -20,6 +21,7 @@ pub use self::litemap::{make7b_litemap, make7b_slice};
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;
+pub(crate) use branch_meta::BranchMeta;
 pub(crate) use bytestr::ByteStr;
 
 use super::ZeroTrieSimpleAscii;

@@ -6,26 +6,7 @@
 
 use super::const_util::const_for_each;
 use super::const_util::ConstArrayBuilder;
-use super::AsciiByte;
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct BranchMeta {
-    pub ascii: u8,
-    pub length: usize,
-    pub local_length: usize,
-    pub count: usize,
-}
-
-impl BranchMeta {
-    pub const fn const_default() -> Self {
-        BranchMeta {
-            ascii: AsciiByte::nul().get(),
-            length: 0,
-            local_length: 0,
-            count: 0,
-        }
-    }
-}
+use super::BranchMeta;
 
 pub(crate) struct ConstLengthsStack1b<const N: usize> {
     data: [Option<BranchMeta>; N],
