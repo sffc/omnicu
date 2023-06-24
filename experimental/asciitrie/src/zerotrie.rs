@@ -258,6 +258,23 @@ macro_rules! impl_zerotrie_subtype {
                 .unwrap()
             }
         }
+        // TODO(#2778): Auto-derive these impls based on the repr(transparent).
+        // Safety: $name is repr(transparent) over S, a VarULE
+        #[cfg(feature = "zerovec")]
+        unsafe impl<S> zerovec::ule::VarULE for $name<S>
+        where
+            S: zerovec::ule::VarULE,
+        {
+            #[inline]
+            fn validate_byte_slice(bytes: &[u8]) -> Result<(), zerovec::ZeroVecError> {
+                S::validate_byte_slice(bytes)
+            }
+            #[inline]
+            unsafe fn from_byte_slice_unchecked(bytes: &[u8]) -> &Self {
+                core::mem::transmute(S::from_byte_slice_unchecked(bytes))
+            }
+        }
+
     };
 }
 

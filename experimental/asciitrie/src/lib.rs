@@ -20,8 +20,6 @@ pub mod reader7;
 mod serde;
 mod varinta;
 mod zerotrie;
-#[cfg(feature = "zerovec")]
-mod zerovec;
 
 pub(crate) use varinta as varint;
 

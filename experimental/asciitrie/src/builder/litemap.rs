@@ -48,11 +48,7 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
         let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
         AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
             byte_str_slice,
-            ZeroTrieBuilderOptions {
-                phf_mode: PhfMode::BinaryOnly,
-                ascii_mode: AsciiMode::AsciiOnly,
-                capacity_mode: CapacityMode::Normal,
-            },
+            Self::BUILDER_OPTIONS,
         )
         .map(|s| Self {
             store: s.to_bytes(),
@@ -107,11 +103,7 @@ impl ZeroTriePerfectHash<Vec<u8>> {
         let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
         AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
             byte_str_slice,
-            ZeroTrieBuilderOptions {
-                phf_mode: PhfMode::UsePhf,
-                ascii_mode: AsciiMode::BinarySpans,
-                capacity_mode: CapacityMode::Normal,
-            },
+            Self::BUILDER_OPTIONS,
         )
         .map(|s| Self {
             store: s.to_bytes(),
@@ -152,11 +144,7 @@ impl ZeroTrieExtendedCapacity<Vec<u8>> {
         let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
         AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
             byte_str_slice,
-            ZeroTrieBuilderOptions {
-                phf_mode: PhfMode::UsePhf,
-                ascii_mode: AsciiMode::BinarySpans,
-                capacity_mode: CapacityMode::Extended,
-            },
+            Self::BUILDER_OPTIONS,
         )
         .map(|s| Self {
             store: s.to_bytes(),
@@ -172,21 +160,3 @@ impl ZeroTrieExtendedCapacity<Vec<u8>> {
 /// const fn write_to_mut_buffer(buf: &mut [u8]) { buf[0] = 0; }
 /// ```
 const _: () = ();
-
-impl<'a, S> From<LiteMap<&'a AsciiStr, usize, S>> for ZeroTrieSimpleAscii<Vec<u8>>
-where
-    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
-{
-    fn from(other: LiteMap<&'a AsciiStr, usize, S>) -> Self {
-        Self::try_from_litemap(&other).unwrap()
-    }
-}
-
-impl<'a, S> From<&LiteMap<&'a AsciiStr, usize, S>> for ZeroTrieSimpleAscii<Vec<u8>>
-where
-    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
-{
-    fn from(other: &LiteMap<&'a AsciiStr, usize, S>) -> Self {
-        Self::try_from_litemap(other).unwrap()
-    }
-}
