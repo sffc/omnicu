@@ -7,7 +7,4 @@ mod const_util;
 mod store;
 
 pub(crate) use builder7b::*;
-
-// Need to expose ConstArrayBuilder since it is used in the non-const builder
-// for a part of the code that does not need the allocations
 pub(crate) use const_util::ConstArrayBuilder;

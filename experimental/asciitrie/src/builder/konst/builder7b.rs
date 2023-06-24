@@ -2,13 +2,13 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use super::super::branch_meta::BranchMeta;
+use super::super::AsciiByte;
+use super::super::AsciiStr;
 use super::const_util::const_for_each;
 use super::const_util::ConstArrayBuilder;
 use super::const_util::ConstSlice;
 use super::store::ConstLengthsStack1b;
-use super::super::AsciiByte;
-use super::super::AsciiStr;
-use super::super::branch_meta::BranchMeta;
 use crate::error::Error;
 use crate::varint;
 

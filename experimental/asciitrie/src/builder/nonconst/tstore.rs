@@ -2,8 +2,8 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use super::super::konst::ConstArrayBuilder;
 use super::super::branch_meta::BranchMeta;
+use super::super::konst::ConstArrayBuilder;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 

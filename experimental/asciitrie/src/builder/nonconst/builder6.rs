@@ -2,9 +2,9 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use super::super::branch_meta::BranchMeta;
 use super::tstore::MutableLengthsStack1b;
 use super::tstore::TrieBuilderStore;
-use super::super::branch_meta::BranchMeta;
 use crate::builder::bytestr::ByteStr;
 use crate::byte_phf::PerfectByteHashMapCacheOwned;
 use crate::error::Error;

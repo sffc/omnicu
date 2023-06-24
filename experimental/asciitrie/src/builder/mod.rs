@@ -9,8 +9,6 @@ pub(crate) mod konst;
 #[cfg(feature = "litemap")]
 mod litemap;
 #[cfg(feature = "alloc")]
-use alloc::{collections::VecDeque, vec::Vec};
-#[cfg(feature = "alloc")]
 pub(crate) mod nonconst;
 
 pub(crate) use asciistr::AsciiByte;
@@ -142,51 +140,5 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
             i += 1;
         }
         Self::from_asciistr_value_slice(&asciistr_array)
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl<'a> FromIterator<(&'a AsciiStr, usize)> for ZeroTrieSimpleAscii<Vec<u8>> {
-    /// ***Enable this function with the `"alloc"` feature.***
-    ///
-    /// ```
-    /// use asciitrie::AsciiStr;
-    /// use asciitrie::ZeroTrieSimpleAscii;
-    ///
-    /// let trie: ZeroTrieSimpleAscii<Vec<u8>> = [
-    ///     ("foo", 1),
-    ///     ("bar", 2),
-    ///     ("bazzoo", 3),
-    ///     ("internationalization", 18),
-    /// ]
-    /// .into_iter()
-    /// .map(AsciiStr::try_from_str_with_value)
-    /// .collect::<Result<_, _>>()
-    /// .unwrap();
-    ///
-    /// assert_eq!(trie.get(b"foo"), Some(1));
-    /// assert_eq!(trie.get(b"bar"), Some(2));
-    /// assert_eq!(trie.get(b"bazzoo"), Some(3));
-    /// assert_eq!(trie.get(b"internationalization"), Some(18));
-    /// assert_eq!(trie.get(b"unknown"), None);
-    /// ```
-    fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
-        use nonconst::*;
-        let mut items = Vec::<(&AsciiStr, usize)>::from_iter(iter);
-        items.sort();
-        let ascii_str_slice = items.as_slice();
-        let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
-        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_tuple_slice(
-            byte_str_slice,
-            ZeroTrieBuilderOptions {
-                phf_mode: PhfMode::BinaryOnly,
-                ascii_mode: AsciiMode::AsciiOnly,
-                capacity_mode: CapacityMode::Normal,
-            },
-        )
-        .map(|s| Self {
-            store: s.to_bytes(),
-        })
-        .unwrap()
     }
 }
