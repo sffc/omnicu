@@ -14,8 +14,6 @@ mod testdata {
 #[test]
 fn test_basic() {
     let trie = testdata::basic::TRIE;
-    let trie4 = testdata::basic::TRIE4;
-    let trie5 = testdata::basic::TRIE5;
     let trie6 = testdata::basic::TRIE6;
     let data = testdata::basic::DATA;
 
@@ -32,16 +30,6 @@ fn test_basic() {
             None => panic!("value should be in trie: {:?} => {}", key, expected),
         };
         assert_eq!(*expected, actual);
-        let actual4 = match asciitrie::reader4::get(trie4, key.as_bytes()) {
-            Some(v) => v,
-            None => panic!("value should be in trie4: {:?} => {}", key, expected),
-        };
-        assert_eq!(*expected, actual4);
-        let actual5 = match asciitrie::reader5::get(trie5, key.as_bytes()) {
-            Some(v) => v,
-            None => panic!("value should be in trie5: {:?} => {}", key, expected),
-        };
-        assert_eq!(*expected, actual5);
         let actual6 = match asciitrie::reader6::get(trie6, key.as_bytes()) {
             Some(v) => v,
             None => panic!("value should be in trie6: {:?} => {}", key, expected),

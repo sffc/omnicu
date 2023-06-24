@@ -7,16 +7,6 @@ use asciitrie::{AsciiStr, NonAsciiError};
 #[allow(dead_code)]
 use litemap::LiteMap;
 
-const fn single_byte_value(x: u8) -> u8 {
-    debug_assert!(x <= 0b00011111);
-    x | 0b10000000
-}
-
-const fn single_byte_match(x: u8) -> u8 {
-    debug_assert!(x <= 0b00011111);
-    x | 0b11000000
-}
-
 const fn single_byte_intermediate_value(x: u8) -> u8 {
     debug_assert!(x <= 0b00001111);
     x | 0b10000000
@@ -83,84 +73,6 @@ pub mod basic {
         // subsubslice @ 1
         b'n',
         single_byte_short_value(7),
-    ];
-    pub static TRIE4: &[u8] = &[
-        b'a',
-        b'b',
-        single_byte_value(1),
-        b'c',
-        single_byte_value(2),
-        // Begin Match Node
-        single_byte_match(3),
-        255,
-        b'd',
-        b'e',
-        b'f',
-        0,
-        5,
-        8,
-        // End Match Node
-        // subslice @ 0
-        single_byte_value(3),
-        b'g',
-        b'h',
-        b'i',
-        single_byte_value(4),
-        // subslice @ 5
-        b'j',
-        b'k',
-        single_byte_value(5),
-        // subslice @ 8
-        // Begin Match Node
-        single_byte_match(2),
-        255,
-        b'l',
-        b'm',
-        0,
-        1,
-        // End Match Node
-        // subsubslice @ 0
-        single_byte_value(6),
-        // subsubslice @ 1
-        b'n',
-        single_byte_value(7),
-    ];
-    pub static TRIE5: &[u8] = &[
-        b'a',
-        b'b',
-        single_byte_value(1),
-        b'c',
-        single_byte_value(2),
-        // Begin Match Node
-        single_byte_match(3 << 2),
-        b'd',
-        b'e',
-        b'f',
-        5,
-        8,
-        // End Match Node
-        // subslice @ 0
-        single_byte_value(3),
-        b'g',
-        b'h',
-        b'i',
-        single_byte_value(4),
-        // subslice @ 5
-        b'j',
-        b'k',
-        single_byte_value(5),
-        // subslice @ 8
-        // Begin Match Node
-        single_byte_match(2 << 2),
-        b'l',
-        b'm',
-        1,
-        // End Match Node
-        // subsubslice @ 0
-        single_byte_value(6),
-        // subsubslice @ 1
-        b'n',
-        single_byte_value(7),
     ];
     pub static TRIE6: &[u8] = &[
         b'a',

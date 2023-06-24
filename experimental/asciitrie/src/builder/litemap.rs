@@ -2,8 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::builder::builder4::AsciiTrieBuilder4;
-use crate::builder::builder5::AsciiTrieBuilder5;
 use crate::builder::builder6::AsciiMode;
 use crate::builder::builder6::AsciiTrieBuilder6;
 use crate::builder::builder6::CapacityMode;
@@ -182,36 +180,6 @@ where
     fn from(other: &LiteMap<&'a AsciiStr, usize, S>) -> Self {
         Self::try_from_litemap(other).unwrap()
     }
-}
-
-pub fn make4_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>
-where
-    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
-{
-    AsciiTrieBuilder4::<15000>::from_sorted_const_tuple_slice(items.as_slice().into())
-        .as_bytes()
-        .to_owned()
-}
-
-pub fn make4_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Vec<u8> {
-    AsciiTrieBuilder4::<15000>::from_tuple_slice(items.into())
-        .as_bytes()
-        .to_owned()
-}
-
-pub fn make5_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>
-where
-    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
-{
-    AsciiTrieBuilder5::<15000>::from_sorted_const_tuple_slice(items.as_slice().into())
-        .as_bytes()
-        .to_owned()
-}
-
-pub fn make5_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Vec<u8> {
-    AsciiTrieBuilder5::<15000>::from_tuple_slice(items.into())
-        .as_bytes()
-        .to_owned()
 }
 
 pub fn make7b_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Result<Vec<u8>, Error>

@@ -3,8 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 mod asciistr;
-mod builder4;
-mod builder5;
 mod builder6;
 mod builder7b;
 mod bytestr;
@@ -19,7 +17,7 @@ pub mod tstore;
 
 #[cfg(feature = "litemap")]
 pub use self::litemap::{
-    make4_litemap, make4_slice, make5_litemap, make5_slice, make7b_slice, make7b_litemap
+    make7b_slice, make7b_litemap
 };
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;

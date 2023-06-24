@@ -14,8 +14,6 @@ extern crate alloc;
 mod builder;
 pub mod byte_phf;
 mod error;
-pub mod reader4;
-pub mod reader5;
 pub mod reader6;
 pub mod reader7;
 #[cfg(feature = "serde")]
@@ -32,7 +30,7 @@ pub use builder::AsciiStr;
 pub use builder::NonAsciiError;
 #[cfg(feature = "litemap")]
 pub use builder::{
-    make4_litemap, make4_slice, make5_litemap, make5_slice, make7b_slice, make7b_litemap
+    make7b_slice, make7b_litemap
 };
 pub use error::Error as AsciiTrieError;
 pub use zerotrie::ZeroTrie;
