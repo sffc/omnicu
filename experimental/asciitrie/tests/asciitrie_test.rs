@@ -76,6 +76,6 @@ fn test_basic() {
         .finalize()
         .expect("Failed to finalize serializer output");
 
-    assert_eq!(28, trie.len());
+    assert_eq!(26, trie.len());
     assert_eq!(61, zeromap_bytes.len());
 }

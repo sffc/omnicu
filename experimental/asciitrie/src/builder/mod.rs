@@ -3,8 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 mod asciistr;
-mod builder;
-mod builder1b;
 mod builder4;
 mod builder5;
 mod builder6;
@@ -15,22 +13,23 @@ pub(crate) mod const_util;
 mod litemap;
 mod store;
 #[cfg(feature = "alloc")]
-use alloc::vec::Vec;
+use alloc::{collections::VecDeque, vec::Vec};
 #[cfg(feature = "alloc")]
 pub mod tstore;
 
 #[cfg(feature = "litemap")]
 pub use self::litemap::{
-    make1b_litemap, make1b_slice, make4_litemap, make4_slice, make5_litemap, make5_slice,
+    make4_litemap, make4_slice, make5_litemap, make5_slice,
     make6_byte_litemap, make6_byte_slice, make6_litemap, make6_slice, make7_litemap, make7_slice,
     make7b_litemap, make7b_slice,
 };
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;
+pub(crate) use bytestr::ByteStr;
 
 use super::ZeroTrieSimpleAscii;
-use builder::AsciiTrieBuilder;
+use builder7b::AsciiTrieBuilder7b;
 
 impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// **Const Constructor:** Creates an [`ZeroTrieSimpleAscii`] from a sorted slice of keys and values.
@@ -50,8 +49,8 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// ```
     /// use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
     ///
-    /// // The required capacity for this trie happens to be 19 bytes
-    /// const TRIE: ZeroTrieSimpleAscii<[u8; 19]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
+    /// // The required capacity for this trie happens to be 17 bytes
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
@@ -67,7 +66,7 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     ///
     /// ```compile_fail
     /// # use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
-    /// const TRIE: ZeroTrieSimpleAscii<[u8; 19]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
@@ -96,7 +95,11 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// ]);
     /// ```
     pub const fn from_asciistr_value_slice(items: &[(&AsciiStr, usize)]) -> Self {
-        AsciiTrieBuilder::<N>::from_tuple_slice(items).into_ascii_trie_or_panic()
+        let result = AsciiTrieBuilder7b::<N>::from_tuple_slice::<100>(items);
+        match result {
+            Ok(s) => Self::from_store(s.take_or_panic()),
+            Err(_) => panic!("Failed to build ZeroTrie"),
+        }
     }
 
     /// **Const Constructor:** Creates an [`ZeroTrieSimpleAscii`] from a sorted slice of keys and values.
@@ -117,8 +120,8 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// ```
     /// use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
     ///
-    /// // The required capacity for this trie happens to be 19 bytes
-    /// const TRIE: ZeroTrieSimpleAscii<[u8; 19]> = ZeroTrieSimpleAscii::from_str_value_array([
+    /// // The required capacity for this trie happens to be 17 bytes
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_str_value_array([
     ///     ("bar", 2),
     ///     ("bazzoo", 3),
     ///     ("foo", 1),
@@ -134,7 +137,7 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     ///
     /// ```compile_fail
     /// # use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
-    /// const TRIE: ZeroTrieSimpleAscii<[u8; 19]> = ZeroTrieSimpleAscii::from_str_value_array([
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_str_value_array([
     ///     ("bár", 2),
     ///     ("båzzöo", 3),
     ///     ("foo", 1),
@@ -178,10 +181,22 @@ impl<'a> FromIterator<(&'a AsciiStr, usize)> for ZeroTrieSimpleAscii<Vec<u8>> {
     /// assert_eq!(trie.get(b"unknown"), None);
     /// ```
     fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
+        use builder6::*;
         let mut items = Vec::<(&AsciiStr, usize)>::from_iter(iter);
         items.sort();
-        AsciiTrieBuilder::<2048>::from_sorted_const_tuple_slice(items.as_slice().into())
-            .to_ascii_trie()
-            .to_owned()
+        let ascii_str_slice = items.as_slice();
+        let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
+        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(
+            byte_str_slice.into(),
+            ZeroTrieBuilderOptions {
+                phf_mode: PhfMode::BinaryOnly,
+                ascii_mode: AsciiMode::AsciiOnly,
+                capacity_mode: CapacityMode::Normal,
+            },
+        )
+        .map(|s| Self {
+            store: s.to_bytes(),
+        })
+        .unwrap()
     }
 }

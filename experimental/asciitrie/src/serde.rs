@@ -175,7 +175,7 @@ where
         let store = if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<AsciiStr>, usize>::deserialize(deserializer)?;
             let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            crate::builder::make1b_litemap(&lm)
+            crate::builder::make7_litemap(&lm)
                 .map_err(|e| D::Error::custom(e))?
                 .into()
         } else {

@@ -2,14 +2,17 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::reader::get as get1;
-use crate::reader::get_iter as get_iter1;
 use crate::reader6::get as get6;
 use crate::reader6::get_iter as get_iter6;
+use crate::reader7::get as get1;
+use crate::reader7::get_iter as get_iter1;
 use crate::AsciiStr;
 
 use core::borrow::Borrow;
 use ref_cast::RefCast;
+
+#[cfg(feature = "alloc")]
+use alloc::{boxed::Box, vec::Vec};
 
 pub struct ZeroTrie<S>(ZeroTrieInner<S>);
 
@@ -94,12 +97,12 @@ macro_rules! impl_zerotrie_subtype {
             /// assert_eq!(trie.get(b"abc"), Some(5));
             /// assert_eq!(owned.get(b"abc"), Some(5));
             /// ```
-            pub fn to_owned(&self) -> $name<alloc::vec::Vec<u8>> {
+            pub fn to_owned(&self) -> $name<Vec<u8>> {
                 $name::from_store(
-                    alloc::vec::Vec::from(self.store.as_ref()),
+                    Vec::from(self.store.as_ref()),
                 )
             }
-            pub fn iter(&self) -> impl Iterator<Item = (alloc::boxed::Box<$iter_ty>, usize)> + '_ {
+            pub fn iter(&self) -> impl Iterator<Item = (Box<$iter_ty>, usize)> + '_ {
                  $iter_fn(self.as_bytes())
             }
         }
@@ -116,21 +119,21 @@ macro_rules! impl_zerotrie_subtype {
         }
         // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
         #[cfg(feature = "alloc")]
-        impl Borrow<$name<[u8]>> for $name<alloc::boxed::Box<[u8]>> {
+        impl Borrow<$name<[u8]>> for $name<Box<[u8]>> {
             fn borrow(&self) -> &$name<[u8]> {
                 self.as_borrowed()
             }
         }
         // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
         #[cfg(feature = "alloc")]
-        impl Borrow<$name<[u8]>> for $name<alloc::vec::Vec<u8>> {
+        impl Borrow<$name<[u8]>> for $name<Vec<u8>> {
             fn borrow(&self) -> &$name<[u8]> {
                 self.as_borrowed()
             }
         }
         #[cfg(feature = "alloc")]
         impl alloc::borrow::ToOwned for $name<[u8]> {
-            type Owned = $name<alloc::boxed::Box<[u8]>>;
+            type Owned = $name<Box<[u8]>>;
             /// This impl allows [`$name`] to be used inside of a [`Cow`](std::borrow::Cow).
             ///
             /// Note that it is also possible to use `$name<ZeroVec<u8>>` for a similar result.
@@ -149,7 +152,7 @@ macro_rules! impl_zerotrie_subtype {
             fn to_owned(&self) -> Self::Owned {
                 let bytes: &[u8] = self.store.as_ref();
                 $name::from_store(
-                    alloc::vec::Vec::from(bytes).into_boxed_slice(),
+                    Vec::from(bytes).into_boxed_slice(),
                 )
             }
         }
@@ -164,22 +167,22 @@ macro_rules! impl_zerotrie_subtype {
             ///
             /// ```
             /// use asciitrie::AsciiStr;
-            /// use asciitrie::$name;
+            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
             /// use litemap::LiteMap;
             ///
-            /// let trie = $name::from_bytes(b"abc\x81def\x82");
+            #[doc = concat!("let trie = ", stringify!($name), "::from_bytes(b\"abc\\x81def\\x82\");")]
             /// let items = trie.to_litemap();
             ///
             /// assert_eq!(items.len(), 2);
             /// assert_eq!(items.get("abc"), Some(&1));
             /// assert_eq!(items.get("abcdef"), Some(&2));
             ///
-            /// let recovered_trie = $name::from_litemap(
+            #[doc = concat!("let recovered_trie = ", stringify!($name), "::try_from_litemap(")]
             ///     &items.to_borrowed_keys::<_, Vec<_>>()
-            /// );
+            /// ).unwrap();
             /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
             /// ```
-            pub fn to_litemap(&self) -> litemap::LiteMap<alloc::boxed::Box<$iter_ty>, usize> {
+            pub fn to_litemap(&self) -> litemap::LiteMap<Box<$iter_ty>, usize> {
                 self.iter().collect()
             }
         }

@@ -35,6 +35,10 @@ impl<const N: usize> AsciiTrieBuilder7b<N> {
     //     AsciiTrie(self.data.take_or_panic())
     // }
 
+    pub const fn take_or_panic(self) -> [u8; N] {
+        self.data.take_or_panic()
+    }
+
     pub const fn new() -> Self {
         Self {
             data: ConstAsciiTrieBuilderStore::atbs_new_empty(),

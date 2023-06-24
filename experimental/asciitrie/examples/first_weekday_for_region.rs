@@ -173,7 +173,7 @@ static DATA: &[(&AsciiStr, usize)] = &[
     (AsciiStr::from_str_or_panic("ZA"), weekday::SUN),
     (AsciiStr::from_str_or_panic("ZW"), weekday::SUN),
 ];
-static TRIE: ZeroTrieSimpleAscii<[u8; 561]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(DATA);
+static TRIE: ZeroTrieSimpleAscii<[u8; 539]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(DATA);
 
 static TRIE4: [u8; 610] = [
     219, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 0, 15, 0, 81,

@@ -14,7 +14,6 @@ extern crate alloc;
 mod builder;
 pub mod byte_phf;
 mod error;
-pub mod reader;
 pub mod reader4;
 pub mod reader5;
 pub mod reader6;
@@ -33,7 +32,7 @@ pub use builder::AsciiStr;
 pub use builder::NonAsciiError;
 #[cfg(feature = "litemap")]
 pub use builder::{
-    make1b_litemap, make1b_slice, make4_litemap, make4_slice, make5_litemap, make5_slice,
+    make4_litemap, make4_slice, make5_litemap, make5_slice,
     make6_byte_litemap, make6_byte_slice, make6_litemap, make6_slice, make7_litemap, make7_slice,
     make7b_litemap, make7b_slice,
 };

@@ -50,41 +50,39 @@ pub mod basic {
     pub static TRIE: &[u8] = &[
         b'a',
         b'b',
-        single_byte_value(1),
+        single_byte_short_value(1),
         b'c',
-        single_byte_value(2),
+        single_byte_short_value(2),
         // Begin Match Node
-        single_byte_match(3),
+        single_byte_short_match(3),
         b'd',
         b'e',
         b'f',
-        0,
         5,
         8,
         // End Match Node
         // subslice @ 0
-        single_byte_value(3),
+        single_byte_short_value(3),
         b'g',
         b'h',
         b'i',
-        single_byte_value(4),
+        single_byte_short_value(4),
         // subslice @ 5
         b'j',
         b'k',
-        single_byte_value(5),
+        single_byte_short_value(5),
         // subslice @ 8
         // Begin Match Node
-        single_byte_match(2),
+        single_byte_short_match(2),
         b'l',
         b'm',
-        0,
         1,
         // End Match Node
-        // subslice @ 0
-        single_byte_value(6),
-        // subslice @ 1
+        // subsubslice @ 0
+        single_byte_short_value(6),
+        // subsubslice @ 1
         b'n',
-        single_byte_value(7),
+        single_byte_short_value(7),
     ];
     pub static TRIE4: &[u8] = &[
         b'a',
@@ -244,8 +242,8 @@ pub mod basic {
         "{\"trie\":{\"das\":1,\"der\":2,\"die\":3,\"für\":4,\"groß\":5,\"können\":6}}";
     pub static JSON_STR_BIN: &str = "{\"trie\":[[[0,144],3],[[129,130],1],[[129,131],2],[[144,144],4],[[240,255],5],[[240,255,255],6]]}";
     pub static BINCODE_BYTES: &[u8] = &[
-        28, 0, 0, 0, 0, 0, 0, 0, 97, 98, 129, 99, 130, 195, 100, 101, 102, 0, 5, 8, 131, 103, 104,
-        105, 132, 106, 107, 133, 194, 108, 109, 0, 1, 134, 110, 135,
+        26, 0, 0, 0, 0, 0, 0, 0, 97, 98, 129, 99, 130, 195, 100, 101, 102, 5, 8, 131, 103, 104,
+        105, 132, 106, 107, 133, 194, 108, 109, 1, 134, 110, 135,
     ];
     pub static BINCODE_BYTES6: &[u8] = &[
         26, 0, 0, 0, 0, 0, 0, 0, 97, 98, 129, 99, 130, 195, 100, 101, 102, 5, 8, 131, 103, 104,

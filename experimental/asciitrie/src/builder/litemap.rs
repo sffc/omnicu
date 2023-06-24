@@ -2,7 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::builder::builder1b::AsciiTrieBuilder1b;
 use crate::builder::builder4::AsciiTrieBuilder4;
 use crate::builder::builder5::AsciiTrieBuilder5;
 use crate::builder::builder6::AsciiMode;
@@ -12,7 +11,6 @@ use crate::builder::builder6::PhfMode;
 use crate::builder::builder6::ZeroTrieBuilderOptions;
 use crate::builder::builder7b::AsciiTrieBuilder7b;
 use crate::builder::bytestr::ByteStr;
-use crate::builder::AsciiTrieBuilder;
 use crate::error::Error;
 use crate::zerotrie::ZeroTrieSimpleAscii;
 use crate::AsciiStr;
@@ -38,7 +36,7 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
     /// map.insert(AsciiStr::try_from_str("bar")?, 2);
     /// map.insert(AsciiStr::try_from_str("bazzoo")?, 3);
     ///
-    /// let trie = ZeroTrieSimpleAscii::from_litemap(&map);
+    /// let trie = ZeroTrieSimpleAscii::try_from_litemap(&map).unwrap();
     ///
     /// assert_eq!(trie.get(b"foo"), Some(1));
     /// assert_eq!(trie.get(b"bar"), Some(2));
@@ -47,11 +45,11 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
     ///
     /// # Ok::<_, asciitrie::NonAsciiError>(())
     /// ```
-    pub fn from_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Self
+    pub fn try_from_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Result<Self, Error>
     where
         S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
     {
-        /// TODO: Once const mut references are allowed, we can make this fully infallible by
+        /// TODO: Once const mut references are allowed, we can make this more infallible by
         /// calculating the required length, heap-allocating the required capacity, and pointing
         /// ConstAsciiTrieBuilderStore to the heap buffer.
         /// ```compile_fail
@@ -60,11 +58,19 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
         /// ```
         const _: () = ();
 
-        Self::from_store(
-            AsciiTrieBuilder::<2048>::from_sorted_const_tuple_slice(items.as_slice().into())
-                .as_bytes()
-                .to_vec(),
+        let ascii_str_slice = items.as_slice();
+        let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
+        AsciiTrieBuilder6::<VecDeque<u8>>::from_sorted_const_tuple_slice(
+            byte_str_slice.into(),
+            ZeroTrieBuilderOptions {
+                phf_mode: PhfMode::BinaryOnly,
+                ascii_mode: AsciiMode::AsciiOnly,
+                capacity_mode: CapacityMode::Normal,
+            },
         )
+        .map(|s| Self {
+            store: s.to_bytes(),
+        })
     }
 }
 
@@ -73,7 +79,7 @@ where
     S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
 {
     fn from(other: LiteMap<&'a AsciiStr, usize, S>) -> Self {
-        Self::from_litemap(&other)
+        Self::try_from_litemap(&other).unwrap()
     }
 }
 
@@ -82,21 +88,8 @@ where
     S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
 {
     fn from(other: &LiteMap<&'a AsciiStr, usize, S>) -> Self {
-        Self::from_litemap(other)
+        Self::try_from_litemap(other).unwrap()
     }
-}
-
-pub fn make1b_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Result<Vec<u8>, Error>
-where
-    S: litemap::store::StoreSlice<&'a AsciiStr, usize, Slice = [(&'a AsciiStr, usize)]>,
-{
-    AsciiTrieBuilder1b::<10000>::from_sorted_const_tuple_slice::<100>(items.as_slice().into())
-        .map(|x| x.as_bytes().to_owned())
-}
-
-pub fn make1b_slice<'a>(items: &[(&'a AsciiStr, usize)]) -> Result<Vec<u8>, Error> {
-    AsciiTrieBuilder1b::<10000>::from_tuple_slice::<100>(items.into())
-        .map(|x| x.as_bytes().to_owned())
 }
 
 pub fn make4_litemap<'a, S>(items: &LiteMap<&'a AsciiStr, usize, S>) -> Vec<u8>

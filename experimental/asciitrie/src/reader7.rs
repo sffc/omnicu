@@ -2,8 +2,10 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::builder::AsciiByte;
 use crate::varint::read_varint;
 use crate::varint::read_varint2;
+use crate::AsciiStr;
 use core::ops::Range;
 
 /// Like slice::split_at but returns an Option instead of panicking.
@@ -206,7 +208,7 @@ use alloc::{boxed::Box, vec::Vec};
 
 #[cfg(feature = "alloc")]
 pub(crate) struct ZeroTriePerfectHashIterator<'a> {
-    state: Vec<(&'a [u8], Vec<u8>, usize)>,
+    state: Vec<(&'a [u8], Vec<AsciiByte>, usize)>,
 }
 
 #[cfg(feature = "alloc")]
@@ -220,12 +222,12 @@ impl<'a> ZeroTriePerfectHashIterator<'a> {
 
 #[cfg(feature = "alloc")]
 impl<'a> Iterator for ZeroTriePerfectHashIterator<'a> {
-    type Item = (Box<[u8]>, usize);
+    type Item = (Box<AsciiStr>, usize);
     fn next(&mut self) -> Option<Self::Item> {
         let (mut trie, mut string, mut branch_idx);
         (trie, string, branch_idx) = self.state.pop()?;
         loop {
-            let (b, x, span, search);
+            let (b, x, search);
             let return_trie = trie;
             (b, trie) = match trie.split_first() {
                 Some(tpl) => tpl,
@@ -238,7 +240,7 @@ impl<'a> Iterator for ZeroTriePerfectHashIterator<'a> {
             };
             let byte_type = byte_type(*b);
             if matches!(byte_type, ByteType::Ascii) {
-                string.push(*b);
+                string.push(AsciiByte::debug_from_u8(*b));
                 continue;
             }
             (x, trie) = match byte_type {
@@ -247,12 +249,11 @@ impl<'a> Iterator for ZeroTriePerfectHashIterator<'a> {
                 ByteType::Match => read_varint(*b, trie)?,
             };
             if matches!(byte_type, ByteType::Span) {
-                (span, trie) = debug_split_at(trie, x)?;
-                string.extend(span);
+                debug_assert!(false, "No spans in an ASCII-only trie");
                 continue;
             }
             if matches!(byte_type, ByteType::Value) {
-                let retval = string.clone().into_boxed_slice();
+                let retval = AsciiStr::from_boxed_ascii_slice(string.clone().into_boxed_slice());
                 // Return to this position on the next step
                 self.state.push((trie, string, 0));
                 return Some((retval, x));
@@ -268,7 +269,7 @@ impl<'a> Iterator for ZeroTriePerfectHashIterator<'a> {
             // Always use binary search
             (search, trie) = debug_split_at(trie, x)?;
             let byte = debug_get(search, branch_idx)?;
-            string.push(byte);
+            string.push(AsciiByte::debug_from_u8(byte));
             trie = if w == 0 {
                 get_branch_w0(trie, branch_idx, x)
             } else {
@@ -282,6 +283,6 @@ impl<'a> Iterator for ZeroTriePerfectHashIterator<'a> {
 #[cfg(feature = "alloc")]
 pub fn get_iter<S: AsRef<[u8]> + ?Sized>(
     store: &S,
-) -> impl Iterator<Item = (Box<[u8]>, usize)> + '_ {
+) -> impl Iterator<Item = (Box<AsciiStr>, usize)> + '_ {
     ZeroTriePerfectHashIterator::new(store)
 }
