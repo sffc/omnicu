@@ -2,8 +2,8 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use asciitrie::ZeroTriePerfectHash;
 use asciitrie::AsciiStr;
+use asciitrie::ZeroTriePerfectHash;
 use asciitrie::ZeroTrieSimpleAscii;
 use litemap::LiteMap;
 
@@ -25,7 +25,8 @@ fn test_basic() {
     check_ascii_trie(&litemap, &trie);
 
     let expected_bytes6 = testdata::basic::TRIE6;
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     check_bytes_eq(26, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
@@ -54,7 +55,8 @@ where
 }
 
 fn check_ascii_trie6<S>(items: &LiteMap<&AsciiStr, usize>, trie: &ZeroTriePerfectHash<S>)
-where S: AsRef<[u8]> + ?Sized
+where
+    S: AsRef<[u8]> + ?Sized,
 {
     for (k, v) in items.iter() {
         assert_eq!(trie.get(k.as_bytes()), Some(*v));
@@ -68,7 +70,8 @@ where S: AsRef<[u8]> + ?Sized
 }
 
 fn check_ascii_trie6_bytes<S>(items: &LiteMap<&[u8], usize>, trie: &ZeroTriePerfectHash<S>)
-where S: AsRef<[u8]> + ?Sized
+where
+    S: AsRef<[u8]> + ?Sized,
 {
     for (k, v) in items.iter() {
         assert_eq!(trie.get(k), Some(*v));
@@ -109,7 +112,8 @@ fn test_single_empty_value() {
     assert_eq!(trie.as_bytes(), expected_bytes);
 
     let expected_bytes6 = &[0b10001010];
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     check_bytes_eq(1, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
@@ -129,7 +133,8 @@ fn test_single_byte_string() {
     check_bytes_eq(2, trie.as_bytes(), expected_bytes);
 
     let expected_bytes6 = &[b'x', 0b10001010];
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     check_bytes_eq(2, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
@@ -151,7 +156,8 @@ fn test_single_string() {
     check_bytes_eq(4, trie.as_bytes(), expected_bytes);
 
     let expected_bytes6 = &[b'x', b'y', b'z', 0b10001010];
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     check_bytes_eq(4, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
@@ -172,7 +178,8 @@ fn test_prefix_strings() {
     check_bytes_eq(4, trie.as_bytes(), expected_bytes);
 
     let expected_bytes6 = &[b'x', 0b10000000, b'y', 0b10000001];
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     check_bytes_eq(4, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
@@ -193,7 +200,8 @@ fn test_single_byte_branch() {
     check_bytes_eq(6, trie.as_bytes(), expected_bytes);
 
     let expected_bytes6 = &[0b11000010, b'x', b'y', 1, 0b10000000, 0b10000001];
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     check_bytes_eq(6, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
@@ -220,7 +228,8 @@ fn test_multi_byte_branch() {
     let expected_bytes6 = &[
         b'a', 0b11000010, b'x', b'y', 2, b'b', 0b10000000, b'c', 0b10000001,
     ];
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     check_bytes_eq(9, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
@@ -243,7 +252,8 @@ fn test_linear_varint_values() {
     check_bytes_eq(10, trie.as_bytes(), expected_bytes);
 
     let expected_bytes6 = &[0x90, 0x54, b'x', 0x93, 0x64, b'y', b'z', 0x90, 0x96, 0x78];
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     check_bytes_eq(10, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
@@ -323,7 +333,8 @@ fn test_varint_branch() {
         0x80 | 11, 0x80 | 12, 0x80 | 13, 0x80 | 14, 0x90, 16+0, 0x90, 26-16, 0x90, 27-16, 0x90, 28-16,
         0x90, 16+13, 0x90, 29-16, 0x90, 31-16, 0x90, 30-16,
     ];
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     check_bytes_eq(246, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 }
@@ -705,7 +716,8 @@ fn test_everything() {
         b'l',       //
         0b10001000, // value 8
     ];
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     check_bytes_eq(36, trie6.as_bytes(), expected_bytes6);
     check_ascii_trie6(&litemap, &trie6);
 
@@ -868,7 +880,8 @@ fn test_short_subtags_10pct() {
     assert_eq!(trie.byte_len(), 1050);
     check_ascii_trie(&litemap, &trie);
 
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     assert_eq!(trie6.byte_len(), 1100);
     check_ascii_trie6(&litemap, &trie6);
 
@@ -908,7 +921,8 @@ fn test_short_subtags() {
     assert_eq!(trie.byte_len(), 8793);
     check_ascii_trie(&litemap, &trie);
 
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
+    let trie6 =
+        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
     assert_eq!(trie6.byte_len(), 9400);
     check_ascii_trie6(&litemap, &trie6);
 

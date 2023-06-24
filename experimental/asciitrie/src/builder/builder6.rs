@@ -4,7 +4,7 @@
 
 use super::const_util::ConstSlice;
 use super::store::BranchMeta;
-use super::store::ConstLengthsStack1b;
+use super::tstore::MutableLengthsStack1b;
 use super::tstore::TrieBuilderStore;
 use crate::builder::bytestr::ByteStr;
 use crate::byte_phf::PerfectByteHashMapCacheOwned;
@@ -137,8 +137,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
         if all_items.is_empty() {
             return Ok(0);
         }
-        // FIXME: This arbitrary limit of 512 can't handle all cases.
-        let mut lengths_stack = ConstLengthsStack1b::<512>::new();
+        let mut lengths_stack = MutableLengthsStack1b::new();
         let mut prefix_len = all_items.last().unwrap().0.len();
         let mut i = all_items.len() - 1;
         let mut j = all_items.len();
@@ -220,20 +219,20 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
             }
             // Branch
             if diff_j == 0 {
-                lengths_stack = lengths_stack.push(BranchMeta {
+                lengths_stack.push(BranchMeta {
                     ascii: key_ascii,
                     length: current_len,
                     local_length: current_len,
                     count: 1,
-                })?;
+                });
             } else {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
-                lengths_stack = lengths_stack.push(BranchMeta {
+                lengths_stack.push(BranchMeta {
                     ascii: key_ascii,
                     length: length + current_len,
                     local_length: current_len,
                     count: count + 1,
-                })?;
+                });
             }
             if diff_i != 0 {
                 j = i;
@@ -248,8 +247,7 @@ impl<S: TrieBuilderStore> AsciiTrieBuilder6<S> {
                 let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
                 (length, count)
             };
-            let mut branch_metas;
-            (lengths_stack, branch_metas) = lengths_stack.pop_many_or_panic(total_count);
+            let mut branch_metas = lengths_stack.pop_many_or_panic(total_count);
             let original_keys = branch_metas.map_to_ascii_bytes();
             let use_phf = matches!(self.options.phf_mode, PhfMode::UsePhf);
             let opt_phf_vec = if total_count > 15 && use_phf {

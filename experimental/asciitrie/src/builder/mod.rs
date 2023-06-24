@@ -16,9 +16,7 @@ use alloc::{collections::VecDeque, vec::Vec};
 pub mod tstore;
 
 #[cfg(feature = "litemap")]
-pub use self::litemap::{
-    make7b_slice, make7b_litemap
-};
+pub use self::litemap::{make7b_litemap, make7b_slice};
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;

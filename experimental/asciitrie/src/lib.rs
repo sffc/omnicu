@@ -28,9 +28,7 @@ pub(crate) use varinta as varint;
 pub use builder::AsciiStr;
 pub use builder::NonAsciiError;
 #[cfg(feature = "litemap")]
-pub use builder::{
-    make7b_slice, make7b_litemap
-};
+pub use builder::{make7b_litemap, make7b_slice};
 pub use error::Error as AsciiTrieError;
 pub use zerotrie::ZeroTrie;
 pub use zerotrie::ZeroTrieExtendedCapacity;

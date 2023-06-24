@@ -109,7 +109,7 @@ impl<const N: usize> ConstLengthsStack1b<N> {
         self.get_or_panic(0)
     }
 
-    pub const fn get_or_panic(&self, index: usize) -> BranchMeta {
+    const fn get_or_panic(&self, index: usize) -> BranchMeta {
         if self.idx <= index {
             panic!("AsciiTrie Builder: Attempted to get too deep in a stack");
         }

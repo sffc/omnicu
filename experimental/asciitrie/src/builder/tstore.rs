@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use super::const_util::ConstArrayBuilder;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
@@ -85,6 +86,58 @@ impl TrieBuilderStore for VecDeque<u8> {
     }
     fn atbs_split_first_or_panic(&mut self) -> u8 {
         self.pop_front().unwrap()
+    }
+}
+
+use super::store::BranchMeta;
+
+pub(crate) struct MutableLengthsStack1b {
+    data: Vec<BranchMeta>,
+}
+
+impl core::fmt::Debug for MutableLengthsStack1b {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.as_slice().fmt(f)
+    }
+}
+
+impl MutableLengthsStack1b {
+    pub const fn new() -> Self {
+        Self { data: Vec::new() }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
+    pub fn push(&mut self, meta: BranchMeta) {
+        self.data.push(meta);
+    }
+
+    pub fn peek_or_panic(&self) -> BranchMeta {
+        *self.data.last().unwrap()
+    }
+
+    pub fn pop_many_or_panic(&mut self, len: usize) -> ConstArrayBuilder<256, BranchMeta> {
+        let mut result = ConstArrayBuilder::new_empty([BranchMeta::const_default(); 256], 256);
+        let mut ix = 0;
+        loop {
+            if ix == len {
+                break;
+            }
+            let i = self.data.len() - ix - 1;
+            result = result.push_front(match self.data.get(i) {
+                Some(x) => *x,
+                None => panic!("Not enough items in the ConstLengthsStack"),
+            });
+            ix += 1;
+        }
+        self.data.truncate(self.data.len() - len);
+        result
+    }
+
+    fn as_slice(&self) -> &[BranchMeta] {
+        &self.data
     }
 }
 
