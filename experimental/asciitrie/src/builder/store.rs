@@ -123,6 +123,7 @@ impl<const N: usize> ConstLengthsStack1b<N> {
         mut self,
         len: usize,
     ) -> (Self, ConstArrayBuilder<256, BranchMeta>) {
+        debug_assert!(len <= 256);
         let mut result = ConstArrayBuilder::new_empty([BranchMeta::const_default(); 256], 256);
         let mut ix = 0;
         loop {
@@ -130,10 +131,14 @@ impl<const N: usize> ConstLengthsStack1b<N> {
                 break;
             }
             let i = self.idx - ix - 1;
-            result = result.push_front(match self.data[i] {
+            result = match result.push_front(match self.data[i] {
                 Some(x) => x,
                 None => panic!("Not enough items in the ConstLengthsStack"),
-            });
+            }) {
+                Ok(x) => x,
+                // Note: unreachable!("message") is not const
+                Err(_) => panic!("unreachable: len <= 256")
+            };
             ix += 1;
         }
         self.idx -= len;

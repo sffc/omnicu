@@ -119,6 +119,7 @@ impl MutableLengthsStack1b {
     }
 
     pub fn pop_many_or_panic(&mut self, len: usize) -> ConstArrayBuilder<256, BranchMeta> {
+        debug_assert!(len <= 256);
         let mut result = ConstArrayBuilder::new_empty([BranchMeta::const_default(); 256], 256);
         let mut ix = 0;
         loop {
@@ -126,10 +127,13 @@ impl MutableLengthsStack1b {
                 break;
             }
             let i = self.data.len() - ix - 1;
-            result = result.push_front(match self.data.get(i) {
+            result = match result.push_front(match self.data.get(i) {
                 Some(x) => *x,
                 None => panic!("Not enough items in the ConstLengthsStack"),
-            });
+            }) {
+                Ok(x) => x,
+                Err(_) => unreachable!("len <= 256")
+            };
             ix += 1;
         }
         self.data.truncate(self.data.len() - len);
