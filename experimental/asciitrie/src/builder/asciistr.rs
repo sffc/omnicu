@@ -26,17 +26,6 @@ impl AsciiByte {
         Ok(Self(byte))
     }
 
-    #[cfg(feature = "alloc")]
-    pub(crate) fn debug_from_u8(byte: u8) -> Self {
-        match Self::try_from_u8(byte) {
-            Ok(x) => x,
-            Err(_) => {
-                debug_assert!(false, "debug_from_u8: non-ascii byte: {:?}", byte);
-                Self(0)
-            }
-        }
-    }
-
     pub const fn nul() -> Self {
         Self(0)
     }

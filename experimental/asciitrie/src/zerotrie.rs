@@ -319,7 +319,7 @@ impl_zerotrie_subtype!(
     SimpleAscii,
     get_bsearch_only,
     AsciiStr,
-    get_iter_bsearch_only
+    get_iter_ascii_or_panic
 );
 impl_zerotrie_subtype!(
     ZeroTriePerfectHash,
