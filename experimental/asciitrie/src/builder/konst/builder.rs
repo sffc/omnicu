@@ -7,7 +7,7 @@ use super::super::AsciiByte;
 use super::super::AsciiStr;
 use super::store::const_for_each;
 use super::store::ConstArrayBuilder;
-use super::store::ConstLengthsStack1b;
+use super::store::ConstLengthsStack;
 use super::store::ConstSlice;
 use crate::error::Error;
 use crate::varint;
@@ -126,7 +126,7 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
             // Empty slice:
             None => return (Self::new(), 0),
         };
-        let mut lengths_stack = ConstLengthsStack1b::<K>::new();
+        let mut lengths_stack = ConstLengthsStack::<K>::new();
         let mut i = all_items.len() - 1;
         let mut j = all_items.len();
         let mut current_len = 0;

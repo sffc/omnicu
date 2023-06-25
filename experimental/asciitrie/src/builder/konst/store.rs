@@ -201,18 +201,18 @@ macro_rules! const_for_each {
 
 pub(crate) use const_for_each;
 
-pub(crate) struct ConstLengthsStack1b<const N: usize> {
+pub(crate) struct ConstLengthsStack<const N: usize> {
     data: [Option<BranchMeta>; N],
     idx: usize,
 }
 
-impl<const N: usize> core::fmt::Debug for ConstLengthsStack1b<N> {
+impl<const N: usize> core::fmt::Debug for ConstLengthsStack<N> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.as_slice().fmt(f)
     }
 }
 
-impl<const N: usize> ConstLengthsStack1b<N> {
+impl<const N: usize> ConstLengthsStack<N> {
     pub const fn new() -> Self {
         Self {
             data: [None; N],

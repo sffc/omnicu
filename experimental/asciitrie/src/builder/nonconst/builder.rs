@@ -3,7 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use super::super::branch_meta::BranchMeta;
-use super::store::MutableLengthsStack1b;
+use super::store::NonConstLengthsStack;
 use super::store::TrieBuilderStore;
 use crate::builder::bytestr::ByteStr;
 use crate::byte_phf::PerfectByteHashMapCacheOwned;
@@ -103,12 +103,10 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
         varint_array.len()
     }
 
-    fn prepend_slice(&mut self, s: &[u8]) {
-        let mut i = s.len();
-        while i > 0 {
-            self.data.atbs_push_front(*s.get(i - 1).unwrap());
-            i -= 1;
-        }
+    #[must_use]
+    fn prepend_slice(&mut self, s: &[u8]) -> usize {
+        self.data.atbs_extend_front(s);
+        s.len()
     }
 
     /// Builds a ZeroTrie from an iterator of bytes. It first collects and sorts the iterator.
@@ -156,12 +154,14 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
     }
 
     #[must_use]
+    #[allow(clippy::unwrap_used)] // lots of indexing, but all indexes should be in range
     fn create<'a>(&mut self, all_items: &[(&'a ByteStr, usize)]) -> Result<usize, Error> {
-        if all_items.is_empty() {
-            return Ok(0);
-        }
-        let mut lengths_stack = MutableLengthsStack1b::new();
-        let mut prefix_len = all_items.last().unwrap().0.len();
+        let mut prefix_len = match all_items.last() {
+            Some(x) => x.0.len(),
+            // Empty slice:
+            None => return Ok(0),
+        };
+        let mut lengths_stack = NonConstLengthsStack::new();
         let mut i = all_items.len() - 1;
         let mut j = all_items.len();
         let mut current_len = 0;
@@ -360,9 +360,9 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
                 let branch_len = self.prepend_branch(branch_value);
                 current_len += phf_len + branch_len;
             } else {
-                self.prepend_slice(original_keys.as_slice());
+                let search_len = self.prepend_slice(original_keys.as_slice());
                 let branch_len = self.prepend_branch(branch_value);
-                current_len += total_count + branch_len;
+                current_len += search_len + branch_len;
             }
             i = new_i;
             j = new_j;

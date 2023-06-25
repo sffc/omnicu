@@ -92,17 +92,17 @@ impl TrieBuilderStore for VecDeque<u8> {
     }
 }
 
-pub(crate) struct MutableLengthsStack1b {
+pub(crate) struct NonConstLengthsStack {
     data: Vec<BranchMeta>,
 }
 
-impl core::fmt::Debug for MutableLengthsStack1b {
+impl core::fmt::Debug for NonConstLengthsStack {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.as_slice().fmt(f)
     }
 }
 
-impl MutableLengthsStack1b {
+impl NonConstLengthsStack {
     pub const fn new() -> Self {
         Self { data: Vec::new() }
     }

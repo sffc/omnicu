@@ -12,12 +12,7 @@ pub enum Error {
     /// The collection reached its maximum supported capacity.
     #[displaydoc("Reached maximum capacity of collection")]
     CapacityExceeded,
-    /// The const builder is unable to process the specified data.
-    #[displaydoc("Const builder failed to run to completion: {0}")]
-    ConstBuilder(&'static str),
-    /// The keys provided to the builder were not in lexicographic order.
-    #[displaydoc("The provided keys are not in order")]
-    KeysOutOfOrder,
+    /// The builder could not solve the perfect hash function.
     #[displaydoc("Failed to solve the perfect hash function. This is rare! Please report your case to the ICU4X team.")]
     CouldNotSolvePerfectHash,
 }
