@@ -2,7 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-//! Varint spec for AsciiTrie:
+//! Varint spec for ZeroTrie:
 //!
 //! - Lead byte: top 2 bits are trie metadata; third is varint extender; rest is value
 //! - Trail bytes: top bit is varint extender; add rest to current value * 2^7
@@ -11,6 +11,7 @@
 use crate::builder::konst::ConstArrayBuilder;
 use crate::builder::nonconst::TrieBuilderStore;
 
+/// Reads a varint with 2 bits of metadata in the lead byte.
 pub const fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
     let mut value = (start & 0b00011111) as usize;
     let mut remainder = remainder;
@@ -33,7 +34,8 @@ pub const fn read_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> 
     Some((value, remainder))
 }
 
-pub const fn read_varint2(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
+/// Reads a varint with 3 bits of metadata in the lead byte.
+pub const fn read_extended_varint(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])> {
     let mut value = (start & 0b00001111) as usize;
     let mut remainder = remainder;
     if (start & 0b00010000) != 0 {
@@ -55,7 +57,7 @@ pub const fn read_varint2(start: u8, remainder: &[u8]) -> Option<(usize, &[u8])>
     Some((value, remainder))
 }
 
-pub(crate) fn try_read_varint2_from_tstore<S: TrieBuilderStore>(
+pub(crate) fn try_read_extended_varint_from_tstore<S: TrieBuilderStore>(
     start: u8,
     remainder: &mut S,
 ) -> Option<usize> {
@@ -109,7 +111,9 @@ pub(crate) const fn write_varint(value: usize) -> ConstArrayBuilder<MAX_VARINT_L
     ConstArrayBuilder::from_manual_slice(result, i, MAX_VARINT_LENGTH)
 }
 
-pub(crate) const fn write_varint2(value: usize) -> ConstArrayBuilder<MAX_VARINT_LENGTH, u8> {
+pub(crate) const fn write_extended_varint(
+    value: usize,
+) -> ConstArrayBuilder<MAX_VARINT_LENGTH, u8> {
     let mut result = [0; MAX_VARINT_LENGTH];
     let mut i = MAX_VARINT_LENGTH - 1;
     let mut value = value;

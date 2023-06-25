@@ -3,8 +3,8 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::byte_phf::PerfectByteHashMap;
+use crate::varint::read_extended_varint;
 use crate::varint::read_varint;
-use crate::varint::read_varint2;
 use crate::AsciiStr;
 use core::ops::Range;
 
@@ -152,7 +152,7 @@ pub fn get_bsearch_only(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
         let byte_type = byte_type(*b);
         (x, trie) = match byte_type {
             ByteType::Ascii => (0, trie),
-            ByteType::Span | ByteType::Value => read_varint2(*b, trie)?,
+            ByteType::Span | ByteType::Value => read_extended_varint(*b, trie)?,
             ByteType::Match => read_varint(*b, trie)?,
         };
         if let Some((c, temp)) = ascii.split_first() {
@@ -216,7 +216,7 @@ pub fn get_phf_limited(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
         let byte_type = byte_type(*b);
         (x, trie) = match byte_type {
             ByteType::Ascii => (0, trie),
-            ByteType::Span | ByteType::Value => read_varint2(*b, trie)?,
+            ByteType::Span | ByteType::Value => read_extended_varint(*b, trie)?,
             ByteType::Match => read_varint(*b, trie)?,
         };
         if let Some((c, temp)) = ascii.split_first() {
@@ -286,7 +286,7 @@ pub fn get_phf_extended(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
         let byte_type = byte_type(*b);
         (x, trie) = match byte_type {
             ByteType::Ascii => (0, trie),
-            ByteType::Span | ByteType::Value => read_varint2(*b, trie)?,
+            ByteType::Span | ByteType::Value => read_extended_varint(*b, trie)?,
             ByteType::Match => read_varint(*b, trie)?,
         };
         if let Some((c, temp)) = ascii.split_first() {
@@ -389,7 +389,7 @@ impl<'a> Iterator for ZeroTrieIterator<'a> {
             }
             (x, trie) = match byte_type {
                 ByteType::Ascii => (0, trie),
-                ByteType::Span | ByteType::Value => read_varint2(*b, trie)?,
+                ByteType::Span | ByteType::Value => read_extended_varint(*b, trie)?,
                 ByteType::Match => read_varint(*b, trie)?,
             };
             if matches!(byte_type, ByteType::Span) {
