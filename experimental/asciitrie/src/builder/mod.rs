@@ -83,7 +83,7 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// ```
     pub const fn from_asciistr_value_slice(items: &[(&AsciiStr, usize)]) -> Self {
         use konst::*;
-        let result = AsciiTrieBuilder7b::<N>::from_tuple_slice::<100>(items);
+        let result = ZeroTrieBuilderConst::<N>::from_tuple_slice::<100>(items);
         match result {
             Ok(s) => Self::from_store(s.take_or_panic()),
             Err(_) => panic!("Failed to build ZeroTrie"),

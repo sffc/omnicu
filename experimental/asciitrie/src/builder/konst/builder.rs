@@ -5,21 +5,21 @@
 use super::super::branch_meta::BranchMeta;
 use super::super::AsciiByte;
 use super::super::AsciiStr;
-use super::const_util::const_for_each;
-use super::const_util::ConstArrayBuilder;
-use super::const_util::ConstSlice;
+use super::store::const_for_each;
+use super::store::ConstArrayBuilder;
 use super::store::ConstLengthsStack1b;
+use super::store::ConstSlice;
 use crate::error::Error;
 use crate::varint;
 
 extern crate std;
 
 /// A low-level builder for AsciiTrie.
-pub(crate) struct AsciiTrieBuilder7b<const N: usize> {
+pub(crate) struct ZeroTrieBuilderConst<const N: usize> {
     data: ConstArrayBuilder<N, u8>,
 }
 
-impl<const N: usize> AsciiTrieBuilder7b<N> {
+impl<const N: usize> ZeroTrieBuilderConst<N> {
     // #[cfg(feature = "alloc")]
     // pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
     //     let slice = self.data.atbs_as_bytes();
