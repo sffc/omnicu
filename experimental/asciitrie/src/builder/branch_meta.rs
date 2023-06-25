@@ -4,11 +4,16 @@
 
 use super::AsciiByte;
 
+/// Intermediate metadata for a branch node under construction.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct BranchMeta {
+    /// The lead byte for this branch.
     pub ascii: u8,
-    pub length: usize,
+    /// The size in bytes of the trie data reachable from this branch.
     pub local_length: usize,
+    /// The size in bytes of this and all later sibling branches.
+    pub cumulative_length: usize,
+    /// The number of later sibling branches, including this.
     pub count: usize,
 }
 
@@ -16,7 +21,7 @@ impl BranchMeta {
     pub const fn const_default() -> Self {
         BranchMeta {
             ascii: AsciiByte::nul().get(),
-            length: 0,
+            cumulative_length: 0,
             local_length: 0,
             count: 0,
         }

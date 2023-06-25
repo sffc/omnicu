@@ -12,20 +12,27 @@ use crate::varint;
 use crate::AsciiStr;
 use alloc::vec::Vec;
 
-extern crate std;
-
+/// Whether to use the perfect hash function in the ZeroTrie.
 pub enum PhfMode {
+    /// Use binary search for all branch nodes.
     BinaryOnly,
+    /// Use the perfect hash function for large branch nodes.
     UsePhf,
 }
 
+/// Whether to support non-ASCII data in the ZeroTrie.
 pub enum AsciiMode {
+    /// Support only ASCII, returning an error if non-ASCII is found.
     AsciiOnly,
+    /// Support all data, creating span nodes for non-ASCII bytes.
     BinarySpans,
 }
 
+/// Whether to enforce a limit to the capacity of the ZeroTrie.
 pub enum CapacityMode {
+    /// Return an error if the trie requires a branch of more than 2^32 bytes.
     Normal,
+    /// Construct the trie without returning an error.
     Extended,
 }
 
@@ -35,7 +42,7 @@ pub struct ZeroTrieBuilderOptions {
     pub capacity_mode: CapacityMode,
 }
 
-/// A low-level builder for AsciiTrie.
+/// A low-level builder for ZeroTrie. Supports all options.
 pub(crate) struct ZeroTrieBuilder<S> {
     data: S,
     phf_cache: PerfectByteHashMapCacheOwned,
@@ -237,15 +244,19 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
             if diff_j == 0 {
                 lengths_stack.push(BranchMeta {
                     ascii: key_ascii,
-                    length: current_len,
+                    cumulative_length: current_len,
                     local_length: current_len,
                     count: 1,
                 });
             } else {
-                let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
+                let BranchMeta {
+                    cumulative_length,
+                    count,
+                    ..
+                } = lengths_stack.peek_or_panic();
                 lengths_stack.push(BranchMeta {
                     ascii: key_ascii,
-                    length: length + current_len,
+                    cumulative_length: cumulative_length + current_len,
                     local_length: current_len,
                     count: count + 1,
                 });
@@ -260,8 +271,12 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
             // Branch (first)
             // std::println!("lengths_stack: {lengths_stack:?}");
             let (total_length, total_count) = {
-                let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
-                (length, count)
+                let BranchMeta {
+                    cumulative_length,
+                    count,
+                    ..
+                } = lengths_stack.peek_or_panic();
+                (cumulative_length, count)
             };
             let mut branch_metas = lengths_stack.pop_many_or_panic(total_count);
             let original_keys = branch_metas.map_to_ascii_bytes();

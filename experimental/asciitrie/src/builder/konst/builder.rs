@@ -12,28 +12,16 @@ use super::store::ConstSlice;
 use crate::error::Error;
 use crate::varint;
 
-extern crate std;
-
-/// A low-level builder for AsciiTrie.
+/// A low-level builder for ZeroTrieSimpleAscii. Works in const contexts.
 pub(crate) struct ZeroTrieBuilderConst<const N: usize> {
     data: ConstArrayBuilder<N, u8>,
 }
 
 impl<const N: usize> ZeroTrieBuilderConst<N> {
-    // #[cfg(feature = "alloc")]
-    // pub fn to_ascii_trie(&mut self) -> AsciiTrie<&[u8]> {
-    //     let slice = self.data.atbs_as_bytes();
-    //     AsciiTrie(slice.as_slice())
-    // }
-
     #[cfg(feature = "alloc")]
     pub fn as_bytes(&self) -> &[u8] {
         self.data.as_const_slice().as_slice()
     }
-
-    // pub const fn into_ascii_trie_or_panic(self) -> AsciiTrie<[u8; N]> {
-    //     AsciiTrie(self.data.take_or_panic())
-    // }
 
     pub const fn take_or_panic(self) -> [u8; N] {
         self.data.const_take_or_panic()
@@ -223,15 +211,19 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
             if diff_j == 0 {
                 lengths_stack = lengths_stack.push_or_panic(BranchMeta {
                     ascii: key_ascii.get(),
-                    length: current_len,
+                    cumulative_length: current_len,
                     local_length: current_len,
                     count: 1,
                 });
             } else {
-                let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
+                let BranchMeta {
+                    cumulative_length,
+                    count,
+                    ..
+                } = lengths_stack.peek_or_panic();
                 lengths_stack = lengths_stack.push_or_panic(BranchMeta {
                     ascii: key_ascii.get(),
-                    length: length + current_len,
+                    cumulative_length: cumulative_length + current_len,
                     local_length: current_len,
                     count: count + 1,
                 });
@@ -245,8 +237,12 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
             }
             // Branch (first)
             let (total_length, total_count) = {
-                let BranchMeta { length, count, .. } = lengths_stack.peek_or_panic();
-                (length, count)
+                let BranchMeta {
+                    cumulative_length,
+                    count,
+                    ..
+                } = lengths_stack.peek_or_panic();
+                (cumulative_length, count)
             };
             let branch_metas;
             (lengths_stack, branch_metas) = lengths_stack.pop_many_or_panic(total_count);
