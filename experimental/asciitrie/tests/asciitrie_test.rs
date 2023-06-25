@@ -2,6 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use asciitrie::ZeroTriePerfectHash;
 use asciitrie::ZeroTrieSimpleAscii;
 use postcard::ser_flavors::{AllocVec, Flavor};
 use serde::Serialize;
@@ -13,37 +14,43 @@ mod testdata {
 
 #[test]
 fn test_basic() {
-    let trie = testdata::basic::TRIE_ASCII;
-    let data = testdata::basic::DATA_ASCII;
-    let trie_unicode = testdata::basic::TRIE_UNICODE;
+    let bytes_ascii = testdata::basic::TRIE_ASCII;
+    let data_ascii = testdata::basic::DATA_ASCII;
+    let trie_ascii = ZeroTrieSimpleAscii::from_bytes(bytes_ascii);
+    let trie_phf_ascii = ZeroTriePerfectHash::from_bytes(bytes_ascii);
+
+    let bytes_unicode = testdata::basic::TRIE_UNICODE;
     let data_unicode = testdata::basic::DATA_UNICODE;
-    let trie_binary = testdata::basic::TRIE_BINARY;
+    let trie_phf_unicode = ZeroTriePerfectHash::from_bytes(bytes_unicode);
+
+    let bytes_binary = testdata::basic::TRIE_BINARY;
     let data_binary = testdata::basic::DATA_BINARY;
+    let trie_phf_binary = ZeroTriePerfectHash::from_bytes(bytes_binary);
 
     // Check that the getter works
-    for (key, expected) in data {
-        let actual = match ZeroTrieSimpleAscii::from_bytes(trie).get(key.as_bytes()) {
+    for (key, expected) in data_ascii {
+        let actual = match trie_ascii.get(key.as_bytes()) {
             Some(v) => v,
             None => panic!("value should be in trie: {:?} => {}", key, expected),
         };
         assert_eq!(*expected, actual);
-        let actual6 = match asciitrie::reader6::get(trie, key.as_bytes()) {
+        let actual = match trie_phf_ascii.get(key.as_bytes()) {
             Some(v) => v,
             None => panic!("value should be in trie6: {:?} => {}", key, expected),
         };
-        assert_eq!(*expected, actual6);
+        assert_eq!(*expected, actual);
     }
 
     for (key, expected) in data_unicode {
-        let actual_u6 = match asciitrie::reader6::get(trie_unicode, key) {
+        let actual_unicode = match trie_phf_unicode.get(key) {
             Some(v) => v,
             None => panic!("value should be in trie6: {:?} => {}", key, expected),
         };
-        assert_eq!(*expected, actual_u6);
+        assert_eq!(*expected, actual_unicode);
     }
 
     for (key, expected) in data_binary {
-        let actual_bin6 = match asciitrie::reader6::get(trie_binary, key) {
+        let actual_bin6 = match trie_phf_binary.get(key) {
             Some(v) => v,
             None => panic!("value should be in trie6: {:?} => {}", key, expected),
         };
@@ -51,7 +58,7 @@ fn test_basic() {
     }
 
     // Compare the size to a postcard ZeroMap
-    let zm: ZeroMap<[u8], usize> = data.iter().copied().collect();
+    let zm: ZeroMap<[u8], usize> = data_ascii.iter().copied().collect();
     let mut serializer = postcard::Serializer {
         output: AllocVec::new(),
     };
@@ -61,6 +68,6 @@ fn test_basic() {
         .finalize()
         .expect("Failed to finalize serializer output");
 
-    assert_eq!(26, trie.len());
+    assert_eq!(26, bytes_ascii.len());
     assert_eq!(61, zeromap_bytes.len());
 }

@@ -12,10 +12,11 @@
 extern crate alloc;
 
 mod builder;
+#[doc(hidden)]
 pub mod byte_phf;
 mod error;
-pub mod reader6;
-pub mod reader7;
+mod reader6;
+mod reader7;
 #[cfg(feature = "serde")]
 mod serde;
 mod varinta;

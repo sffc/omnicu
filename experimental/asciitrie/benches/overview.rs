@@ -19,8 +19,8 @@ fn get_basic_bench(c: &mut Criterion) {
     let mut g = c.benchmark_group("get/basic");
 
     // NOTE: All the trie data are the same for basic data
-    let trie = testdata::basic::TRIE;
-    let data = testdata::basic::DATA;
+    let trie = testdata::basic::TRIE_ASCII;
+    let data = testdata::basic::DATA_ASCII;
 
     g.bench_function("SimpleAscii", |b| {
         let trie = ZeroTrieSimpleAscii::from_bytes(&trie);
