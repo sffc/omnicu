@@ -18,10 +18,8 @@ mod error;
 mod reader;
 #[cfg(feature = "serde")]
 mod serde;
-mod varinta;
+mod varint;
 mod zerotrie;
-
-pub(crate) use varinta as varint;
 
 pub use builder::AsciiStr;
 pub use builder::NonAsciiError;
