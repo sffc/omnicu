@@ -2,10 +2,7 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::reader6::get as get6;
-use crate::reader6::get_iter as get_iter6;
-use crate::reader7::get as get1;
-use crate::reader7::get_iter as get_iter1;
+use crate::reader6::*;
 use crate::AsciiStr;
 
 use core::borrow::Borrow;
@@ -317,14 +314,26 @@ macro_rules! impl_zerotrie_subtype {
     };
 }
 
-impl_zerotrie_subtype!(ZeroTrieSimpleAscii, SimpleAscii, get1, AsciiStr, get_iter1);
-impl_zerotrie_subtype!(ZeroTriePerfectHash, PerfectHash, get6, [u8], get_iter6);
+impl_zerotrie_subtype!(
+    ZeroTrieSimpleAscii,
+    SimpleAscii,
+    get_bsearch_only,
+    AsciiStr,
+    get_iter_bsearch_only
+);
+impl_zerotrie_subtype!(
+    ZeroTriePerfectHash,
+    PerfectHash,
+    get_phf_limited,
+    [u8],
+    get_iter_phf
+);
 impl_zerotrie_subtype!(
     ZeroTrieExtendedCapacity,
     ExtendedCapacity,
-    get6,
+    get_phf_extended,
     [u8],
-    get_iter6
+    get_iter_phf
 );
 
 macro_rules! impl_dispatch {

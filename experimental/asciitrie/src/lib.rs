@@ -16,7 +16,6 @@ mod builder;
 pub mod byte_phf;
 mod error;
 mod reader6;
-mod reader7;
 #[cfg(feature = "serde")]
 mod serde;
 mod varinta;

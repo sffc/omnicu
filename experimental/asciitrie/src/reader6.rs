@@ -2,9 +2,11 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::builder::AsciiByte;
 use crate::byte_phf::PerfectByteHashMap;
 use crate::varint::read_varint;
 use crate::varint::read_varint2;
+use crate::AsciiStr;
 use core::ops::Range;
 
 /// Like slice::split_at but returns an Option instead of panicking.
@@ -133,7 +135,16 @@ fn byte_type(b: u8) -> ByteType {
     }
 }
 
-pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
+// DISCUSS: This function is 7% faster *on aarch64* if we assert a max on w.
+//
+// | Bench         | No Assert, x86_64 | No Assert, aarch64 | Assertion, x86_64 | Assertion, aarch64 |
+// |---------------|-------------------|--------------------|-------------------|--------------------|
+// | basic         | ~187.51 ns        | ~97.586 ns         | ~199.11 ns        | ~99.236 ns         |
+// | subtags_10pct | ~9.5557 µs        | ~4.8696 µs         | ~9.5779 µs        | ~4.5649 µs         |
+// | subtags_full  | ~137.75 µs        | ~76.016 µs         | ~142.02 µs        | ~70.254 µs         |
+
+/// Query the trie assuming all branch nodes are binary search.
+pub fn get_bsearch_only(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
     loop {
         let (b, x, i, search);
         (b, trie) = trie.split_first()?;
@@ -172,15 +183,140 @@ pub fn get(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
             }
             // Branch node
             let (x, w) = if x >= 256 { (x & 0xff, x >> 8) } else { (x, 0) };
-            // DISCUSS: This function is 7% faster *on aarch64* if we assert a max on w.
-            //
-            // | Bench         | No Assert, x86_64 | No Assert, aarch64 | Assertion, x86_64 | Assertion, aarch64 |
-            // |---------------|-------------------|--------------------|-------------------|--------------------|
-            // | basic         | ~187.51 ns        | ~97.586 ns         | ~199.11 ns        | ~99.236 ns         |
-            // | subtags_10pct | ~9.5557 µs        | ~4.8696 µs         | ~9.5779 µs        | ~4.5649 µs         |
-            // | subtags_full  | ~137.75 µs        | ~76.016 µs         | ~142.02 µs        | ~70.254 µs         |
+            // See comment above regarding this assertion
             debug_assert!(w <= 3, "get: w > 3 but we assume w <= 3");
             let w = w & 0x3;
+            let x = if x == 0 { 256 } else { x };
+            // Always use binary search
+            (search, trie) = debug_split_at(trie, x)?;
+            i = search.binary_search(c).ok()?;
+            trie = if w == 0 {
+                get_branch_w0(trie, i, x)
+            } else {
+                get_branch(trie, i, x, w)
+            }?;
+            ascii = temp;
+            continue;
+        } else {
+            if matches!(byte_type, ByteType::Value) {
+                // Value node at end of string
+                return Some(x);
+            }
+            return None;
+        }
+    }
+}
+
+/// Query the trie assuming branch nodes could be either binary search or PHF.
+pub fn get_phf_limited(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
+    loop {
+        let (b, x, i, search);
+        (b, trie) = trie.split_first()?;
+        let byte_type = byte_type(*b);
+        (x, trie) = match byte_type {
+            ByteType::Ascii => (0, trie),
+            ByteType::Span | ByteType::Value => read_varint2(*b, trie)?,
+            ByteType::Match => read_varint(*b, trie)?,
+        };
+        if let Some((c, temp)) = ascii.split_first() {
+            if matches!(byte_type, ByteType::Ascii) {
+                if b == c {
+                    // Matched a byte
+                    ascii = temp;
+                    continue;
+                } else {
+                    // Byte that doesn't match
+                    return None;
+                }
+            }
+            if matches!(byte_type, ByteType::Value) {
+                // Value node, but not at end of string
+                continue;
+            }
+            if matches!(byte_type, ByteType::Span) {
+                let (trie_span, ascii_span);
+                (trie_span, trie) = debug_split_at(trie, x)?;
+                (ascii_span, ascii) = maybe_split_at(ascii, x)?;
+                if trie_span == ascii_span {
+                    // Matched a byte span
+                    continue;
+                } else {
+                    // Byte span that doesn't match
+                    return None;
+                }
+            }
+            // Branch node
+            let (x, w) = if x >= 256 { (x & 0xff, x >> 8) } else { (x, 0) };
+            // See comment above regarding this assertion
+            debug_assert!(w <= 3, "get: w > 3 but we assume w <= 3");
+            let w = w & 0x3;
+            let x = if x == 0 { 256 } else { x };
+            if x < 16 {
+                // binary search
+                (search, trie) = debug_split_at(trie, x)?;
+                i = search.binary_search(c).ok()?;
+            } else {
+                // phf
+                (search, trie) = debug_split_at(trie, x * 2 + 1)?;
+                i = PerfectByteHashMap::from_store(search).get(*c)?;
+            }
+            trie = if w == 0 {
+                get_branch_w0(trie, i, x)
+            } else {
+                get_branch(trie, i, x, w)
+            }?;
+            ascii = temp;
+            continue;
+        } else {
+            if matches!(byte_type, ByteType::Value) {
+                // Value node at end of string
+                return Some(x);
+            }
+            return None;
+        }
+    }
+}
+
+/// Query the trie without the limited capacity assertion.
+pub fn get_phf_extended(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
+    loop {
+        let (b, x, i, search);
+        (b, trie) = trie.split_first()?;
+        let byte_type = byte_type(*b);
+        (x, trie) = match byte_type {
+            ByteType::Ascii => (0, trie),
+            ByteType::Span | ByteType::Value => read_varint2(*b, trie)?,
+            ByteType::Match => read_varint(*b, trie)?,
+        };
+        if let Some((c, temp)) = ascii.split_first() {
+            if matches!(byte_type, ByteType::Ascii) {
+                if b == c {
+                    // Matched a byte
+                    ascii = temp;
+                    continue;
+                } else {
+                    // Byte that doesn't match
+                    return None;
+                }
+            }
+            if matches!(byte_type, ByteType::Value) {
+                // Value node, but not at end of string
+                continue;
+            }
+            if matches!(byte_type, ByteType::Span) {
+                let (trie_span, ascii_span);
+                (trie_span, trie) = debug_split_at(trie, x)?;
+                (ascii_span, ascii) = maybe_split_at(ascii, x)?;
+                if trie_span == ascii_span {
+                    // Matched a byte span
+                    continue;
+                } else {
+                    // Byte span that doesn't match
+                    return None;
+                }
+            }
+            // Branch node
+            let (x, w) = if x >= 256 { (x & 0xff, x >> 8) } else { (x, 0) };
             let x = if x == 0 { 256 } else { x };
             if x < 16 {
                 // binary search
@@ -293,8 +429,89 @@ impl<'a> Iterator for ZeroTriePerfectHashIterator<'a> {
 }
 
 #[cfg(feature = "alloc")]
-pub fn get_iter<S: AsRef<[u8]> + ?Sized>(
+pub fn get_iter_phf<S: AsRef<[u8]> + ?Sized>(
     store: &S,
 ) -> impl Iterator<Item = (Box<[u8]>, usize)> + '_ {
     ZeroTriePerfectHashIterator::new(store)
+}
+
+#[cfg(feature = "alloc")]
+pub(crate) struct ZeroTrieBsearchOnlyIterator<'a> {
+    state: Vec<(&'a [u8], Vec<AsciiByte>, usize)>,
+}
+
+#[cfg(feature = "alloc")]
+impl<'a> ZeroTrieBsearchOnlyIterator<'a> {
+    pub fn new<S: AsRef<[u8]> + ?Sized>(store: &'a S) -> Self {
+        ZeroTrieBsearchOnlyIterator {
+            state: alloc::vec![(store.as_ref(), alloc::vec![], 0)],
+        }
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'a> Iterator for ZeroTrieBsearchOnlyIterator<'a> {
+    type Item = (Box<AsciiStr>, usize);
+    fn next(&mut self) -> Option<Self::Item> {
+        let (mut trie, mut string, mut branch_idx);
+        (trie, string, branch_idx) = self.state.pop()?;
+        loop {
+            let (b, x, search);
+            let return_trie = trie;
+            (b, trie) = match trie.split_first() {
+                Some(tpl) => tpl,
+                None => {
+                    // At end of current branch; step back to the branch node.
+                    // If there are no more branches, we are finished.
+                    (trie, string, branch_idx) = self.state.pop()?;
+                    continue;
+                }
+            };
+            let byte_type = byte_type(*b);
+            if matches!(byte_type, ByteType::Ascii) {
+                string.push(AsciiByte::debug_from_u8(*b));
+                continue;
+            }
+            (x, trie) = match byte_type {
+                ByteType::Ascii => (0, trie),
+                ByteType::Span | ByteType::Value => read_varint2(*b, trie)?,
+                ByteType::Match => read_varint(*b, trie)?,
+            };
+            if matches!(byte_type, ByteType::Span) {
+                debug_assert!(false, "No spans in an ASCII-only trie");
+                continue;
+            }
+            if matches!(byte_type, ByteType::Value) {
+                let retval = AsciiStr::from_boxed_ascii_slice(string.clone().into_boxed_slice());
+                // Return to this position on the next step
+                self.state.push((trie, string, 0));
+                return Some((retval, x));
+            }
+            // Match node
+            let (x, w) = if x >= 256 { (x & 0xff, x >> 8) } else { (x, 0) };
+            let x = if x == 0 { 256 } else { x };
+            if branch_idx + 1 < x {
+                // Return to this branch node at the next index
+                self.state
+                    .push((return_trie, string.clone(), branch_idx + 1));
+            }
+            // Always use binary search
+            (search, trie) = debug_split_at(trie, x)?;
+            let byte = debug_get(search, branch_idx)?;
+            string.push(AsciiByte::debug_from_u8(byte));
+            trie = if w == 0 {
+                get_branch_w0(trie, branch_idx, x)
+            } else {
+                get_branch(trie, branch_idx, x, w)
+            }?;
+            branch_idx = 0;
+        }
+    }
+}
+
+#[cfg(feature = "alloc")]
+pub fn get_iter_bsearch_only<S: AsRef<[u8]> + ?Sized>(
+    store: &S,
+) -> impl Iterator<Item = (Box<AsciiStr>, usize)> + '_ {
+    ZeroTrieBsearchOnlyIterator::new(store)
 }
