@@ -37,7 +37,7 @@ pub fn strings_to_litemap<'a>(
 #[allow(dead_code)]
 pub mod basic {
     use super::*;
-    pub static TRIE: &[u8] = &[
+    pub static TRIE_ASCII: &[u8] = &[
         b'a',
         b'b',
         single_byte_short_value(1),
@@ -74,44 +74,7 @@ pub mod basic {
         b'n',
         single_byte_short_value(7),
     ];
-    pub static TRIE6: &[u8] = &[
-        b'a',
-        b'b',
-        single_byte_short_value(1),
-        b'c',
-        single_byte_short_value(2),
-        // Begin Match Node
-        single_byte_short_match(3),
-        b'd',
-        b'e',
-        b'f',
-        5,
-        8,
-        // End Match Node
-        // subslice @ 0
-        single_byte_short_value(3),
-        b'g',
-        b'h',
-        b'i',
-        single_byte_short_value(4),
-        // subslice @ 5
-        b'j',
-        b'k',
-        single_byte_short_value(5),
-        // subslice @ 8
-        // Begin Match Node
-        single_byte_short_match(2),
-        b'l',
-        b'm',
-        1,
-        // End Match Node
-        // subsubslice @ 0
-        single_byte_short_value(6),
-        // subsubslice @ 1
-        b'n',
-        single_byte_short_value(7),
-    ];
-    pub static DATA: &[(&AsciiStr, usize)] = &[
+    pub static DATA_ASCII: &[(&AsciiStr, usize)] = &[
         (AsciiStr::from_str_or_panic("ab"), 1),
         (AsciiStr::from_str_or_panic("abc"), 2),
         (AsciiStr::from_str_or_panic("abcd"), 3),
@@ -121,12 +84,12 @@ pub mod basic {
         (AsciiStr::from_str_or_panic("abcfmn"), 7),
     ];
 
-    pub static TRIE_U6: &[u8] = &[
+    pub static TRIE_UNICODE: &[u8] = &[
         196, 100, 102, 103, 107, 12, 17, 23, 195, 97, 101, 105, 2, 4, 115, 129, 114, 130, 101, 131,
         162, 195, 188, 114, 132, 114, 111, 162, 195, 159, 133, 162, 195, 182, 110, 110, 101, 110,
         134,
     ];
-    pub static DATA_U: &[(&[u8], usize)] = &[
+    pub static DATA_UNICODE: &[(&[u8], usize)] = &[
         ("das".as_bytes(), 1),
         ("der".as_bytes(), 2),
         ("die".as_bytes(), 3),
@@ -135,11 +98,11 @@ pub mod basic {
         ("können".as_bytes(), 6),
     ];
 
-    pub static TRIE_BIN6: &[u8] = &[
+    pub static TRIE_BINARY: &[u8] = &[
         196, 0, 129, 144, 240, 3, 9, 12, 161, 144, 131, 194, 130, 131, 1, 129, 130, 161, 144, 132,
         161, 255, 133, 161, 255, 134,
     ];
-    pub static DATA_BIN: &[(&[u8], usize)] = &[
+    pub static DATA_BINARY: &[(&[u8], usize)] = &[
         (b"\0\x90", 3),
         (b"\x81\x82", 1),
         (b"\x81\x83", 2),
@@ -149,24 +112,20 @@ pub mod basic {
     ];
 
     // Note: Cow and ZeroVec have the same serialized form
-    pub static JSON_STR: &str = "{\"trie\":{\"ab\":1,\"abc\":2,\"abcd\":3,\"abcdghi\":4,\"abcejk\":5,\"abcfl\":6,\"abcfmn\":7}}";
-    pub static JSON_STR_U: &str =
+    pub static JSON_STR_ASCII: &str = "{\"trie\":{\"ab\":1,\"abc\":2,\"abcd\":3,\"abcdghi\":4,\"abcejk\":5,\"abcfl\":6,\"abcfmn\":7}}";
+    pub static JSON_STR_UNICODE: &str =
         "{\"trie\":{\"das\":1,\"der\":2,\"die\":3,\"für\":4,\"groß\":5,\"können\":6}}";
-    pub static JSON_STR_BIN: &str = "{\"trie\":[[[0,144],3],[[129,130],1],[[129,131],2],[[144,144],4],[[240,255],5],[[240,255,255],6]]}";
-    pub static BINCODE_BYTES: &[u8] = &[
+    pub static JSON_STR_BINARY: &str = "{\"trie\":[[[0,144],3],[[129,130],1],[[129,131],2],[[144,144],4],[[240,255],5],[[240,255,255],6]]}";
+    pub static BINCODE_BYTES_ASCII: &[u8] = &[
         26, 0, 0, 0, 0, 0, 0, 0, 97, 98, 129, 99, 130, 195, 100, 101, 102, 5, 8, 131, 103, 104,
         105, 132, 106, 107, 133, 194, 108, 109, 1, 134, 110, 135,
     ];
-    pub static BINCODE_BYTES6: &[u8] = &[
-        26, 0, 0, 0, 0, 0, 0, 0, 97, 98, 129, 99, 130, 195, 100, 101, 102, 5, 8, 131, 103, 104,
-        105, 132, 106, 107, 133, 194, 108, 109, 1, 134, 110, 135,
-    ];
-    pub static BINCODE_BYTES_U6: &[u8] = &[
+    pub static BINCODE_BYTES_UNICODE: &[u8] = &[
         39, 0, 0, 0, 0, 0, 0, 0, 196, 100, 102, 103, 107, 12, 17, 23, 195, 97, 101, 105, 2, 4, 115,
         129, 114, 130, 101, 131, 162, 195, 188, 114, 132, 114, 111, 162, 195, 159, 133, 162, 195,
         182, 110, 110, 101, 110, 134,
     ];
-    pub static BINCODE_BYTES_BIN6: &[u8] = &[
+    pub static BINCODE_BYTES_BINARY: &[u8] = &[
         26, 0, 0, 0, 0, 0, 0, 0, 196, 0, 129, 144, 240, 3, 9, 12, 161, 144, 131, 194, 130, 131, 1,
         129, 130, 161, 144, 132, 161, 255, 133, 161, 255, 134,
     ];

@@ -13,55 +13,62 @@ mod testdata {
 
 use testdata::strings_to_litemap;
 
-#[test]
-fn test_basic() {
-    let litemap: LiteMap<&AsciiStr, usize> = testdata::basic::DATA.iter().copied().collect();
-    let litemap_u: LiteMap<&[u8], usize> = testdata::basic::DATA_U.iter().copied().collect();
-    let litemap_bin: LiteMap<&[u8], usize> = testdata::basic::DATA_BIN.iter().copied().collect();
+const NON_EXISTENT_STRINGS: &[&AsciiStr] = &[
+    AsciiStr::from_str_or_panic("a9PS"),
+    AsciiStr::from_str_or_panic("ahsY"),
+    AsciiStr::from_str_or_panic("ahBO"),
+    AsciiStr::from_str_or_panic("a8IN"),
+    AsciiStr::from_str_or_panic("xk8o"),
+    AsciiStr::from_str_or_panic("xv1l"),
+    AsciiStr::from_str_or_panic("xI2S"),
+    AsciiStr::from_str_or_panic("618y"),
+    AsciiStr::from_str_or_panic("d6My"),
+    AsciiStr::from_str_or_panic("uszy"),
+];
 
-    let expected_bytes = testdata::basic::TRIE;
-    let trie: ZeroTrieSimpleAscii<Vec<u8>> = litemap.iter().map(|(k, v)| (*k, *v)).collect();
-    check_bytes_eq(26, trie.as_bytes(), expected_bytes);
-    check_ascii_trie(&litemap, &trie);
-
-    let expected_bytes6 = testdata::basic::TRIE6;
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    check_bytes_eq(26, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6(&litemap, &trie6);
-
-    let expected_bytes_u6 = testdata::basic::TRIE_U6;
-    let trie_u6 = ZeroTriePerfectHash::try_from_litemap(&litemap_u).unwrap();
-    check_bytes_eq(39, trie_u6.as_bytes(), expected_bytes_u6);
-    check_ascii_trie6_bytes(&litemap_u, &trie_u6);
-
-    let expected_bytes_bin6 = testdata::basic::TRIE_BIN6;
-    let trie_bin6 = ZeroTriePerfectHash::try_from_litemap(&litemap_bin).unwrap();
-    check_bytes_eq(26, trie_bin6.as_bytes(), expected_bytes_bin6);
-    check_ascii_trie6_bytes(&litemap_bin, &trie_bin6);
+macro_rules! assert_bytes_eq {
+    ($len:literal, $a:expr, $b:expr) => {
+        assert_eq!($len, $a.len());
+        assert_eq!($a, $b);
+    };
 }
 
-fn check_ascii_trie<S>(items: &LiteMap<&AsciiStr, usize>, trie: &ZeroTrieSimpleAscii<S>)
+fn check_simple_ascii_trie<S>(items: &LiteMap<&AsciiStr, usize>, trie: &ZeroTrieSimpleAscii<S>)
 where
     S: AsRef<[u8]> + ?Sized,
 {
+    // Check that each item is in the trie
     for (k, v) in items.iter() {
         assert_eq!(trie.get(k.as_bytes()), Some(*v));
     }
+    // Check that some items are not in the trie
+    for s in NON_EXISTENT_STRINGS.iter() {
+        assert_eq!(trie.get(s.as_bytes()), None);
+    }
+    // Check that the iterator returns items in the same order as the LiteMap
     assert!(items
         .iter()
         .map(|(s, v)| (s.to_boxed(), *v))
         .eq(trie.iter()));
+    // Check that the const builder works
+    let const_trie = ZeroTrieSimpleAscii::try_from_litemap_with_const_builder(items).unwrap();
+    assert_eq!(trie.as_bytes(), const_trie.as_bytes());
 }
 
-fn check_ascii_trie6<S>(items: &LiteMap<&AsciiStr, usize>, trie: &ZeroTriePerfectHash<S>)
+fn check_phf_ascii_trie<S>(items: &LiteMap<&AsciiStr, usize>, trie: &ZeroTriePerfectHash<S>)
 where
     S: AsRef<[u8]> + ?Sized,
 {
+    // Check that each item is in the trie
     for (k, v) in items.iter() {
         assert_eq!(trie.get(k.as_bytes()), Some(*v));
     }
-    // Note: We can't compare the iterators because trie6 might not return items in order.
+    // Check that some items are not in the trie
+    for s in NON_EXISTENT_STRINGS.iter() {
+        assert_eq!(trie.get(s.as_bytes()), None);
+    }
+    // Check that the iterator returns the contents of the LiteMap
+    // Note: Since the items might not be in order, we collect them into a new LiteMap
     let recovered_items: LiteMap<_, _> = trie.iter().collect();
     assert_eq!(
         items.to_borrowed_keys_values::<[u8], usize, Vec<_>>(),
@@ -69,14 +76,20 @@ where
     );
 }
 
-fn check_ascii_trie6_bytes<S>(items: &LiteMap<&[u8], usize>, trie: &ZeroTriePerfectHash<S>)
+fn check_phf_bytes_trie<S>(items: &LiteMap<&[u8], usize>, trie: &ZeroTriePerfectHash<S>)
 where
     S: AsRef<[u8]> + ?Sized,
 {
+    // Check that each item is in the trie
     for (k, v) in items.iter() {
         assert_eq!(trie.get(k), Some(*v));
     }
-    // Note: We can't compare the iterators because trie6 might not return items in order.
+    // Check that some items are not in the trie
+    for s in NON_EXISTENT_STRINGS.iter() {
+        assert_eq!(trie.get(s.as_bytes()), None);
+    }
+    // Check that the iterator returns the contents of the LiteMap
+    // Note: Since the items might not be in order, we collect them into a new LiteMap
     let recovered_items: LiteMap<_, _> = trie.iter().collect();
     assert_eq!(
         items.to_borrowed_keys_values::<[u8], usize, Vec<_>>(),
@@ -84,9 +97,31 @@ where
     );
 }
 
-fn check_bytes_eq(len: usize, a: impl AsRef<[u8]>, b: &[u8]) {
-    assert_eq!(len, a.as_ref().len());
-    assert_eq!(a.as_ref(), b);
+#[test]
+fn test_basic() {
+    let lm1a: LiteMap<&AsciiStr, usize> = testdata::basic::DATA_ASCII.iter().copied().collect();
+    let lm1b: LiteMap<&[u8], usize> = lm1a.to_borrowed_keys();
+    let lm2: LiteMap<&[u8], usize> = testdata::basic::DATA_UNICODE.iter().copied().collect();
+    let lm3: LiteMap<&[u8], usize> = testdata::basic::DATA_BINARY.iter().copied().collect();
+
+    let expected_bytes = testdata::basic::TRIE_ASCII;
+    let trie = ZeroTrieSimpleAscii::try_from_litemap(&lm1a).unwrap();
+    assert_bytes_eq!(26, trie.as_bytes(), expected_bytes);
+    check_simple_ascii_trie(&lm1a, &trie);
+
+    let trie = ZeroTriePerfectHash::try_from_litemap(&lm1b).unwrap();
+    assert_bytes_eq!(26, trie.as_bytes(), expected_bytes);
+    check_phf_ascii_trie(&lm1a, &trie);
+
+    let expected_bytes = testdata::basic::TRIE_UNICODE;
+    let trie = ZeroTriePerfectHash::try_from_litemap(&lm2).unwrap();
+    assert_bytes_eq!(39, trie.as_bytes(), expected_bytes);
+    check_phf_bytes_trie(&lm2, &trie);
+
+    let expected_bytes = testdata::basic::TRIE_BINARY;
+    let trie = ZeroTriePerfectHash::try_from_litemap(&lm3).unwrap();
+    assert_bytes_eq!(26, trie.as_bytes(), expected_bytes);
+    check_phf_bytes_trie(&lm3, &trie);
 }
 
 #[test]
@@ -111,11 +146,10 @@ fn test_single_empty_value() {
     let expected_bytes = &[0b10001010];
     assert_eq!(trie.as_bytes(), expected_bytes);
 
-    let expected_bytes6 = &[0b10001010];
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    check_bytes_eq(1, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6(&litemap, &trie6);
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_bytes_eq!(1, trie_phf.as_bytes(), expected_bytes);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 }
 
 #[test]
@@ -128,15 +162,14 @@ fn test_single_byte_string() {
     let trie = ZeroTrieSimpleAscii::try_from_litemap(&litemap.as_sliced()).unwrap();
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"xy"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     let expected_bytes = &[b'x', 0b10001010];
-    check_bytes_eq(2, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(2, trie.as_bytes(), expected_bytes);
 
-    let expected_bytes6 = &[b'x', 0b10001010];
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    check_bytes_eq(2, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6(&litemap, &trie6);
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_bytes_eq!(2, trie_phf.as_bytes(), expected_bytes);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 }
 
 #[test]
@@ -151,15 +184,14 @@ fn test_single_string() {
     assert_eq!(trie.get(b"x"), None);
     assert_eq!(trie.get(b"xy"), None);
     assert_eq!(trie.get(b"xyzz"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     let expected_bytes = &[b'x', b'y', b'z', 0b10001010];
-    check_bytes_eq(4, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(4, trie.as_bytes(), expected_bytes);
 
-    let expected_bytes6 = &[b'x', b'y', b'z', 0b10001010];
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    check_bytes_eq(4, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6(&litemap, &trie6);
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_bytes_eq!(4, trie_phf.as_bytes(), expected_bytes);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 }
 
 #[test]
@@ -173,15 +205,14 @@ fn test_prefix_strings() {
     let trie = ZeroTrieSimpleAscii::try_from_litemap(&litemap.as_sliced()).unwrap();
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"xyz"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     let expected_bytes = &[b'x', 0b10000000, b'y', 0b10000001];
-    check_bytes_eq(4, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(4, trie.as_bytes(), expected_bytes);
 
-    let expected_bytes6 = &[b'x', 0b10000000, b'y', 0b10000001];
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    check_bytes_eq(4, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6(&litemap, &trie6);
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_bytes_eq!(4, trie_phf.as_bytes(), expected_bytes);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 }
 
 #[test]
@@ -195,15 +226,14 @@ fn test_single_byte_branch() {
     let trie = ZeroTrieSimpleAscii::try_from_litemap(&litemap.as_sliced()).unwrap();
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"xy"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     let expected_bytes = &[0b11000010, b'x', b'y', 1, 0b10000000, 0b10000001];
-    check_bytes_eq(6, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(6, trie.as_bytes(), expected_bytes);
 
-    let expected_bytes6 = &[0b11000010, b'x', b'y', 1, 0b10000000, 0b10000001];
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    check_bytes_eq(6, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6(&litemap, &trie6);
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_bytes_eq!(6, trie_phf.as_bytes(), expected_bytes);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 }
 
 #[test]
@@ -219,19 +249,16 @@ fn test_multi_byte_branch() {
     assert_eq!(trie.get(b"a"), None);
     assert_eq!(trie.get(b"ax"), None);
     assert_eq!(trie.get(b"ay"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     let expected_bytes = &[
         b'a', 0b11000010, b'x', b'y', 2, b'b', 0b10000000, b'c', 0b10000001,
     ];
-    check_bytes_eq(9, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(9, trie.as_bytes(), expected_bytes);
 
-    let expected_bytes6 = &[
-        b'a', 0b11000010, b'x', b'y', 2, b'b', 0b10000000, b'c', 0b10000001,
-    ];
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    check_bytes_eq(9, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6(&litemap, &trie6);
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_bytes_eq!(9, trie_phf.as_bytes(), expected_bytes);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 }
 
 #[test]
@@ -247,15 +274,14 @@ fn test_linear_varint_values() {
     assert_eq!(trie.get(b"xy"), None);
     assert_eq!(trie.get(b"xz"), None);
     assert_eq!(trie.get(b"xyzz"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     let expected_bytes = &[0x90, 0x54, b'x', 0x93, 0x64, b'y', b'z', 0x90, 0x96, 0x78];
-    check_bytes_eq(10, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(10, trie.as_bytes(), expected_bytes);
 
-    let expected_bytes6 = &[0x90, 0x54, b'x', 0x93, 0x64, b'y', b'z', 0x90, 0x96, 0x78];
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    check_bytes_eq(10, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6(&litemap, &trie6);
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_bytes_eq!(10, trie_phf.as_bytes(), expected_bytes);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 }
 
 #[test]
@@ -269,7 +295,7 @@ fn test_varint_branch() {
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"ax"), None);
     assert_eq!(trie.get(b"ay"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     #[rustfmt::skip]
     let expected_bytes = &[
         0b11100000, // branch varint lead
@@ -282,32 +308,33 @@ fn test_varint_branch() {
         b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't',
         b'u', b'v', b'w', b'x', b'y', b'z',
         // offset array:
-        1, 2, 3, 4, 5, 6, 7, 8, 9,
-        10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20,
+        22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52,
+        54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84,
+        86,
         // single-byte values:
         (0x80 | 0), (0x80 | 1), (0x80 | 2), (0x80 | 3), (0x80 | 4),
         (0x80 | 5), (0x80 | 6), (0x80 | 7), (0x80 | 8), (0x80 | 9),
         (0x80 | 10), (0x80 | 11), (0x80 | 12), (0x80 | 13), (0x80 | 14),
         (0x80 | 15),
         // multi-byte values:
-        0x90, 0,
-        0x90, 17-16, 0x90, 18-16, 0x90, 19-16,
-        0x90, 20-16, 0x90, 21-16, 0x90, 22-16, 0x90, 23-16, 0x90, 24-16,
-        0x90, 25-16, 0x90, 26-16, 0x90, 27-16, 0x90, 28-16, 0x90, 29-16,
-        0x90, 30-16, 0x90, 31-16,
-        0x90, 16+0, 0x90, 16+1, 0x90, 16+2, 0x90, 16+3, 0x90, 16+4,
-        0x90, 16+5, 0x90, 16+6, 0x90, 16+7, 0x90, 16+8, 0x90, 16+9,
-        0x90, 16+10, 0x90, 16+11, 0x90, 16+12, 0x90, 16+13, 0x90, 16+14,
-        0x90, 16+15, 0x90, 16+16, 0x90, 16+17, 0x90, 16+18, 0x90, 16+19,
+        0x90, 0, 0x90, 1, 0x90, 2, 0x90, 3, 0x90, 4, 0x90, 5,
+        0x90, 6, 0x90, 7, 0x90, 8, 0x90, 9, 0x90, 10, 0x90, 11,
+        0x90, 12, 0x90, 13, 0x90, 14, 0x90, 15, 0x90, 16, 0x90, 17,
+        0x90, 18, 0x90, 19, 0x90, 20, 0x90, 21, 0x90, 22, 0x90, 23,
+        0x90, 24, 0x90, 25, 0x90, 26, 0x90, 27, 0x90, 28, 0x90, 29,
+        0x90, 30, 0x90, 31, 0x90, 32, 0x90, 33, 0x90, 34, 0x90, 35,
     ];
-    check_bytes_eq(193, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(193, trie.as_bytes(), expected_bytes);
 
     #[rustfmt::skip]
-    let expected_bytes6 = &[
+    let expected_bytes = &[
         0b11100000, // branch varint lead
         0x14,       // branch varint trail
         // PHF metadata:
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 10, 12, 16, 4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 7,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 10, 12, 16, 4, 4, 4, 4, 4, 4, 8,
+        4, 4, 4, 16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 7,
         // search array:
         b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o',
         b'p', b'u', b'v', b'w', b'D', b'E', b'F', b'q',
@@ -325,18 +352,19 @@ fn test_varint_branch() {
         68, 69, 70, 71, 72, 74, 76, 78,
         80, 82, 84, 86,
         // values:
-        0x90, 16+1, 0x90, 16+2, 0x90, 16+3, 0x90, 16+4, 0x90, 16+5, 0x90, 16+6, 0x90, 16+7, 0x90, 16+8,
-        0x90, 16+9, 0x90, 16+14, 0x90, 16+15, 0x90, 16+16, 0x80 | 3, 0x80 | 4, 0x80 | 5, 0x90, 16+10,
-        0x90, 16+11, 0x80 | 0, 0x80 | 1, 0x80 | 2, 0x90, 16+17, 0x90, 16+18, 0x90, 16+19, 0x90, 16+12,
-        0x80 | 7, 0x80 | 8, 0x80 | 9, 0x80 | 6, 0x80 | 15, 0x90, 16-16, 0x90, 17-16, 0x90, 18-16,
-        0x90, 19-16, 0x90, 20-16, 0x90, 21-16, 0x90, 22-16, 0x90, 23-16, 0x90, 24-16, 0x90, 25-16, 0x80 | 10,
-        0x80 | 11, 0x80 | 12, 0x80 | 13, 0x80 | 14, 0x90, 16+0, 0x90, 26-16, 0x90, 27-16, 0x90, 28-16,
-        0x90, 16+13, 0x90, 29-16, 0x90, 31-16, 0x90, 30-16,
+        0x90, 17, 0x90, 18, 0x90, 19, 0x90, 20, 0x90, 21, 0x90, 22, 0x90, 23,
+        0x90, 24, 0x90, 25, 0x90, 30, 0x90, 31, 0x90, 32, 0x80 | 3, 0x80 | 4,
+        0x80 | 5, 0x90, 26, 0x90, 27, 0x80 | 0, 0x80 | 1, 0x80 | 2, 0x90, 33,
+        0x90, 34, 0x90, 35, 0x90, 28, 0x80 | 7, 0x80 | 8, 0x80 | 9, 0x80 | 6,
+        0x80 | 15, 0x90, 0, 0x90, 1, 0x90, 2, 0x90, 3, 0x90, 4, 0x90, 5,
+        0x90, 6, 0x90, 7, 0x90, 8, 0x90, 9, 0x80 | 10, 0x80 | 11, 0x80 | 12,
+        0x80 | 13, 0x80 | 14, 0x90, 16, 0x90, 10, 0x90, 11, 0x90, 12, 0x90, 29,
+        0x90, 13, 0x90, 15, 0x90, 14,
     ];
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    check_bytes_eq(246, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6(&litemap, &trie6);
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_bytes_eq!(246, trie_phf.as_bytes(), expected_bytes);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 }
 
 #[test]
@@ -385,7 +413,7 @@ fn test_below_wide() {
     let trie = ZeroTrieSimpleAscii::try_from_litemap(&litemap.as_sliced()).unwrap();
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"abc"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     #[rustfmt::skip]
     let expected_bytes = &[
         0b11001010, // branch
@@ -425,7 +453,7 @@ fn test_below_wide() {
         b'x', b'y', b'z', b'a', b'b', b'c', b'd',
         0x8A,
     ];
-    check_bytes_eq(275, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(275, trie.as_bytes(), expected_bytes);
 }
 
 #[test]
@@ -477,7 +505,7 @@ fn test_at_wide() {
     let trie = ZeroTrieSimpleAscii::try_from_litemap(&litemap.as_sliced()).unwrap();
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"abc"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     #[rustfmt::skip]
     let expected_bytes = &[
         0b11100001, // branch lead
@@ -519,7 +547,7 @@ fn test_at_wide() {
         b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e',
         0x8A,
     ];
-    check_bytes_eq(286, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(286, trie.as_bytes(), expected_bytes);
 }
 
 #[test]
@@ -571,7 +599,7 @@ fn test_at_wide_plus() {
     let trie = ZeroTrieSimpleAscii::try_from_litemap(&litemap.as_sliced()).unwrap();
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"abc"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     #[rustfmt::skip]
     let expected_bytes = &[
         0b11100001, // branch lead
@@ -613,7 +641,7 @@ fn test_at_wide_plus() {
         b'x', b'y', b'z', b'a', b'b', b'c', b'd', b'e', b'f',
         0x8A,
     ];
-    check_bytes_eq(287, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(287, trie.as_bytes(), expected_bytes);
 }
 
 #[test]
@@ -636,7 +664,7 @@ fn test_everything() {
     assert_eq!(trie.get(b"a"), None);
     assert_eq!(trie.get(b"ax"), None);
     assert_eq!(trie.get(b"ay"), None);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
     let expected_bytes = &[
         0b10000000, // value 0
         0b11000010, // branch of 2
@@ -675,10 +703,10 @@ fn test_everything() {
         b'l',       //
         0b10001000, // value 8
     ];
-    check_bytes_eq(36, trie.as_bytes(), expected_bytes);
+    assert_bytes_eq!(36, trie.as_bytes(), expected_bytes);
 
     #[rustfmt::skip]
-    let expected_bytes6 = &[
+    let expected_bytes = &[
         0b10000000, // value 0
         0b11000010, // branch of 2
         b'a',       //
@@ -716,10 +744,10 @@ fn test_everything() {
         b'l',       //
         0b10001000, // value 8
     ];
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    check_bytes_eq(36, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6(&litemap, &trie6);
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_bytes_eq!(36, trie_phf.as_bytes(), expected_bytes);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 
     let zhm: zerovec::ZeroMap<[u8], usize> =
         litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
@@ -774,7 +802,7 @@ fn test_non_ascii() {
     .collect();
 
     #[rustfmt::skip]
-    let expected_bytes6 = &[
+    let expected_bytes = &[
         0b10000000, // value 0
         0b11000010, // branch of 2
         b'a',       //
@@ -849,9 +877,9 @@ fn test_non_ascii() {
         0b10001010, // value 10
         0b10001011, // value 11
     ];
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap).unwrap();
-    check_bytes_eq(73, trie6.as_bytes(), expected_bytes6);
-    check_ascii_trie6_bytes(&litemap, &trie6);
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap).unwrap();
+    assert_bytes_eq!(73, trie_phf.as_bytes(), expected_bytes);
+    check_phf_bytes_trie(&litemap, &trie_phf);
 }
 
 #[test]
@@ -867,9 +895,9 @@ fn test_max_branch() {
     for s in all_bytes_prefixed.iter() {
         litemap.insert(s, s[1] as usize);
     }
-    let trie6 = ZeroTriePerfectHash::try_from_litemap(&litemap).unwrap();
-    assert_eq!(trie6.byte_len(), 3042);
-    check_ascii_trie6_bytes(&litemap, &trie6);
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap).unwrap();
+    assert_eq!(trie_phf.byte_len(), 3042);
+    check_phf_bytes_trie(&litemap, &trie_phf);
 }
 
 #[test]
@@ -878,15 +906,12 @@ fn test_short_subtags_10pct() {
 
     let trie = ZeroTrieSimpleAscii::try_from_litemap(&litemap).unwrap();
     assert_eq!(trie.byte_len(), 1050);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
 
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    assert_eq!(trie6.byte_len(), 1100);
-    check_ascii_trie6(&litemap, &trie6);
-
-    let trie7b = ZeroTrieSimpleAscii::try_from_litemap_with_const_builder(&litemap).unwrap();
-    check_bytes_eq(1050, trie.as_bytes(), trie7b.as_bytes());
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_eq!(trie_phf.byte_len(), 1100);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 
     let zhm: zerovec::ZeroMap<[u8], usize> =
         litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();
@@ -919,15 +944,12 @@ fn test_short_subtags() {
 
     let trie = ZeroTrieSimpleAscii::try_from_litemap(&litemap).unwrap();
     assert_eq!(trie.byte_len(), 8793);
-    check_ascii_trie(&litemap, &trie);
+    check_simple_ascii_trie(&litemap, &trie);
 
-    let trie6 =
-        ZeroTriePerfectHash::try_from_litemap(&litemap.to_borrowed_keys::<[u8], Vec<_>>()).unwrap();
-    assert_eq!(trie6.byte_len(), 9400);
-    check_ascii_trie6(&litemap, &trie6);
-
-    let trie7b = ZeroTrieSimpleAscii::try_from_litemap_with_const_builder(&litemap).unwrap();
-    check_bytes_eq(8793, trie.as_bytes(), trie7b.as_bytes());
+    let litemap_bytes = litemap.to_borrowed_keys::<[u8], Vec<_>>();
+    let trie_phf = ZeroTriePerfectHash::try_from_litemap(&litemap_bytes).unwrap();
+    assert_eq!(trie_phf.byte_len(), 9400);
+    check_phf_ascii_trie(&litemap, &trie_phf);
 
     let zm: zerovec::ZeroMap<[u8], usize> =
         litemap.iter().map(|(a, b)| (a.as_bytes(), b)).collect();

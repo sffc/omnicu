@@ -13,15 +13,12 @@ mod testdata {
 
 #[test]
 fn test_basic() {
-    let trie = testdata::basic::TRIE;
-    let trie6 = testdata::basic::TRIE6;
-    let data = testdata::basic::DATA;
-
-    let data_u = testdata::basic::DATA_U;
-    let trie_u6 = testdata::basic::TRIE_U6;
-
-    let data_bin = testdata::basic::DATA_BIN;
-    let trie_bin6 = testdata::basic::TRIE_BIN6;
+    let trie = testdata::basic::TRIE_ASCII;
+    let data = testdata::basic::DATA_ASCII;
+    let trie_unicode = testdata::basic::TRIE_UNICODE;
+    let data_unicode = testdata::basic::DATA_UNICODE;
+    let trie_binary = testdata::basic::TRIE_BINARY;
+    let data_binary = testdata::basic::DATA_BINARY;
 
     // Check that the getter works
     for (key, expected) in data {
@@ -30,23 +27,23 @@ fn test_basic() {
             None => panic!("value should be in trie: {:?} => {}", key, expected),
         };
         assert_eq!(*expected, actual);
-        let actual6 = match asciitrie::reader6::get(trie6, key.as_bytes()) {
+        let actual6 = match asciitrie::reader6::get(trie, key.as_bytes()) {
             Some(v) => v,
             None => panic!("value should be in trie6: {:?} => {}", key, expected),
         };
         assert_eq!(*expected, actual6);
     }
 
-    for (key, expected) in data_u {
-        let actual_u6 = match asciitrie::reader6::get(trie_u6, key) {
+    for (key, expected) in data_unicode {
+        let actual_u6 = match asciitrie::reader6::get(trie_unicode, key) {
             Some(v) => v,
             None => panic!("value should be in trie6: {:?} => {}", key, expected),
         };
         assert_eq!(*expected, actual_u6);
     }
 
-    for (key, expected) in data_bin {
-        let actual_bin6 = match asciitrie::reader6::get(trie_bin6, key) {
+    for (key, expected) in data_binary {
+        let actual_bin6 = match asciitrie::reader6::get(trie_binary, key) {
             Some(v) => v,
             None => panic!("value should be in trie6: {:?} => {}", key, expected),
         };
