@@ -65,6 +65,7 @@ fn debug_get_range(slice: &[u8], range: Range<usize>) -> Option<&[u8]> {
 /// - `i` = the desired index within the offset table
 /// - `n` = the number of items in the offset table
 /// - `w` = the width of the offset table items minus one
+#[inline]
 fn get_branch(mut trie: &[u8], i: usize, n: usize, mut w: usize) -> Option<&[u8]> {
     let mut p = 0usize;
     let mut q = 0usize;
@@ -90,6 +91,7 @@ fn get_branch(mut trie: &[u8], i: usize, n: usize, mut w: usize) -> Option<&[u8]
 }
 
 /// Version of [`get_branch()`] specialized for the case `w == 0` for performance
+#[inline]
 fn get_branch_w0(mut trie: &[u8], i: usize, n: usize) -> Option<&[u8]> {
     let indices;
     (indices, trie) = debug_split_at(trie, n - 1)?;
