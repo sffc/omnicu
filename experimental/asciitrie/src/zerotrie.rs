@@ -3,13 +3,12 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::reader::*;
-use crate::AsciiStr;
 
 use core::borrow::Borrow;
 use ref_cast::RefCast;
 
 #[cfg(feature = "alloc")]
-use crate::{builder::nonconst::ZeroTrieBuilder, builder::ByteStr, error::Error};
+use crate::{builder::nonconst::ZeroTrieBuilder, builder::bytestr::ByteStr, error::Error, AsciiStr};
 #[cfg(feature = "alloc")]
 use alloc::{boxed::Box, collections::BTreeMap, collections::VecDeque, vec::Vec};
 #[cfg(feature = "litemap")]
@@ -311,6 +310,7 @@ macro_rules! impl_zerotrie_subtype {
                 self.to_litemap().to_boxed_keys()
             }
         }
+        #[cfg(feature = "alloc")]
         impl<'a, K> FromIterator<(K, usize)> for $name<Vec<u8>>
         where
             K: Borrow<[u8]>

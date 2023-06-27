@@ -9,6 +9,8 @@
 //! - Add the "latent value" to the final result: (1<<5) + (1<<7) + (1<<14) + ...
 
 use crate::builder::konst::ConstArrayBuilder;
+
+#[cfg(feature = "alloc")]
 use crate::builder::nonconst::TrieBuilderStore;
 
 /// Reads a varint with 2 bits of metadata in the lead byte.
@@ -57,6 +59,7 @@ pub const fn read_extended_varint(start: u8, remainder: &[u8]) -> Option<(usize,
     Some((value, remainder))
 }
 
+#[cfg(feature = "alloc")]
 pub(crate) fn try_read_extended_varint_from_tstore<S: TrieBuilderStore>(
     start: u8,
     remainder: &mut S,

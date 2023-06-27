@@ -5,8 +5,10 @@
 use crate::byte_phf::PerfectByteHashMap;
 use crate::varint::read_extended_varint;
 use crate::varint::read_varint;
-use crate::AsciiStr;
 use core::ops::Range;
+
+#[cfg(feature = "alloc")]
+use crate::AsciiStr;
 
 /// Like slice::split_at but returns an Option instead of panicking.
 ///

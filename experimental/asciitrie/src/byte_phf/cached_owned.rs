@@ -4,25 +4,31 @@
 
 use super::*;
 use crate::error::Error;
+use alloc::collections::btree_map::Entry;
+use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use litemap::LiteMap;
 
 pub struct PerfectByteHashMapCacheOwned {
-    data: LiteMap<Vec<u8>, PerfectByteHashMap<Vec<u8>>>,
+    // Note: This should probably be a HashMap but that isn't in `alloc`
+    data: BTreeMap<Vec<u8>, PerfectByteHashMap<Vec<u8>>>,
 }
 
 impl PerfectByteHashMapCacheOwned {
     pub const fn new_empty() -> Self {
         Self {
-            data: LiteMap::new(),
+            data: BTreeMap::new(),
         }
     }
 
     pub fn try_get_or_insert(&mut self, keys: Vec<u8>) -> Result<&PerfectByteHashMap<[u8]>, Error> {
-        // TODO: Use the index returned by try_get_or_insert to speed up the second lookup
-        self.data
-            .try_get_or_insert(keys, |keys| PerfectByteHashMap::try_new(keys))
-            .map(|p| p.1.as_borrowed())
+        let mut_phf = match self.data.entry(keys) {
+            Entry::Vacant(entry) => {
+                let value = PerfectByteHashMap::try_new(entry.key())?;
+                entry.insert(value)
+            }
+            Entry::Occupied(entry) => entry.into_mut(),
+        };
+        Ok(mut_phf.as_borrowed())
     }
 
     pub fn get(&self, keys: &[u8]) -> Option<&PerfectByteHashMap<[u8]>> {

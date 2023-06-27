@@ -7,6 +7,12 @@ use crate::error::Error;
 use alloc::vec;
 use alloc::vec::Vec;
 
+/// To speed up the search algorithm, we limit the number of times the level-2 parameter (q)
+/// can hit its max value of 255 before we try the next level-1 parameter (p). In practice,
+/// this has a small impact on the resulting perfect hash, resulting in about 1 in 10000
+/// hash maps that fall back to the slow path.
+const MAX_L2_SEARCH_MISSES: usize = 24;
+
 #[allow(unused_labels)] // for readability
 pub fn find(bytes: &[u8]) -> Result<(u8, Vec<u8>), Error> {
     #[allow(non_snake_case)]

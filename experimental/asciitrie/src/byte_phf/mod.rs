@@ -4,26 +4,22 @@
 
 #[cfg(feature = "alloc")]
 mod builder;
-#[cfg(all(feature = "alloc", feature = "litemap"))]
+#[cfg(feature = "alloc")]
 mod cached_owned;
+
+#[cfg(feature = "alloc")]
+pub use builder::find;
+#[cfg(feature = "alloc")]
+pub use cached_owned::PerfectByteHashMapCacheOwned;
 
 use ref_cast::RefCast;
 
-#[doc(hidden)]
-pub use builder::find;
-
-#[cfg(all(feature = "alloc", feature = "litemap"))]
-pub use cached_owned::PerfectByteHashMapCacheOwned;
-
-/// To speed up the search algorithm, we limit the number of times the level-2 parameter (q)
-/// can hit its max value of 255 before we try the next level-1 parameter (p). In practice,
-/// this has a small impact on the resulting perfect hash, resulting in about 1 in 10000
-/// hash maps that fall back to the slow path.
-const MAX_L2_SEARCH_MISSES: usize = 24;
-
 const P_FAST_MAX: u8 = 11;
-const P_REAL_MAX: u8 = 15;
 const Q_FAST_MAX: u8 = 95;
+
+#[cfg(feature = "alloc")] // used in the builder code
+const P_REAL_MAX: u8 = 15;
+#[cfg(feature = "alloc")] // used in the builder code
 const Q_REAL_MAX: u8 = 127;
 
 /// Like slice::split_at but returns an Option instead of panicking

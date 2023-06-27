@@ -130,6 +130,7 @@ impl<const N: usize, T> ConstArrayBuilder<N, T> {
         ConstSlice::from_manual_slice(&self.full_array, self.start, self.limit)
     }
 
+    #[cfg(feature = "alloc")]
     pub fn as_slice(&self) -> &[T] {
         &self.full_array[self.start..self.limit]
     }
@@ -180,6 +181,7 @@ impl<const N: usize, T: Copy> ConstArrayBuilder<N, T> {
         self.full_array[self.start] = value;
         self
     }
+    #[cfg(feature = "alloc")]
     pub fn swap_or_panic(mut self, i: usize, j: usize) -> Self {
         let temp = self.full_array[self.start + i];
         self.full_array[self.start + i] = self.full_array[self.start + j];

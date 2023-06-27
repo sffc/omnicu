@@ -122,7 +122,7 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
             .collect::<Vec<(&[u8], usize)>>();
         items.sort();
         let ascii_str_slice = items.as_slice();
-        let byte_str_slice = crate::builder::ByteStr::from_byte_slice_with_value(ascii_str_slice);
+        let byte_str_slice = ByteStr::from_byte_slice_with_value(ascii_str_slice);
         Self::from_sorted_tuple_slice(byte_str_slice, options)
     }
 

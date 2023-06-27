@@ -4,7 +4,7 @@
 
 mod asciistr;
 mod branch_meta;
-mod bytestr;
+pub(crate) mod bytestr;
 pub(crate) mod konst;
 #[cfg(feature = "litemap")]
 mod litemap;
@@ -14,7 +14,6 @@ pub(crate) mod nonconst;
 pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;
-pub(crate) use bytestr::ByteStr;
 
 use super::ZeroTrieSimpleAscii;
 
