@@ -53,7 +53,6 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
         self.data.atbs_to_bytes()
     }
 
-    #[must_use]
     fn prepend_ascii(&mut self, ascii: u8) -> Result<usize, Error> {
         if ascii <= 127 {
             self.data.atbs_push_front(ascii);
@@ -110,7 +109,7 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
     }
 
     /// Builds a ZeroTrie from an iterator of bytes. It first collects and sorts the iterator.
-    pub fn from_bytes_iter<'a, K: AsRef<[u8]>, I: IntoIterator<Item = (K, usize)>>(
+    pub fn from_bytes_iter<K: AsRef<[u8]>, I: IntoIterator<Item = (K, usize)>>(
         iter: I,
         options: ZeroTrieBuilderOptions,
     ) -> Result<Self, Error> {
@@ -130,8 +129,8 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
     /// # Panics
     ///
     /// May panic if the items are not sorted.
-    pub fn from_sorted_tuple_slice<'a>(
-        items: &[(&'a ByteStr, usize)],
+    pub fn from_sorted_tuple_slice(
+        items: &[(&ByteStr, usize)],
         options: ZeroTrieBuilderOptions,
     ) -> Result<Self, Error> {
         let mut result = Self {
@@ -144,9 +143,8 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
         Ok(result)
     }
 
-    #[must_use]
     #[allow(clippy::unwrap_used)] // lots of indexing, but all indexes should be in range
-    fn create<'a>(&mut self, all_items: &[(&'a ByteStr, usize)]) -> Result<usize, Error> {
+    fn create(&mut self, all_items: &[(&ByteStr, usize)]) -> Result<usize, Error> {
         let mut prefix_len = match all_items.last() {
             Some(x) => x.0.len(),
             // Empty slice:

@@ -52,10 +52,9 @@ pub fn find(bytes: &[u8]) -> Result<(u8, Vec<u8>), Error> {
             'byte_loop: for (j, byte) in bucket.iter().enumerate() {
                 if seen[f2(*byte, bqs[i], N)] {
                     // println!("Skipping Q: p={p:?}, i={i:?}, byte={byte:}, q={i:?}, l2={:?}", f2(*byte, bqs[i], N));
-                    for k in 0..j {
-                        let k_byte = bucket[k];
-                        assert!(seen[f2(k_byte, bqs[i], N)]);
-                        seen[f2(k_byte, bqs[i], N)] = false;
+                    for k_byte in &bucket[0..j] {
+                        assert!(seen[f2(*k_byte, bqs[i], N)]);
+                        seen[f2(*k_byte, bqs[i], N)] = false;
                     }
                     'reset_loop: loop {
                         if bqs[i] < max_allowable_q {

@@ -183,9 +183,7 @@ impl<const N: usize, T: Copy> ConstArrayBuilder<N, T> {
     }
     #[cfg(feature = "alloc")]
     pub fn swap_or_panic(mut self, i: usize, j: usize) -> Self {
-        let temp = self.full_array[self.start + i];
-        self.full_array[self.start + i] = self.full_array[self.start + j];
-        self.full_array[self.start + j] = temp;
+        self.full_array.swap(self.start + i, self.start + j);
         self
     }
 }

@@ -108,8 +108,8 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
     }
 
     /// Assumes that the items are sorted
-    pub const fn from_sorted_const_tuple_slice<'a, const K: usize>(
-        items: ConstSlice<(&'a ByteStr, usize)>,
+    pub const fn from_sorted_const_tuple_slice<const K: usize>(
+        items: ConstSlice<(&ByteStr, usize)>,
     ) -> Result<Self, Error> {
         let mut result = Self::new();
         let total_size;
@@ -119,9 +119,9 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
     }
 
     #[must_use]
-    const fn create_or_panic<'a, const K: usize>(
+    const fn create_or_panic<const K: usize>(
         mut self,
-        all_items: ConstSlice<(&'a ByteStr, usize)>,
+        all_items: ConstSlice<(&ByteStr, usize)>,
     ) -> (Self, usize) {
         let mut prefix_len = match all_items.last() {
             Some(x) => x.0.len(),

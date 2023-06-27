@@ -226,7 +226,7 @@ macro_rules! impl_zerotrie_subtype {
         }
         #[cfg(feature = "alloc")]
         impl $name<Vec<u8>> {
-            pub(crate) fn try_from_tuple_slice<'a>(items: &[(&'a ByteStr, usize)]) -> Result<Self, Error> {
+            pub(crate) fn try_from_tuple_slice(items: &[(&ByteStr, usize)]) -> Result<Self, Error> {
                 ZeroTrieBuilder::<VecDeque<u8>>::from_sorted_tuple_slice(
                     items,
                     Self::BUILDER_OPTIONS,
@@ -539,7 +539,7 @@ where
 
 #[cfg(feature = "alloc")]
 impl ZeroTrie<Vec<u8>> {
-    pub(crate) fn try_from_tuple_slice<'a>(items: &[(&'a ByteStr, usize)]) -> Result<Self, Error> {
+    pub(crate) fn try_from_tuple_slice(items: &[(&ByteStr, usize)]) -> Result<Self, Error> {
         let is_all_ascii = items.iter().all(|(s, _)| s.is_all_ascii());
         if is_all_ascii && items.len() < 512 {
             ZeroTrieSimpleAscii::try_from_tuple_slice(items).map(|x| x.into_zerotrie())
@@ -550,7 +550,7 @@ impl ZeroTrie<Vec<u8>> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'a, K> FromIterator<(K, usize)> for ZeroTrie<Vec<u8>>
+impl<K> FromIterator<(K, usize)> for ZeroTrie<Vec<u8>>
 where
     K: AsRef<[u8]>,
 {

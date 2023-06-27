@@ -79,7 +79,7 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// ```
     pub const fn from_sorted_u8_tuples(tuples: &[(&[u8], usize)]) -> Self {
         use konst::*;
-        let byte_str_slice = ByteStr::from_byte_slice_with_value(&tuples);
+        let byte_str_slice = ByteStr::from_byte_slice_with_value(tuples);
         let result = ZeroTrieBuilderConst::<N>::from_tuple_slice::<100>(byte_str_slice);
         match result {
             Ok(s) => Self::from_store(s.take_or_panic()),
@@ -130,7 +130,7 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// ```
     pub const fn from_sorted_str_tuples(tuples: &[(&str, usize)]) -> Self {
         use konst::*;
-        let byte_str_slice = ByteStr::from_str_slice_with_value(&tuples);
+        let byte_str_slice = ByteStr::from_str_slice_with_value(tuples);
         let result = ZeroTrieBuilderConst::<N>::from_tuple_slice::<100>(byte_str_slice);
         match result {
             Ok(s) => Self::from_store(s.take_or_panic()),

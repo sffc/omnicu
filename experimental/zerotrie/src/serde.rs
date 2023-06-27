@@ -107,7 +107,7 @@ where
         if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<ByteStr>, usize>::deserialize(deserializer)?;
             ZeroTrieSimpleAscii::try_from_serde_litemap(&lm)
-                .map_err(|e| D::Error::custom(e))
+                .map_err(D::Error::custom)
                 .map(|trie| trie.map_store())
         } else {
             // Note: `impl Deserialize for &[u8]` uses visit_borrowed_bytes
@@ -118,7 +118,7 @@ where
     }
 }
 
-impl<'data, X> Serialize for ZeroTrieSimpleAscii<X>
+impl<X> Serialize for ZeroTrieSimpleAscii<X>
 where
     X: AsRef<[u8]>,
 {
@@ -148,7 +148,7 @@ where
         if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<ByteStr>, usize>::deserialize(deserializer)?;
             ZeroTriePerfectHash::try_from_serde_litemap(&lm)
-                .map_err(|e| D::Error::custom(e))
+                .map_err(D::Error::custom)
                 .map(|trie| trie.map_store())
         } else {
             // Note: `impl Deserialize for &[u8]` uses visit_borrowed_bytes
@@ -159,7 +159,7 @@ where
     }
 }
 
-impl<'data, X> Serialize for ZeroTriePerfectHash<X>
+impl<X> Serialize for ZeroTriePerfectHash<X>
 where
     X: AsRef<[u8]>,
 {
@@ -193,7 +193,7 @@ where
         if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<ByteStr>, usize>::deserialize(deserializer)?;
             ZeroTrieExtendedCapacity::try_from_serde_litemap(&lm)
-                .map_err(|e| D::Error::custom(e))
+                .map_err(D::Error::custom)
                 .map(|trie| trie.map_store())
         } else {
             // Note: `impl Deserialize for &[u8]` uses visit_borrowed_bytes
@@ -204,7 +204,7 @@ where
     }
 }
 
-impl<'data, X> Serialize for ZeroTrieExtendedCapacity<X>
+impl<X> Serialize for ZeroTrieExtendedCapacity<X>
 where
     X: AsRef<[u8]>,
 {
@@ -248,7 +248,7 @@ where
         if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<ByteStr>, usize>::deserialize(deserializer)?;
             ZeroTrie::<Vec<u8>>::try_from(&lm)
-                .map_err(|e| D::Error::custom(e))
+                .map_err(D::Error::custom)
                 .map(|trie| trie.map_store())
         } else {
             // Note: `impl Deserialize for &[u8]` uses visit_borrowed_bytes
@@ -273,7 +273,7 @@ where
     }
 }
 
-impl<'data, X> Serialize for ZeroTrie<X>
+impl<X> Serialize for ZeroTrie<X>
 where
     X: AsRef<[u8]>,
 {

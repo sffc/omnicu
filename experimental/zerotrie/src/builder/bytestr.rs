@@ -63,7 +63,7 @@ impl ByteStr {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     #[allow(dead_code)] // may want this in the future
@@ -99,7 +99,7 @@ impl ByteStr {
             }
             i += 1;
         }
-        return true;
+        true
     }
 }
 

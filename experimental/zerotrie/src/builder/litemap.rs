@@ -20,7 +20,7 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
         S: litemap::store::StoreSlice<&'a [u8], usize, Slice = [(&'a [u8], usize)]>,
     {
         let tuples = items.as_slice();
-        let byte_str_slice = ByteStr::from_byte_slice_with_value(&tuples);
+        let byte_str_slice = ByteStr::from_byte_slice_with_value(tuples);
         ZeroTrieBuilderConst::<10000>::from_sorted_const_tuple_slice::<100>(byte_str_slice.into())
             .map(|s| Self {
                 store: s.as_bytes().to_vec(),
