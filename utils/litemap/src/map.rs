@@ -4,6 +4,7 @@
 
 use crate::store::*;
 use alloc::borrow::Borrow;
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::iter::FromIterator;
@@ -125,6 +126,118 @@ where
     pub fn last(&self) -> Option<(&K, &V)> {
         self.values.lm_get(self.len() - 1).map(|(k, v)| (k, v))
     }
+
+    /// Returns a new [`LiteMap`] with owned keys and values.
+    ///
+    /// The trait bounds allow transforming most slice and string types.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use litemap::LiteMap;
+    ///
+    /// let mut map: LiteMap<&str, &str> = LiteMap::new_vec();
+    /// map.insert("one", "uno");
+    /// map.insert("two", "dos");
+    ///
+    /// let boxed_map: LiteMap<Box<str>, Box<str>> = map.to_boxed_keys_values();
+    ///
+    /// assert_eq!(boxed_map.get("one"), Some(&Box::from("uno")));
+    /// ```
+    pub fn to_boxed_keys_values<KB: ?Sized, VB: ?Sized, SB>(&self) -> LiteMap<Box<KB>, Box<VB>, SB>
+    where
+        SB: StoreMut<Box<KB>, Box<VB>>,
+        K: Borrow<KB>,
+        V: Borrow<VB>,
+        Box<KB>: for<'a> From<&'a KB>,
+        Box<VB>: for<'a> From<&'a VB>,
+    {
+        let mut values = SB::lm_with_capacity(self.len());
+        for i in 0..self.len() {
+            #[allow(clippy::unwrap_used)] // iterating over our own length
+            let (k, v) = self.values.lm_get(i).unwrap();
+            values.lm_push(Box::from(k.borrow()), Box::from(v.borrow()))
+        }
+        LiteMap {
+            values,
+            _key_type: PhantomData,
+            _value_type: PhantomData,
+        }
+    }
+
+    /// Returns a new [`LiteMap`] with owned keys and cloned values.
+    ///
+    /// The trait bounds allow transforming most slice and string types.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use litemap::LiteMap;
+    ///
+    /// let mut map: LiteMap<&str, usize> = LiteMap::new_vec();
+    /// map.insert("one", 11);
+    /// map.insert("two", 22);
+    ///
+    /// let boxed_map: LiteMap<Box<str>, usize> = map.to_boxed_keys();
+    ///
+    /// assert_eq!(boxed_map.get("one"), Some(&11));
+    /// ```
+    pub fn to_boxed_keys<KB: ?Sized, SB>(&self) -> LiteMap<Box<KB>, V, SB>
+    where
+        V: Clone,
+        SB: StoreMut<Box<KB>, V>,
+        K: Borrow<KB>,
+        Box<KB>: for<'a> From<&'a KB>,
+    {
+        let mut values = SB::lm_with_capacity(self.len());
+        for i in 0..self.len() {
+            #[allow(clippy::unwrap_used)] // iterating over our own length
+            let (k, v) = self.values.lm_get(i).unwrap();
+            values.lm_push(Box::from(k.borrow()), v.clone())
+        }
+        LiteMap {
+            values,
+            _key_type: PhantomData,
+            _value_type: PhantomData,
+        }
+    }
+
+    /// Returns a new [`LiteMap`] with cloned keys and owned values.
+    ///
+    /// The trait bounds allow transforming most slice and string types.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use litemap::LiteMap;
+    ///
+    /// let mut map: LiteMap<usize, &str> = LiteMap::new_vec();
+    /// map.insert(11, "uno");
+    /// map.insert(22, "dos");
+    ///
+    /// let boxed_map: LiteMap<usize, Box<str>> = map.to_boxed_values();
+    ///
+    /// assert_eq!(boxed_map.get(&11), Some(&Box::from("uno")));
+    /// ```
+    pub fn to_boxed_values<VB: ?Sized, SB>(&self) -> LiteMap<K, Box<VB>, SB>
+    where
+        K: Clone,
+        SB: StoreMut<K, Box<VB>>,
+        V: Borrow<VB>,
+        Box<VB>: for<'a> From<&'a VB>,
+    {
+        let mut values = SB::lm_with_capacity(self.len());
+        for i in 0..self.len() {
+            #[allow(clippy::unwrap_used)] // iterating over our own length
+            let (k, v) = self.values.lm_get(i).unwrap();
+            values.lm_push(k.clone(), Box::from(v.borrow()))
+        }
+        LiteMap {
+            values,
+            _key_type: PhantomData,
+            _value_type: PhantomData,
+        }
+    }
 }
 
 impl<K: ?Sized, V: ?Sized, S> LiteMap<K, V, S>
@@ -199,7 +312,6 @@ where
 
 impl<K: ?Sized, V: ?Sized, S> LiteMap<K, V, S>
 where
-    K: Ord,
     S: StoreSlice<K, V>,
 {
     /// Creates a new [`LiteMap`] from a range of the current [`LiteMap`].
@@ -278,7 +390,6 @@ where
 
 impl<'a, K: 'a, V: 'a, S> LiteMap<K, V, S>
 where
-    K: Ord,
     S: Store<K, V>,
 {
     /// Returns a new [`LiteMap`] with keys and values borrowed from this one.
@@ -579,14 +690,14 @@ where
     /// let result1 = unwrap_infallible(
     ///     map.try_get_or_insert(2, |_| Ok("two"))
     /// );
-    /// assert_eq!(result1, &"two");
+    /// assert_eq!(result1.1, &"two");
     /// assert_eq!(map.len(), 3);
     ///
     /// // ...but now it is.
     /// let result1 = unwrap_infallible(
     ///     map.try_get_or_insert(2, |_| Ok("TWO"))
     /// );
-    /// assert_eq!(result1, &"two");
+    /// assert_eq!(result1.1, &"two");
     /// assert_eq!(map.len(), 3);
     /// ```
     pub fn try_get_or_insert<E>(
