@@ -17,7 +17,7 @@ pub(crate) struct ZeroTrieBuilderConst<const N: usize> {
 }
 
 impl<const N: usize> ZeroTrieBuilderConst<N> {
-    #[cfg(feature = "alloc")]
+    #[cfg(feature = "litemap")]
     pub fn as_bytes(&self) -> &[u8] {
         self.data.as_const_slice().as_slice()
     }

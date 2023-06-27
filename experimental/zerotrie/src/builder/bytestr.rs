@@ -2,14 +2,15 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-#[cfg(feature = "alloc")]
-use alloc::{borrow::Borrow, boxed::Box};
+use core::borrow::Borrow;
+
+#[cfg(feature = "serde")]
+use alloc::boxed::Box;
 
 #[repr(transparent)]
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct ByteStr([u8]);
 
-#[cfg(feature = "alloc")] // impls only needed with the nonconst builder
 impl ByteStr {
     pub const fn from_byte_slice_with_value<'a, 'l>(
         input: &'l [(&'a [u8], usize)],
@@ -30,6 +31,7 @@ impl ByteStr {
         unsafe { core::mem::transmute(input) }
     }
 
+    #[cfg(feature = "serde")]
     pub fn from_boxed_bytes(input: Box<[u8]>) -> Box<Self> {
         // Safety: [u8] and ByteStr have the same layout and invariants
         unsafe { core::mem::transmute(input) }
@@ -45,6 +47,7 @@ impl ByteStr {
         Self::from_bytes(&[])
     }
 
+    #[allow(dead_code)] // not used in all features
     pub const fn as_bytes(&self) -> &[u8] {
         &self.0
     }
@@ -53,6 +56,7 @@ impl ByteStr {
         self.0.len()
     }
 
+    #[allow(dead_code)] // not used in all features
     pub fn is_all_ascii(&self) -> bool {
         for byte in self.0.iter() {
             if !byte.is_ascii() {

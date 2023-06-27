@@ -235,10 +235,6 @@ macro_rules! impl_zerotrie_subtype {
                     store: s.to_bytes(),
                 })
             }
-            pub(crate) fn try_from_serde_litemap(items: &LiteMap<Box<ByteStr>, usize>) -> Result<Self, Error> {
-                let lm_borrowed: LiteMap<&ByteStr, usize> = items.to_borrowed_keys();
-                Self::try_from_tuple_slice(lm_borrowed.as_slice())
-            }
         }
         #[cfg(feature = "alloc")]
         impl<'a, K> TryFrom<&'a BTreeMap<K, usize>> for $name<Vec<u8>>
@@ -379,6 +375,15 @@ macro_rules! impl_zerotrie_subtype {
             }
             pub(crate) fn to_litemap_bytes(&self) -> LiteMap<Box<[u8]>, usize> {
                 self.iter().map(|(k, v)| ($cnv_fn(k), v)).collect()
+            }
+        }
+        #[cfg(feature = "litemap")]
+        impl $name<Vec<u8>>
+        {
+            #[cfg(feature = "serde")]
+            pub(crate) fn try_from_serde_litemap(items: &LiteMap<Box<ByteStr>, usize>) -> Result<Self, Error> {
+                let lm_borrowed: LiteMap<&ByteStr, usize> = items.to_borrowed_keys();
+                Self::try_from_tuple_slice(lm_borrowed.as_slice())
             }
         }
         #[cfg(feature = "alloc")]
