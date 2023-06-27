@@ -3,14 +3,13 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use super::konst::*;
-use super::nonconst::*;
 use crate::builder::bytestr::ByteStr;
 use crate::error::Error;
 use crate::zerotrie::ZeroTrieExtendedCapacity;
 use crate::zerotrie::ZeroTriePerfectHash;
 use crate::zerotrie::ZeroTrieSimpleAscii;
 use crate::AsciiStr;
-use alloc::collections::VecDeque;
+use crate::ZeroTrie;
 use alloc::vec::Vec;
 use litemap::LiteMap;
 
@@ -46,13 +45,7 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
     {
         let ascii_str_slice = items.as_slice();
         let byte_str_slice = ByteStr::from_ascii_str_slice_with_value(ascii_str_slice);
-        ZeroTrieBuilder::<VecDeque<u8>>::from_sorted_tuple_slice(
-            byte_str_slice,
-            Self::BUILDER_OPTIONS,
-        )
-        .map(|s| Self {
-            store: s.to_bytes(),
-        })
+        Self::try_from_tuple_slice(byte_str_slice)
     }
 
     #[doc(hidden)]
@@ -101,13 +94,7 @@ impl ZeroTriePerfectHash<Vec<u8>> {
     {
         let byte_slice = items.as_slice();
         let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
-        ZeroTrieBuilder::<VecDeque<u8>>::from_sorted_tuple_slice(
-            byte_str_slice,
-            Self::BUILDER_OPTIONS,
-        )
-        .map(|s| Self {
-            store: s.to_bytes(),
-        })
+        Self::try_from_tuple_slice(byte_str_slice)
     }
 }
 
@@ -142,13 +129,51 @@ impl ZeroTrieExtendedCapacity<Vec<u8>> {
     {
         let byte_slice = items.as_slice();
         let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
-        ZeroTrieBuilder::<VecDeque<u8>>::from_sorted_tuple_slice(
-            byte_str_slice,
-            Self::BUILDER_OPTIONS,
-        )
-        .map(|s| Self {
-            store: s.to_bytes(),
-        })
+        Self::try_from_tuple_slice(byte_str_slice)
+    }
+}
+
+impl ZeroTrie<Vec<u8>> {
+    /// Creates an [`ZeroTrie`] from a [`LiteMap`] mapping from [`[u8]`] to `usize`.
+    ///
+    /// This will select the most appropriate ZeroTrie variant based on the input data.
+    ///
+    /// ***Enable this function with the `"litemap"` feature.***
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use asciitrie::ZeroTrie;
+    /// use litemap::LiteMap;
+    ///
+    /// let mut map = LiteMap::<&[u8], usize>::new_vec();
+    /// map.insert("foo".as_bytes(), 1);
+    /// map.insert("bar".as_bytes(), 2);
+    /// map.insert("bazzoo".as_bytes(), 3);
+    ///
+    /// let trie = ZeroTrie::try_from_litemap(&map).unwrap();
+    ///
+    /// assert_eq!(trie.get("foo".as_bytes()), Some(1));
+    /// assert_eq!(trie.get("bar".as_bytes()), Some(2));
+    /// assert_eq!(trie.get("bazzoo".as_bytes()), Some(3));
+    /// assert_eq!(trie.get("unknown".as_bytes()), None);
+    ///
+    /// # Ok::<_, asciitrie::NonAsciiError>(())
+    /// ```
+    pub fn try_from_litemap<'a, S>(items: &LiteMap<&'a [u8], usize, S>) -> Result<Self, Error>
+    where
+        S: litemap::store::StoreSlice<&'a [u8], usize, Slice = [(&'a [u8], usize)]>,
+    {
+        let byte_slice = items.as_slice();
+        let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
+        let is_all_ascii = byte_str_slice
+            .iter()
+            .all(|(s, _)| s.try_as_ascii_str().is_ok());
+        if is_all_ascii && items.len() < 512 {
+            ZeroTrieSimpleAscii::try_from_tuple_slice(byte_str_slice).map(|x| x.into_zerotrie())
+        } else {
+            ZeroTriePerfectHash::try_from_tuple_slice(byte_str_slice).map(|x| x.into_zerotrie())
+        }
     }
 }
 

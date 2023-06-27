@@ -2,6 +2,9 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::AsciiStr;
+use crate::NonAsciiError;
+
 #[repr(transparent)]
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 // #[derive(ref_cast::RefCastCustom)]
@@ -9,7 +12,7 @@ pub(crate) struct ByteStr([u8]);
 
 impl ByteStr {
     pub const fn from_ascii_str_slice_with_value<'a, 'l>(
-        input: &'l [(&'a crate::AsciiStr, usize)],
+        input: &'l [(&'a AsciiStr, usize)],
     ) -> &'l [(&'a ByteStr, usize)] {
         // Safety: AsciiStr and ByteStr have the same layout, and ByteStr is less restrictive
         unsafe { core::mem::transmute(input) }
@@ -24,6 +27,10 @@ impl ByteStr {
 
     pub const fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn try_as_ascii_str(&self) -> Result<&AsciiStr, NonAsciiError> {
+        AsciiStr::try_from_bytes(&self.0)
     }
 
     #[allow(dead_code)] // may want this in the future

@@ -9,6 +9,8 @@ use core::borrow::Borrow;
 use ref_cast::RefCast;
 
 #[cfg(feature = "alloc")]
+use crate::{builder::nonconst::ZeroTrieBuilder, builder::ByteStr, error::Error};
+#[cfg(feature = "alloc")]
 use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
 
 /// A data structure that compactly maps from byte sequences to integers.
@@ -145,6 +147,18 @@ macro_rules! impl_zerotrie_subtype {
             /// If the bytes are not a valid trie, unexpected behavior may occur.
             pub fn from_bytes(trie: &[u8]) -> &Self {
                 Self::ref_cast(trie)
+            }
+        }
+        #[cfg(feature = "alloc")]
+        impl $name<Vec<u8>> {
+            pub(crate) fn try_from_tuple_slice<'a>(items: &[(&'a ByteStr, usize)]) -> Result<Self, Error> {
+                ZeroTrieBuilder::<VecDeque<u8>>::from_sorted_tuple_slice(
+                    items,
+                    Self::BUILDER_OPTIONS,
+                )
+                .map(|s| Self {
+                    store: s.to_bytes(),
+                })
             }
         }
         // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.

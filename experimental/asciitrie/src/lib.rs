@@ -2,9 +2,15 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-//! A data structure that efficiently stores and retrieves ASCII strings.
+//! A data structure offering zero-copy storage and retrieval of byte strings, with a focus
+//! on the efficient storage of ASCII strings. Strings are mapped to a `usize` values.
 //!
-//! Strings are mapped to a `usize` value.
+//! [`ZeroTrie`] does not support mutation because doing so would require recomputing the entire
+//! data structure. Instead, it supports conversion to and from [`LiteMap`] and [`BTreeMap`].
+//!
+//! There are multiple variants of [`ZeroTrie`] optimized for different use cases.
+//!
+//! [`LiteMap`]: litemap::LiteMap
 
 #![no_std]
 
