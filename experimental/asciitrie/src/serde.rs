@@ -312,7 +312,7 @@ where
     {
         if deserializer.is_human_readable() {
             let lm = LiteMap::<Box<ByteStr>, usize>::deserialize(deserializer)?;
-            ZeroTrie::try_from_litemap(&lm)
+            ZeroTrie::<Vec<u8>>::try_from(&lm)
                 .map_err(|e| D::Error::custom(e))
                 .map(|trie| trie.map_store())
         } else {

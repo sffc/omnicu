@@ -26,6 +26,30 @@ use litemap::LiteMap;
 /// - [`ZeroTriePerfectHash`] is also compact, but it also supports arbitrary binary
 ///   strings. It also scales better to large data. Cannot be const-constructed.
 /// - [`ZeroTrieExtendedCapacity`] can be used if more than 2^32 bytes are required.
+///
+/// You can create a `ZeroTrie` directly, in which case the most appropriate
+/// backing implementation will be chosen.
+///
+/// # Examples
+///
+/// ```
+/// use asciitrie::ZeroTrie;
+/// use litemap::LiteMap;
+///
+/// let mut map = LiteMap::<&[u8], usize>::new_vec();
+/// map.insert("foo".as_bytes(), 1);
+/// map.insert("bar".as_bytes(), 2);
+/// map.insert("bazzoo".as_bytes(), 3);
+///
+/// let trie = ZeroTrie::try_from(&map).unwrap();
+///
+/// assert_eq!(trie.get("foo".as_bytes()), Some(1));
+/// assert_eq!(trie.get("bar".as_bytes()), Some(2));
+/// assert_eq!(trie.get("bazzoo".as_bytes()), Some(3));
+/// assert_eq!(trie.get("unknown".as_bytes()), None);
+///
+/// # Ok::<_, asciitrie::NonAsciiError>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ZeroTrie<S>(pub(crate) ZeroTrieInner<S>);
 
@@ -253,7 +277,7 @@ macro_rules! impl_zerotrie_subtype {
         where
             S: AsRef<[u8]> + ?Sized
         {
-            /// Extract the data from this ZeroTrie type into a BTreeMap.
+            /// Exports the data from this ZeroTrie type into a BTreeMap.
             ///
             /// ***Enable this impl with the `"alloc"` feature.***
             ///
@@ -305,7 +329,7 @@ macro_rules! impl_zerotrie_subtype {
         #[cfg(feature = "alloc")]
         impl alloc::borrow::ToOwned for $name<[u8]> {
             type Owned = $name<Box<[u8]>>;
-            /// This impl allows [`$name`] to be used inside of a [`Cow`](std::borrow::Cow).
+            /// This impl allows [`$name`] to be used inside of a [`Cow`](alloc::borrow::Cow).
             ///
             /// Note that it is also possible to use `$name<ZeroVec<u8>>` for a similar result.
             ///
@@ -332,6 +356,8 @@ macro_rules! impl_zerotrie_subtype {
         where
             S: AsRef<[u8]> + ?Sized,
         {
+            /// Exports the data from this ZeroTrie type into a LiteMap.
+            ///
             /// ***Enable this function with the `"litemap"` feature.***
             ///
             /// # Examples
@@ -481,6 +507,7 @@ impl<S> ZeroTrie<S>
 where
     S: AsRef<[u8]>,
 {
+    /// Exports the data from this ZeroTrie into a BTreeMap.
     pub fn to_btreemap(&self) -> BTreeMap<Box<[u8]>, usize> {
         impl_dispatch!(&self, to_btreemap_bytes())
     }
@@ -491,6 +518,7 @@ impl<S> ZeroTrie<S>
 where
     S: AsRef<[u8]>,
 {
+    /// Exports the data from this ZeroTrie into a LiteMap.
     pub fn to_litemap(&self) -> LiteMap<Box<[u8]>, usize> {
         impl_dispatch!(&self, to_litemap_bytes())
     }

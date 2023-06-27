@@ -30,80 +30,18 @@ impl ZeroTrieSimpleAscii<Vec<u8>> {
     }
 }
 
-impl ZeroTrie<Vec<u8>> {
-    /// Creates an [`ZeroTrie`] from a [`LiteMap`] mapping from [`[u8]`] to `usize`.
-    ///
-    /// This will select the most appropriate ZeroTrie variant based on the input data.
-    ///
-    /// ***Enable this function with the `"litemap"` feature.***
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use asciitrie::ZeroTrie;
-    /// use litemap::LiteMap;
-    ///
-    /// let mut map = LiteMap::<&[u8], usize>::new_vec();
-    /// map.insert("foo".as_bytes(), 1);
-    /// map.insert("bar".as_bytes(), 2);
-    /// map.insert("bazzoo".as_bytes(), 3);
-    ///
-    /// let trie = ZeroTrie::try_from_litemap(&map).unwrap();
-    ///
-    /// assert_eq!(trie.get("foo".as_bytes()), Some(1));
-    /// assert_eq!(trie.get("bar".as_bytes()), Some(2));
-    /// assert_eq!(trie.get("bazzoo".as_bytes()), Some(3));
-    /// assert_eq!(trie.get("unknown".as_bytes()), None);
-    ///
-    /// # Ok::<_, asciitrie::NonAsciiError>(())
-    /// ```
-    pub fn try_from_litemap<'a, K, S>(items: &LiteMap<K, usize, S>) -> Result<Self, Error>
-    where
-        // Borrow, not AsRef, because we rely on Ord being the same. Unfortunately
-        // this means `LiteMap<&str, usize>` does not work.
-        K: Borrow<[u8]>,
-        S: litemap::store::StoreSlice<K, usize, Slice = [(K, usize)]>,
-    {
+impl<'a, K, S> TryFrom<&'a LiteMap<K, usize, S>> for ZeroTrie<Vec<u8>>
+where
+    // Borrow, not AsRef, because we rely on Ord being the same. Unfortunately
+    // this means `LiteMap<&str, usize>` does not work.
+    K: Borrow<[u8]>,
+    S: litemap::store::StoreSlice<K, usize, Slice = [(K, usize)]>,
+{
+    type Error = Error;
+    fn try_from(items: &LiteMap<K, usize, S>) -> Result<Self, Error> {
         let byte_litemap = items.to_borrowed_keys::<[u8], Vec<_>>();
         let byte_slice = byte_litemap.as_slice();
         let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
-        Self::try_from_tuple_slice(byte_str_slice)
-    }
-
-    /// Creates an [`ZeroTrie`] from a [`LiteMap`] mapping from [`str`] to `usize`.
-    ///
-    /// This will select the most appropriate ZeroTrie variant based on the input data.
-    ///
-    /// ***Enable this function with the `"litemap"` feature.***
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use asciitrie::ZeroTrie;
-    /// use litemap::LiteMap;
-    ///
-    /// let mut map = LiteMap::<&str, usize>::new_vec();
-    /// map.insert("foo", 1);
-    /// map.insert("bar", 2);
-    /// map.insert("bazzoo", 3);
-    ///
-    /// let trie = ZeroTrie::try_from_str_litemap(&map).unwrap();
-    ///
-    /// assert_eq!(trie.get("foo"), Some(1));
-    /// assert_eq!(trie.get("bar"), Some(2));
-    /// assert_eq!(trie.get("bazzoo"), Some(3));
-    /// assert_eq!(trie.get("unknown"), None);
-    ///
-    /// # Ok::<_, asciitrie::NonAsciiError>(())
-    /// ```
-    pub fn try_from_str_litemap<'a, K, S>(items: &LiteMap<K, usize, S>) -> Result<Self, Error>
-    where
-        K: Borrow<str>,
-        S: litemap::store::StoreSlice<K, usize, Slice = [(K, usize)]>,
-    {
-        let str_litemap = items.to_borrowed_keys::<str, Vec<_>>();
-        let str_slice = str_litemap.as_slice();
-        let byte_str_slice = ByteStr::from_str_slice_with_value(str_slice);
         Self::try_from_tuple_slice(byte_str_slice)
     }
 }

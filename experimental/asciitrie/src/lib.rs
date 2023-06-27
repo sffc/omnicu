@@ -16,9 +16,9 @@
 //! use asciitrie::ZeroTrie;
 //!
 //! let data: &[(&[u8], usize)] = &[
-//!     (&*b"abc", 11),
-//!     (&*b"xyz", 22),
-//!     (&*b"axyb", 33),
+//!     (b"abc", 11),
+//!     (b"xyz", 22),
+//!     (b"axyb", 33),
 //! ];
 //!
 //! let trie: ZeroTrie<Vec<u8>> = data.iter().copied().collect();
@@ -28,6 +28,7 @@
 //! ```
 //!
 //! [`LiteMap`]: litemap::LiteMap
+//! [`BTreeMap`]: alloc::collections::BTreeMap
 
 #![no_std]
 
