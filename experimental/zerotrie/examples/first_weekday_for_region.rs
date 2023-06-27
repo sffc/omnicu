@@ -220,8 +220,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     // assert_eq!(trie_phf.as_bytes(), TRIE_PHF.as_bytes());
 
     if black_box(TRIE_PHF).get(b"MV") == Some(weekday::FRI) {
-        return 0;
+        0
     } else {
-        return 1;
+        1
     }
 }

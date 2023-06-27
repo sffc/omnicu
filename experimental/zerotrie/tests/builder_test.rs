@@ -312,7 +312,7 @@ fn test_varint_branch() {
         54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84,
         86,
         // single-byte values:
-        (0x80 | 0), (0x80 | 1), (0x80 | 2), (0x80 | 3), (0x80 | 4),
+        0x80, (0x80 | 1), (0x80 | 2), (0x80 | 3), (0x80 | 4),
         (0x80 | 5), (0x80 | 6), (0x80 | 7), (0x80 | 8), (0x80 | 9),
         (0x80 | 10), (0x80 | 11), (0x80 | 12), (0x80 | 13), (0x80 | 14),
         (0x80 | 15),
@@ -353,7 +353,7 @@ fn test_varint_branch() {
         // values:
         0x90, 17, 0x90, 18, 0x90, 19, 0x90, 20, 0x90, 21, 0x90, 22, 0x90, 23,
         0x90, 24, 0x90, 25, 0x90, 30, 0x90, 31, 0x90, 32, 0x80 | 3, 0x80 | 4,
-        0x80 | 5, 0x90, 26, 0x90, 27, 0x80 | 0, 0x80 | 1, 0x80 | 2, 0x90, 33,
+        0x80 | 5, 0x90, 26, 0x90, 27, 0x80, 0x80 | 1, 0x80 | 2, 0x90, 33,
         0x90, 34, 0x90, 35, 0x90, 28, 0x80 | 7, 0x80 | 8, 0x80 | 9, 0x80 | 6,
         0x80 | 15, 0x90, 0, 0x90, 1, 0x90, 2, 0x90, 3, 0x90, 4, 0x90, 5,
         0x90, 6, 0x90, 7, 0x90, 8, 0x90, 9, 0x80 | 10, 0x80 | 11, 0x80 | 12,
@@ -901,7 +901,7 @@ fn test_max_branch() {
 
 #[test]
 fn test_short_subtags_10pct() {
-    let litemap = strings_to_litemap(&testdata::short_subtags_10pct::STRINGS);
+    let litemap = strings_to_litemap(testdata::short_subtags_10pct::STRINGS);
 
     let trie = ZeroTrieSimpleAscii::try_from(&litemap).unwrap();
     assert_eq!(trie.byte_len(), 1050);

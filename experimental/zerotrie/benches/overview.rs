@@ -23,7 +23,7 @@ fn get_basic_bench(c: &mut Criterion) {
     let data = testdata::basic::DATA_ASCII;
 
     g.bench_function("SimpleAscii", |b| {
-        let trie = ZeroTrieSimpleAscii::from_bytes(&trie);
+        let trie = ZeroTrieSimpleAscii::from_bytes(trie);
         b.iter(|| {
             for (key, expected) in black_box(data) {
                 let actual = black_box(&trie).get(key);
@@ -33,7 +33,7 @@ fn get_basic_bench(c: &mut Criterion) {
     });
 
     g.bench_function("PerfectHash", |b| {
-        let trie = ZeroTriePerfectHash::from_bytes(&trie);
+        let trie = ZeroTriePerfectHash::from_bytes(trie);
         b.iter(|| {
             for (key, expected) in black_box(data) {
                 let actual = black_box(&trie).get(key);
@@ -43,7 +43,7 @@ fn get_basic_bench(c: &mut Criterion) {
     });
 
     g.bench_function("ExtendedCapacity", |b| {
-        let trie = ZeroTrieExtendedCapacity::from_bytes(&trie);
+        let trie = ZeroTrieExtendedCapacity::from_bytes(trie);
         b.iter(|| {
             for (key, expected) in black_box(data) {
                 let actual = black_box(&trie).get(key);
@@ -96,7 +96,7 @@ fn get_basic_bench(c: &mut Criterion) {
                 let actual = black_box(&zhm).get(key);
                 // No get_copied on ZHM so we need to do it manually
                 let actual = actual.map(|x| <zerovec::vecs::FlexZeroSlice as zerovec::maps::ZeroVecLike<usize>>::zvl_get_as_t(x, |y| *y));
-                assert_eq!(Some(*expected as usize), actual);
+                assert_eq!(Some(*expected), actual);
             }
         });
     });
@@ -116,7 +116,7 @@ fn get_subtags_bench_medium(c: &mut Criterion) {
     let g = c.benchmark_group("get/subtags_10pct");
 
     let strings = testdata::short_subtags_10pct::STRINGS;
-    let litemap = testdata::strings_to_litemap(&strings);
+    let litemap = testdata::strings_to_litemap(strings);
 
     get_subtags_bench_helper(g, strings, litemap);
 }
@@ -125,7 +125,7 @@ fn get_subtags_bench_large(c: &mut Criterion) {
     let g = c.benchmark_group("get/subtags_full");
 
     let strings = testdata::short_subtags::STRINGS;
-    let litemap = testdata::strings_to_litemap(&strings);
+    let litemap = testdata::strings_to_litemap(strings);
 
     get_subtags_bench_helper(g, strings, litemap);
 }

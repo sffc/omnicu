@@ -66,5 +66,5 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
         println!(" => l1 {l1} => q {q} => l2 {l2}");
     }
 
-    return 0;
+    0
 }
