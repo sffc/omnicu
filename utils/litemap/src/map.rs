@@ -359,6 +359,8 @@ where
     /// assert_eq!(borrowed_map.get(&2), Some(&"two"));
     /// ```
     pub fn as_sliced(&self) -> LiteMap<K, V, &S::Slice> {
+        // Won't panic: 0..self.len() is within range
+        #[allow(clippy::unwrap_used)]
         let subslice = self.values.lm_get_range(0..self.len()).unwrap();
         LiteMap {
             values: subslice,
@@ -384,6 +386,8 @@ where
     /// assert_eq!(slice, &[(1, "one"), (2, "two")]);
     /// ```
     pub fn as_slice(&self) -> &S::Slice {
+        // Won't panic: 0..self.len() is within range
+        #[allow(clippy::unwrap_used)]
         self.values.lm_get_range(0..self.len()).unwrap()
     }
 }
