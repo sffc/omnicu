@@ -3,8 +3,8 @@
 # (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 [package]
-name = "asciitrie"
-description = "A data structure that efficiently stores ASCII strings"
+name = "zerotrie"
+description = "A data structure that efficiently maps strings to integers"
 version = "0.1.0"
 authors = ["The ICU4X Project Developers"]
 edition = "2021"

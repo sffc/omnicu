@@ -71,26 +71,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
 
 [[package]]
-name = "asciitrie"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "criterion 0.3.6",
- "displaydoc",
- "icu_benchmark_macros",
- "litemap",
- "postcard",
- "rand",
- "rand_pcg",
- "ref-cast",
- "serde",
- "serde_json",
- "t1ha",
- "wyhash",
- "zerovec",
-]
-
-[[package]]
 name = "atoi"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4530,6 +4510,26 @@ dependencies = [
  "syn 2.0.15",
  "synstructure",
  "zerofrom",
+ "zerovec",
+]
+
+[[package]]
+name = "zerotrie"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "criterion 0.3.6",
+ "displaydoc",
+ "icu_benchmark_macros",
+ "litemap",
+ "postcard",
+ "rand",
+ "rand_pcg",
+ "ref-cast",
+ "serde",
+ "serde_json",
+ "t1ha",
+ "wyhash",
  "zerovec",
 ]
 

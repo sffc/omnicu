@@ -13,7 +13,7 @@
 //! # Examples
 //!
 //! ```
-//! use asciitrie::ZeroTrie;
+//! use zerotrie::ZeroTrie;
 //!
 //! let data: &[(&str, usize)] = &[
 //!     ("abc", 11),

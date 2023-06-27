@@ -33,7 +33,7 @@ use litemap::LiteMap;
 /// # Examples
 ///
 /// ```
-/// use asciitrie::ZeroTrie;
+/// use zerotrie::ZeroTrie;
 /// use litemap::LiteMap;
 ///
 /// let mut map = LiteMap::<&[u8], usize>::new_vec();
@@ -65,7 +65,7 @@ pub(crate) enum ZeroTrieInner<S> {
 /// # Examples
 ///
 /// ```
-/// use asciitrie::ZeroTrieSimpleAscii;
+/// use zerotrie::ZeroTrieSimpleAscii;
 /// use litemap::LiteMap;
 ///
 /// let mut map = LiteMap::new_vec();
@@ -93,7 +93,7 @@ pub struct ZeroTrieSimpleAscii<S: ?Sized> {
 /// # Examples
 ///
 /// ```
-/// use asciitrie::ZeroTriePerfectHash;
+/// use zerotrie::ZeroTriePerfectHash;
 /// use litemap::LiteMap;
 ///
 /// let mut map = LiteMap::<&[u8], usize>::new_vec();
@@ -166,7 +166,7 @@ macro_rules! impl_zerotrie_subtype {
             /// To get the number of keys in the trie, use `.iter().count()`:
             ///
             /// ```
-            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
+            #[doc = concat!("use zerotrie::", stringify!($name), ";")]
             ///
             /// // A trie with two values: "abc" and "abcdef"
             #[doc = concat!("let trie: &", stringify!($name), "<[u8]> = ", stringify!($name), "::from_bytes(b\"abc\\x80def\\x81\");")]
@@ -199,7 +199,7 @@ macro_rules! impl_zerotrie_subtype {
             ///
             /// ```
             /// use std::borrow::Cow;
-            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
+            #[doc = concat!("use zerotrie::", stringify!($name), ";")]
             ///
             #[doc = concat!("let trie: &", stringify!($name), "<[u8]> = ", stringify!($name), "::from_bytes(b\"abc\\x85\");")]
             #[doc = concat!("let owned: ", stringify!($name), "<Vec<u8>> = trie.to_owned();")]
@@ -283,7 +283,7 @@ macro_rules! impl_zerotrie_subtype {
             /// # Examples
             ///
             /// ```
-            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
+            #[doc = concat!("use zerotrie::", stringify!($name), ";")]
             /// use std::collections::BTreeMap;
             ///
             #[doc = concat!("let trie = ", stringify!($name), "::from_bytes(b\"abc\\x81def\\x82\");")]
@@ -336,7 +336,7 @@ macro_rules! impl_zerotrie_subtype {
             ///
             /// ```
             /// use std::borrow::Cow;
-            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
+            #[doc = concat!("use zerotrie::", stringify!($name), ";")]
             ///
             #[doc = concat!("let trie: Cow<", stringify!($name), "<[u8]>> = Cow::Borrowed(", stringify!($name), "::from_bytes(b\"abc\\x85\"));")]
             /// assert_eq!(trie.get(b"abc"), Some(5));
@@ -360,7 +360,7 @@ macro_rules! impl_zerotrie_subtype {
             /// # Examples
             ///
             /// ```
-            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
+            #[doc = concat!("use zerotrie::", stringify!($name), ";")]
             /// use litemap::LiteMap;
             ///
             #[doc = concat!("let trie = ", stringify!($name), "::from_bytes(b\"abc\\x81def\\x82\");")]

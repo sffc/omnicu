@@ -7,8 +7,8 @@
 #![no_main] // https://github.com/unicode-org/icu4x/issues/395
 #![allow(dead_code)]
 
-use asciitrie::ZeroTriePerfectHash;
-use asciitrie::ZeroTrieSimpleAscii;
+use zerotrie::ZeroTriePerfectHash;
+use zerotrie::ZeroTrieSimpleAscii;
 
 icu_benchmark_macros::static_setup!();
 

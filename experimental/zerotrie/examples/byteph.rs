@@ -10,7 +10,7 @@
 
 icu_benchmark_macros::static_setup!();
 
-use asciitrie::byte_phf::*;
+use zerotrie::byte_phf::*;
 
 fn print_byte_to_stdout(byte: u8) {
     if let Ok(c) = char::try_from(byte) {
