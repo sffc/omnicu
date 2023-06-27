@@ -45,8 +45,8 @@ mod serde;
 mod varint;
 mod zerotrie;
 
-pub use error::Error as AsciiTrieError;
-pub use zerotrie::ZeroTrie;
-pub use zerotrie::ZeroTrieExtendedCapacity;
-pub use zerotrie::ZeroTriePerfectHash;
-pub use zerotrie::ZeroTrieSimpleAscii;
+pub use error::Error as ZeroTrieError;
+pub use crate::zerotrie::ZeroTrie;
+pub use crate::zerotrie::ZeroTrieExtendedCapacity;
+pub use crate::zerotrie::ZeroTriePerfectHash;
+pub use crate::zerotrie::ZeroTrieSimpleAscii;

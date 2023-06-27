@@ -41,14 +41,14 @@ use litemap::LiteMap;
 /// map.insert("bar".as_bytes(), 2);
 /// map.insert("bazzoo".as_bytes(), 3);
 ///
-/// let trie = ZeroTrie::try_from(&map).unwrap();
+/// let trie = ZeroTrie::try_from(&map)?;
 ///
 /// assert_eq!(trie.get("foo"), Some(1));
 /// assert_eq!(trie.get("bar"), Some(2));
 /// assert_eq!(trie.get("bazzoo"), Some(3));
 /// assert_eq!(trie.get("unknown"), None);
 ///
-/// # Ok::<_, asciitrie::AsciiTrieError>(())
+/// # Ok::<_, zerotrie::ZeroTrieError>(())
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ZeroTrie<S>(pub(crate) ZeroTrieInner<S>);
@@ -73,14 +73,14 @@ pub(crate) enum ZeroTrieInner<S> {
 /// map.insert(b"bar", 2);
 /// map.insert(b"bazzoo", 3);
 ///
-/// let trie = ZeroTrieSimpleAscii::try_from(&map).unwrap();
+/// let trie = ZeroTrieSimpleAscii::try_from(&map)?;
 ///
 /// assert_eq!(trie.get(b"foo"), Some(1));
 /// assert_eq!(trie.get(b"bar"), Some(2));
 /// assert_eq!(trie.get(b"bazzoo"), Some(3));
 /// assert_eq!(trie.get(b"unknown"), None);
 ///
-/// # Ok::<_, asciitrie::AsciiTrieError>(())
+/// # Ok::<_, zerotrie::ZeroTrieError>(())
 /// ```
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
@@ -101,14 +101,14 @@ pub struct ZeroTrieSimpleAscii<S: ?Sized> {
 /// map.insert("bår".as_bytes(), 2);
 /// map.insert("båzzøø".as_bytes(), 3);
 ///
-/// let trie = ZeroTriePerfectHash::try_from(&map).unwrap();
+/// let trie = ZeroTriePerfectHash::try_from(&map)?;
 ///
 /// assert_eq!(trie.get("foo".as_bytes()), Some(1));
 /// assert_eq!(trie.get("bår".as_bytes()), Some(2));
 /// assert_eq!(trie.get("båzzøø".as_bytes()), Some(3));
 /// assert_eq!(trie.get("bazzoo".as_bytes()), None);
 ///
-/// # Ok::<_, asciitrie::AsciiTrieError>(())
+/// # Ok::<_, zerotrie::ZeroTrieError>(())
 /// ```
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
