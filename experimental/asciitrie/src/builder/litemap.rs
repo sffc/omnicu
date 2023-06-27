@@ -5,10 +5,7 @@
 use super::konst::*;
 use crate::builder::bytestr::ByteStr;
 use crate::error::Error;
-use crate::zerotrie::ZeroTrieExtendedCapacity;
-use crate::zerotrie::ZeroTriePerfectHash;
 use crate::zerotrie::ZeroTrieSimpleAscii;
-use crate::AsciiStr;
 use crate::ZeroTrie;
 use alloc::borrow::Borrow;
 use alloc::vec::Vec;

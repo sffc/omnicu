@@ -3,9 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 #[cfg(feature = "alloc")]
-use crate::{AsciiStr, NonAsciiError};
-
-#[cfg(feature = "alloc")]
 use alloc::{borrow::Borrow, boxed::Box};
 
 #[repr(transparent)]
@@ -14,13 +11,6 @@ pub(crate) struct ByteStr([u8]);
 
 #[cfg(feature = "alloc")] // impls only needed with the nonconst builder
 impl ByteStr {
-    pub const fn from_ascii_str_slice_with_value<'a, 'l>(
-        input: &'l [(&'a AsciiStr, usize)],
-    ) -> &'l [(&'a ByteStr, usize)] {
-        // Safety: AsciiStr and ByteStr have the same layout, and ByteStr is less restrictive
-        unsafe { core::mem::transmute(input) }
-    }
-
     pub const fn from_byte_slice_with_value<'a, 'l>(
         input: &'l [(&'a [u8], usize)],
     ) -> &'l [(&'a ByteStr, usize)] {
@@ -45,10 +35,12 @@ impl ByteStr {
         unsafe { core::mem::transmute(input) }
     }
 
+    #[allow(dead_code)] // may want this in the future
     pub fn from_str(input: &str) -> &Self {
         Self::from_bytes(input.as_bytes())
     }
 
+    #[allow(dead_code)] // may want this in the future
     pub fn empty() -> &'static Self {
         Self::from_bytes(&[])
     }
@@ -61,8 +53,13 @@ impl ByteStr {
         self.0.len()
     }
 
-    pub fn try_as_ascii_str(&self) -> Result<&AsciiStr, NonAsciiError> {
-        AsciiStr::try_from_bytes(&self.0)
+    pub fn is_all_ascii(&self) -> bool {
+        for byte in self.0.iter() {
+            if !byte.is_ascii() {
+                return false;
+            }
+        }
+        return true;
     }
 
     #[allow(dead_code)] // may want this in the future

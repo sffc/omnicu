@@ -4,16 +4,12 @@
 
 use crate::builder::bytestr::ByteStr;
 use crate::zerotrie::ZeroTrieInner;
-use crate::AsciiStr;
 use crate::ZeroTrie;
 use crate::ZeroTrieExtendedCapacity;
 use crate::ZeroTriePerfectHash;
 use crate::ZeroTrieSimpleAscii;
-use alloc::borrow::Cow;
 use alloc::boxed::Box;
-use alloc::string::String;
 use alloc::vec::Vec;
-use core::borrow::Borrow;
 use core::fmt;
 use litemap::LiteMap;
 use serde::de::Error;
@@ -22,67 +18,6 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
-
-impl<'de, 'data> Deserialize<'de> for &'data AsciiStr
-where
-    'de: 'data,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        if deserializer.is_human_readable() {
-            let s = <&str>::deserialize(deserializer)?;
-            AsciiStr::try_from_str(s).map_err(|_| D::Error::custom("not an ASCII string"))
-        } else {
-            let s = <&[u8]>::deserialize(deserializer)?;
-            AsciiStr::try_from_bytes(s).map_err(|_| D::Error::custom("not an ASCII string"))
-        }
-    }
-}
-
-impl<'data> Serialize for &'data AsciiStr {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if serializer.is_human_readable() {
-            self.as_str().serialize(serializer)
-        } else {
-            self.as_bytes().serialize(serializer)
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for Box<AsciiStr> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        if deserializer.is_human_readable() {
-            let s = String::deserialize(deserializer)?;
-            AsciiStr::try_from_boxed_str(s.into_boxed_str())
-                .map_err(|_| D::Error::custom("not an ASCII string"))
-        } else {
-            let s = Vec::<u8>::deserialize(deserializer)?;
-            AsciiStr::try_from_boxed_bytes(s.into_boxed_slice())
-                .map_err(|_| D::Error::custom("not an ASCII string"))
-        }
-    }
-}
-
-impl Serialize for Box<AsciiStr> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if serializer.is_human_readable() {
-            self.as_str().serialize(serializer)
-        } else {
-            self.as_bytes().serialize(serializer)
-        }
-    }
-}
 
 struct ByteStrVisitor;
 impl<'de> Visitor<'de> for ByteStrVisitor {
@@ -369,7 +304,6 @@ where
 
 #[cfg(test)]
 mod testdata {
-    use crate as asciitrie;
     include!("../tests/data.rs");
 }
 

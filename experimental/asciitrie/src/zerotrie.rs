@@ -9,7 +9,7 @@ use ref_cast::RefCast;
 
 #[cfg(feature = "alloc")]
 use crate::{
-    builder::bytestr::ByteStr, builder::nonconst::ZeroTrieBuilder, error::Error, AsciiStr,
+    builder::bytestr::ByteStr, builder::nonconst::ZeroTrieBuilder, error::Error,
 };
 #[cfg(feature = "alloc")]
 use alloc::{boxed::Box, collections::BTreeMap, collections::VecDeque, vec::Vec, string::String};
@@ -540,7 +540,7 @@ where
 #[cfg(feature = "alloc")]
 impl ZeroTrie<Vec<u8>> {
     pub(crate) fn try_from_tuple_slice<'a>(items: &[(&'a ByteStr, usize)]) -> Result<Self, Error> {
-        let is_all_ascii = items.iter().all(|(s, _)| s.try_as_ascii_str().is_ok());
+        let is_all_ascii = items.iter().all(|(s, _)| s.is_all_ascii());
         if is_all_ascii && items.len() < 512 {
             ZeroTrieSimpleAscii::try_from_tuple_slice(items).map(|x| x.into_zerotrie())
         } else {

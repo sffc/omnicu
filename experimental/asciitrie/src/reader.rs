@@ -8,9 +8,6 @@ use crate::varint::read_varint;
 use core::ops::Range;
 
 #[cfg(feature = "alloc")]
-use crate::AsciiStr;
-
-#[cfg(feature = "alloc")]
 use alloc::string::String;
 
 /// Like slice::split_at but returns an Option instead of panicking.
@@ -351,7 +348,7 @@ pub fn get_phf_extended(mut trie: &[u8], mut ascii: &[u8]) -> Option<usize> {
 }
 
 #[cfg(feature = "alloc")]
-use alloc::{boxed::Box, vec::Vec};
+use alloc::vec::Vec;
 
 #[cfg(feature = "alloc")]
 pub(crate) struct ZeroTrieIterator<'a> {

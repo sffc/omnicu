@@ -45,8 +45,6 @@ mod serde;
 mod varint;
 mod zerotrie;
 
-pub use builder::AsciiStr;
-pub use builder::NonAsciiError;
 pub use error::Error as AsciiTrieError;
 pub use zerotrie::ZeroTrie;
 pub use zerotrie::ZeroTrieExtendedCapacity;

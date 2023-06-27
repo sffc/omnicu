@@ -10,7 +10,6 @@ use crate::byte_phf::PerfectByteHashMapCacheOwned;
 use crate::error::Error;
 use crate::varint;
 use alloc::vec::Vec;
-use core::borrow::Borrow;
 
 /// Whether to use the perfect hash function in the ZeroTrie.
 pub enum PhfMode {

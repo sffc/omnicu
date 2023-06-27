@@ -2,7 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-mod asciistr;
 mod branch_meta;
 pub(crate) mod bytestr;
 pub(crate) mod konst;
@@ -10,10 +9,6 @@ pub(crate) mod konst;
 mod litemap;
 #[cfg(feature = "alloc")]
 pub(crate) mod nonconst;
-
-pub(crate) use asciistr::AsciiByte;
-pub use asciistr::AsciiStr;
-pub use asciistr::NonAsciiError;
 
 use bytestr::ByteStr;
 

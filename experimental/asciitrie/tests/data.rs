@@ -3,8 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 #[allow(dead_code)]
-use asciitrie::{AsciiStr, NonAsciiError};
-#[allow(dead_code)]
 use litemap::LiteMap;
 
 const fn single_byte_intermediate_value(x: u8) -> u8 {
