@@ -10,6 +10,23 @@
 //!
 //! There are multiple variants of [`ZeroTrie`] optimized for different use cases.
 //!
+//! # Examples
+//!
+//! ```
+//! use asciitrie::ZeroTrie;
+//!
+//! let data: &[(&[u8], usize)] = &[
+//!     (&*b"abc", 11),
+//!     (&*b"xyz", 22),
+//!     (&*b"axyb", 33),
+//! ];
+//!
+//! let trie: ZeroTrie<Vec<u8>> = data.iter().copied().collect();
+//!
+//! assert_eq!(trie.get("axyb"), Some(33));
+//! assert_eq!(trie.byte_len(), 18);
+//! ```
+//!
 //! [`LiteMap`]: litemap::LiteMap
 
 #![no_std]

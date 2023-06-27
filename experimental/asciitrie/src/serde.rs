@@ -320,7 +320,6 @@ where
     {
         if deserializer.is_human_readable() {
             let lm = LiteMap::<BytesOrStr, usize>::deserialize(deserializer)?;
-            let lm = lm.to_borrowed_keys::<_, Vec<_>>();
             ZeroTrie::try_from_litemap(&lm)
                 .map_err(|e| D::Error::custom(e))
                 .map(|trie| trie.map_store())

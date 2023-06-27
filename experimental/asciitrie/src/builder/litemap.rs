@@ -10,6 +10,7 @@ use crate::zerotrie::ZeroTriePerfectHash;
 use crate::zerotrie::ZeroTrieSimpleAscii;
 use crate::AsciiStr;
 use crate::ZeroTrie;
+use alloc::borrow::Borrow;
 use alloc::vec::Vec;
 use litemap::LiteMap;
 
@@ -160,20 +161,15 @@ impl ZeroTrie<Vec<u8>> {
     ///
     /// # Ok::<_, asciitrie::NonAsciiError>(())
     /// ```
-    pub fn try_from_litemap<'a, S>(items: &LiteMap<&'a [u8], usize, S>) -> Result<Self, Error>
+    pub fn try_from_litemap<'a, K, S>(items: &LiteMap<K, usize, S>) -> Result<Self, Error>
     where
-        S: litemap::store::StoreSlice<&'a [u8], usize, Slice = [(&'a [u8], usize)]>,
+        K: Borrow<[u8]>,
+        S: litemap::store::StoreSlice<K, usize, Slice = [(K, usize)]>,
     {
-        let byte_slice = items.as_slice();
+        let byte_litemap = items.to_borrowed_keys::<[u8], Vec<_>>();
+        let byte_slice = byte_litemap.as_slice();
         let byte_str_slice = ByteStr::from_byte_slice_with_value(byte_slice);
-        let is_all_ascii = byte_str_slice
-            .iter()
-            .all(|(s, _)| s.try_as_ascii_str().is_ok());
-        if is_all_ascii && items.len() < 512 {
-            ZeroTrieSimpleAscii::try_from_tuple_slice(byte_str_slice).map(|x| x.into_zerotrie())
-        } else {
-            ZeroTriePerfectHash::try_from_tuple_slice(byte_str_slice).map(|x| x.into_zerotrie())
-        }
+        Self::try_from_tuple_slice(byte_str_slice)
     }
 }
 

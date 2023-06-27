@@ -11,7 +11,9 @@ use ref_cast::RefCast;
 #[cfg(feature = "alloc")]
 use crate::{builder::nonconst::ZeroTrieBuilder, builder::ByteStr, error::Error};
 #[cfg(feature = "alloc")]
-use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap, collections::VecDeque, vec::Vec};
+#[cfg(feature = "litemap")]
+use litemap::LiteMap;
 
 /// A data structure that compactly maps from byte sequences to integers.
 ///
@@ -83,13 +85,9 @@ macro_rules! impl_zerotrie_subtype {
         where
             S: AsRef<[u8]> + ?Sized,
         {
-            /// Queries the trie for a byte string.
-            pub fn get(&self, key: &[u8]) -> Option<usize> {
-                $getter_fn(self.store.as_ref(), key)
-            }
-            /// Queries the trie for a UTF-8 string.
-            pub fn get_str(&self, key: &str) -> Option<usize> {
-                self.get(key.as_bytes())
+            /// Queries the trie for a string.
+            pub fn get<K>(&self, key: K) -> Option<usize> where K: AsRef<[u8]> {
+                $getter_fn(self.store.as_ref(), key.as_ref())
             }
             /// Returns `true` if the trie is empty.
             pub fn is_empty(&self) -> bool {
@@ -170,6 +168,71 @@ macro_rules! impl_zerotrie_subtype {
                 })
             }
         }
+        #[cfg(feature = "alloc")]
+        impl<'a, K> TryFrom<&'a BTreeMap<K, usize>> for $name<Vec<u8>>
+        where
+            K: Borrow<[u8]>
+        {
+            type Error = crate::error::Error;
+            fn try_from(map: &'a BTreeMap<K, usize>) -> Result<Self, Self::Error> {
+                let tuples: Vec<(&[u8], usize)> = map
+                    .iter()
+                    .map(|(k, v)| (k.borrow(), *v))
+                    .collect();
+                let byte_str_slice = ByteStr::from_byte_slice_with_value(&tuples);
+                Self::try_from_tuple_slice(byte_str_slice)
+            }
+        }
+        #[cfg(feature = "litemap")]
+        impl<'a, K, S> TryFrom<&'a LiteMap<K, usize, S>> for $name<Vec<u8>>
+        where
+            K: Borrow<[u8]>,
+            S: litemap::store::StoreIterable<'a, K, usize>,
+        {
+            type Error = crate::error::Error;
+            fn try_from(map: &'a LiteMap<K, usize, S>) -> Result<Self, Self::Error> {
+                let tuples: Vec<(&[u8], usize)> = map
+                    .iter()
+                    .map(|(k, v)| (k.borrow(), *v))
+                    .collect();
+                let byte_str_slice = ByteStr::from_byte_slice_with_value(&tuples);
+                Self::try_from_tuple_slice(byte_str_slice)
+            }
+        }
+        #[cfg(feature = "alloc")]
+        impl<S> $name<S>
+        where
+            S: AsRef<[u8]> + ?Sized
+        {
+            /// Extract the data from this ZeroTrie type into a BTreeMap.
+            ///
+            /// ***Enable this impl with the `"alloc"` feature.***
+            ///
+            /// # Examples
+            ///
+            /// ```
+            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
+            /// use std::collections::BTreeMap;
+            ///
+            #[doc = concat!("let trie = ", stringify!($name), "::from_bytes(b\"abc\\x81def\\x82\");")]
+            /// let items = trie.to_btreemap();
+            ///
+            /// assert_eq!(items.len(), 2);
+            /// assert_eq!(items.get("abc".as_bytes()), Some(&1));
+            /// assert_eq!(items.get("abcdef".as_bytes()), Some(&2));
+            ///
+            #[doc = concat!("let recovered_trie = ", stringify!($name), "::try_from(")]
+            ///     &items
+            /// ).unwrap();
+            /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
+            /// ```
+            pub fn to_btreemap(&self) -> BTreeMap<Box<$iter_ty>, usize> {
+                self.iter().collect()
+            }
+            pub(crate) fn to_btreemap_bytes(&self) -> BTreeMap<Box<[u8]>, usize> {
+                self.iter().map(|(k, v)| (Box::from(k.borrow()), v)).collect()
+            }
+        }
         // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
         impl Borrow<$name<[u8]>> for $name<&[u8]> {
             fn borrow(&self) -> &$name<[u8]> {
@@ -241,74 +304,18 @@ macro_rules! impl_zerotrie_subtype {
             /// ).unwrap();
             /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
             /// ```
-            pub fn to_litemap(&self) -> litemap::LiteMap<Box<$iter_ty>, usize> {
+            pub fn to_litemap(&self) -> LiteMap<Box<$iter_ty>, usize> {
                 self.iter().collect()
             }
-            pub(crate) fn to_litemap_bytes(&self) -> litemap::LiteMap<Box<[u8]>, usize> {
+            pub(crate) fn to_litemap_bytes(&self) -> LiteMap<Box<[u8]>, usize> {
                 self.to_litemap().to_boxed_keys()
             }
         }
-        #[cfg(feature = "alloc")]
-        impl<'a> FromIterator<(&'a AsciiStr, usize)> for $name<Vec<u8>> {
-            /// ***Enable this function with the `"alloc"` feature.***
-            ///
-            /// ```
-            /// use asciitrie::AsciiStr;
-            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
-            ///
-            #[doc = concat!("let trie: ", stringify!($name), "<Vec<u8>> = [")]
-            ///     ("foo", 1),
-            ///     ("bar", 2),
-            ///     ("bazzoo", 3),
-            ///     ("internationalization", 18),
-            /// ]
-            /// .into_iter()
-            /// .map(AsciiStr::try_from_str_with_value)
-            /// .collect::<Result<_, _>>()
-            /// .unwrap();
-            ///
-            /// assert_eq!(trie.get(b"foo"), Some(1));
-            /// assert_eq!(trie.get(b"bar"), Some(2));
-            /// assert_eq!(trie.get(b"bazzoo"), Some(3));
-            /// assert_eq!(trie.get(b"internationalization"), Some(18));
-            /// assert_eq!(trie.get(b"unknown"), None);
-            /// ```
-            fn from_iter<T: IntoIterator<Item = (&'a AsciiStr, usize)>>(iter: T) -> Self {
-                use crate::builder::nonconst::ZeroTrieBuilder;
-                ZeroTrieBuilder::<VecDeque<u8>>::from_asciistr_iter(
-                    iter,
-                    Self::BUILDER_OPTIONS
-                )
-                .map(|s| Self {
-                    store: s.to_bytes(),
-                })
-                .unwrap()
-            }
-        }
-        #[cfg(feature = "alloc")]
-        impl<'a> FromIterator<(&'a [u8], usize)> for $name<Vec<u8>> {
-            /// ***Enable this function with the `"alloc"` feature.***
-            ///
-            /// ```
-            #[doc = concat!("use asciitrie::", stringify!($name), ";")]
-            ///
-            #[doc = concat!("let trie: ", stringify!($name), "<Vec<u8>> = [")]
-            ///     ("foo", 1),
-            ///     ("bar", 2),
-            ///     ("bazzoo", 3),
-            ///     ("internationalization", 18),
-            /// ]
-            /// .into_iter()
-            /// .map(|(s, x)| (s.as_bytes(), x))
-            /// .collect();
-            ///
-            /// assert_eq!(trie.get(b"foo"), Some(1));
-            /// assert_eq!(trie.get(b"bar"), Some(2));
-            /// assert_eq!(trie.get(b"bazzoo"), Some(3));
-            /// assert_eq!(trie.get(b"internationalization"), Some(18));
-            /// assert_eq!(trie.get(b"unknown"), None);
-            /// ```
-            fn from_iter<T: IntoIterator<Item = (&'a [u8], usize)>>(iter: T) -> Self {
+        impl<'a, K> FromIterator<(K, usize)> for $name<Vec<u8>>
+        where
+            K: Borrow<[u8]>
+        {
+            fn from_iter<T: IntoIterator<Item = (K, usize)>>(iter: T) -> Self {
                 use crate::builder::nonconst::ZeroTrieBuilder;
                 ZeroTrieBuilder::<VecDeque<u8>>::from_bytes_iter(
                     iter,
@@ -336,7 +343,6 @@ macro_rules! impl_zerotrie_subtype {
                 core::mem::transmute(S::from_byte_slice_unchecked(bytes))
             }
         }
-
     };
 }
 
@@ -401,13 +407,12 @@ impl<S> ZeroTrie<S>
 where
     S: AsRef<[u8]>,
 {
-    /// Queries the trie for a byte string.
-    pub fn get(&self, key: &[u8]) -> Option<usize> {
+    /// Queries the trie for a string.
+    pub fn get<K>(&self, key: K) -> Option<usize>
+    where
+        K: AsRef<[u8]>,
+    {
         impl_dispatch!(&self, get(key))
-    }
-    /// Queries the trie for a UTF-8 string.
-    pub fn get_str(&self, key: &str) -> Option<usize> {
-        impl_dispatch!(&self, get_str(key))
     }
     /// Returns `true` if the trie is empty.
     pub fn is_empty(&self) -> bool {
@@ -421,12 +426,49 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
+impl<S> ZeroTrie<S>
+where
+    S: AsRef<[u8]>,
+{
+    pub fn to_btreemap(&self) -> BTreeMap<Box<[u8]>, usize> {
+        impl_dispatch!(&self, to_btreemap_bytes())
+    }
+}
+
 #[cfg(feature = "litemap")]
 impl<S> ZeroTrie<S>
 where
     S: AsRef<[u8]>,
 {
-    pub fn to_litemap(&self) -> litemap::LiteMap<Box<[u8]>, usize> {
+    pub fn to_litemap(&self) -> LiteMap<Box<[u8]>, usize> {
         impl_dispatch!(&self, to_litemap_bytes())
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl ZeroTrie<Vec<u8>> {
+    pub(crate) fn try_from_tuple_slice<'a>(items: &[(&'a ByteStr, usize)]) -> Result<Self, Error> {
+        let is_all_ascii = items.iter().all(|(s, _)| s.try_as_ascii_str().is_ok());
+        if is_all_ascii && items.len() < 512 {
+            ZeroTrieSimpleAscii::try_from_tuple_slice(items).map(|x| x.into_zerotrie())
+        } else {
+            ZeroTriePerfectHash::try_from_tuple_slice(items).map(|x| x.into_zerotrie())
+        }
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'a, K> FromIterator<(K, usize)> for ZeroTrie<Vec<u8>>
+where
+    K: Borrow<[u8]>,
+{
+    fn from_iter<T: IntoIterator<Item = (K, usize)>>(iter: T) -> Self {
+        let items = Vec::from_iter(iter);
+        let mut items: Vec<(&[u8], usize)> = items.iter().map(|(k, v)| (k.borrow(), *v)).collect();
+        items.sort();
+        let byte_str_slice = ByteStr::from_byte_slice_with_value(&items);
+        #[allow(clippy::unwrap_used)] // FromIterator is panicky
+        Self::try_from_tuple_slice(byte_str_slice).unwrap()
     }
 }
