@@ -23,9 +23,11 @@ use alloc::{boxed::Box, collections::VecDeque, vec::Vec};
 /// - [`ZeroTriePerfectHash`] is also compact, but it also supports arbitrary binary
 ///   strings. It also scales better to large data. Cannot be const-constructed.
 /// - [`ZeroTrieExtendedCapacity`] can be used if more than 2^32 bytes are required.
-pub struct ZeroTrie<S>(ZeroTrieInner<S>);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ZeroTrie<S>(pub(crate) ZeroTrieInner<S>);
 
-enum ZeroTrieInner<S> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ZeroTrieInner<S> {
     SimpleAscii(ZeroTrieSimpleAscii<S>),
     PerfectHash(ZeroTriePerfectHash<S>),
     ExtendedCapacity(ZeroTrieExtendedCapacity<S>),
@@ -68,6 +70,13 @@ macro_rules! impl_zerotrie_subtype {
             /// Takes the byte store from this trie.
             pub fn take_store(self) -> S {
                 self.store
+            }
+            /// Maps the store into another type implementing `From`
+            pub fn map_store<X: From<S>>(self) -> $name<X> {
+                $name::<X>::from_store(self.store.into())
+            }
+            pub(crate) fn map_store_into_zerotrie<X: From<S>>(self) -> ZeroTrie<X> {
+                $name::<X>::from_store(self.store.into()).into_zerotrie()
             }
         }
         impl<S> $name<S>
@@ -235,6 +244,9 @@ macro_rules! impl_zerotrie_subtype {
             pub fn to_litemap(&self) -> litemap::LiteMap<Box<$iter_ty>, usize> {
                 self.iter().collect()
             }
+            pub(crate) fn to_litemap_bytes(&self) -> litemap::LiteMap<Box<[u8]>, usize> {
+                self.to_litemap().to_boxed_keys()
+            }
         }
         #[cfg(feature = "alloc")]
         impl<'a> FromIterator<(&'a AsciiStr, usize)> for $name<Vec<u8>> {
@@ -351,14 +363,21 @@ impl_zerotrie_subtype!(
 );
 
 macro_rules! impl_dispatch {
-    ($self:ident, $inner_fn:ident) => {
+    ($self:ident, $inner_fn:ident()) => {
+        match $self.0 {
+            ZeroTrieInner::SimpleAscii(subtype) => subtype.$inner_fn(),
+            ZeroTrieInner::PerfectHash(subtype) => subtype.$inner_fn(),
+            ZeroTrieInner::ExtendedCapacity(subtype) => subtype.$inner_fn(),
+        }
+    };
+    (&$self:ident, $inner_fn:ident()) => {
         match &$self.0 {
             ZeroTrieInner::SimpleAscii(subtype) => subtype.$inner_fn(),
             ZeroTrieInner::PerfectHash(subtype) => subtype.$inner_fn(),
             ZeroTrieInner::ExtendedCapacity(subtype) => subtype.$inner_fn(),
         }
     };
-    ($self:ident, $inner_fn:ident($arg:ident)) => {
+    (&$self:ident, $inner_fn:ident($arg:ident)) => {
         match &$self.0 {
             ZeroTrieInner::SimpleAscii(subtype) => subtype.$inner_fn($arg),
             ZeroTrieInner::PerfectHash(subtype) => subtype.$inner_fn($arg),
@@ -367,30 +386,47 @@ macro_rules! impl_dispatch {
     };
 }
 
+impl<S> ZeroTrie<S> {
+    /// Takes the byte store from this trie.
+    pub fn take_store(self) -> S {
+        impl_dispatch!(self, take_store())
+    }
+    /// Maps the store into another type implementing `From`
+    pub fn map_store<X: From<S>>(self) -> ZeroTrie<X> {
+        impl_dispatch!(self, map_store_into_zerotrie())
+    }
+}
+
 impl<S> ZeroTrie<S>
 where
     S: AsRef<[u8]>,
 {
     /// Queries the trie for a byte string.
     pub fn get(&self, key: &[u8]) -> Option<usize> {
-        impl_dispatch!(self, get(key))
+        impl_dispatch!(&self, get(key))
     }
     /// Queries the trie for a UTF-8 string.
     pub fn get_str(&self, key: &str) -> Option<usize> {
-        impl_dispatch!(self, get_str(key))
+        impl_dispatch!(&self, get_str(key))
     }
     /// Returns `true` if the trie is empty.
     pub fn is_empty(&self) -> bool {
-        impl_dispatch!(self, is_empty)
+        impl_dispatch!(&self, is_empty())
     }
     /// Returns the size of the trie in number of bytes.
     ///
     /// To get the number of keys in the trie, use `.iter().count()`.
     pub fn byte_len(&self) -> usize {
-        impl_dispatch!(self, byte_len)
+        impl_dispatch!(&self, byte_len())
     }
-    /// Returns the bytes contained in the underlying store.
-    pub fn as_bytes(&self) -> &[u8] {
-        impl_dispatch!(self, as_bytes)
+}
+
+#[cfg(feature = "litemap")]
+impl<S> ZeroTrie<S>
+where
+    S: AsRef<[u8]>,
+{
+    pub fn to_litemap(&self) -> litemap::LiteMap<Box<[u8]>, usize> {
+        impl_dispatch!(&self, to_litemap_bytes())
     }
 }
