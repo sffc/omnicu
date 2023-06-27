@@ -12,7 +12,7 @@ use crate::{
     builder::bytestr::ByteStr, builder::nonconst::ZeroTrieBuilder, error::Error, AsciiStr,
 };
 #[cfg(feature = "alloc")]
-use alloc::{boxed::Box, collections::BTreeMap, collections::VecDeque, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap, collections::VecDeque, vec::Vec, string::String};
 #[cfg(feature = "litemap")]
 use litemap::LiteMap;
 
@@ -125,7 +125,7 @@ pub struct ZeroTrieExtendedCapacity<S: ?Sized> {
 }
 
 macro_rules! impl_zerotrie_subtype {
-    ($name:ident, $variant:ident, $getter_fn:path, $iter_ty:ty, $iter_fn:path) => {
+    ($name:ident, $variant:ident, $getter_fn:path, $iter_ty:ty, $iter_fn:path, $cnv_fn:path) => {
         impl<S> $name<S> {
             /// Wrap this specific ZeroTrie variant into a ZeroTrie.
             pub const fn into_zerotrie(self) -> ZeroTrie<S> {
@@ -213,7 +213,7 @@ macro_rules! impl_zerotrie_subtype {
                     Vec::from(self.store.as_ref()),
                 )
             }
-            pub fn iter(&self) -> impl Iterator<Item = (Box<$iter_ty>, usize)> + '_ {
+            pub fn iter(&self) -> impl Iterator<Item = ($iter_ty, usize)> + '_ {
                  $iter_fn(self.as_bytes())
             }
         }
@@ -299,11 +299,11 @@ macro_rules! impl_zerotrie_subtype {
             /// ).unwrap();
             /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
             /// ```
-            pub fn to_btreemap(&self) -> BTreeMap<Box<$iter_ty>, usize> {
+            pub fn to_btreemap(&self) -> BTreeMap<$iter_ty, usize> {
                 self.iter().collect()
             }
             pub(crate) fn to_btreemap_bytes(&self) -> BTreeMap<Box<[u8]>, usize> {
-                self.iter().map(|(k, v)| (Box::from(k.borrow()), v)).collect()
+                self.iter().map(|(k, v)| ($cnv_fn(k), v)).collect()
             }
         }
         // Note: Can't generalize this impl due to the `core::borrow::Borrow` blanket impl.
@@ -379,17 +379,17 @@ macro_rules! impl_zerotrie_subtype {
             /// ).unwrap();
             /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
             /// ```
-            pub fn to_litemap(&self) -> LiteMap<Box<$iter_ty>, usize> {
+            pub fn to_litemap(&self) -> LiteMap<$iter_ty, usize> {
                 self.iter().collect()
             }
             pub(crate) fn to_litemap_bytes(&self) -> LiteMap<Box<[u8]>, usize> {
-                self.to_litemap().to_boxed_keys()
+                self.iter().map(|(k, v)| ($cnv_fn(k), v)).collect()
             }
         }
         #[cfg(feature = "alloc")]
         impl<'a, K> FromIterator<(K, usize)> for $name<Vec<u8>>
         where
-            K: Borrow<[u8]>
+            K: AsRef<[u8]>
         {
             fn from_iter<T: IntoIterator<Item = (K, usize)>>(iter: T) -> Self {
                 use crate::builder::nonconst::ZeroTrieBuilder;
@@ -422,26 +422,39 @@ macro_rules! impl_zerotrie_subtype {
     };
 }
 
+#[cfg(feature = "alloc")]
+fn vec_u8_to_box_u8(input: Vec<u8>) -> Box<[u8]> {
+    input.into_boxed_slice()
+}
+
+#[cfg(feature = "alloc")]
+fn string_to_box_u8(input: String) -> Box<[u8]> {
+    input.into_boxed_str().into_boxed_bytes()
+}
+
 impl_zerotrie_subtype!(
     ZeroTrieSimpleAscii,
     SimpleAscii,
     get_bsearch_only,
-    AsciiStr,
-    get_iter_ascii_or_panic
+    String,
+    get_iter_ascii_or_panic,
+    string_to_box_u8
 );
 impl_zerotrie_subtype!(
     ZeroTriePerfectHash,
     PerfectHash,
     get_phf_limited,
-    [u8],
-    get_iter_phf
+    Vec<u8>,
+    get_iter_phf,
+    vec_u8_to_box_u8
 );
 impl_zerotrie_subtype!(
     ZeroTrieExtendedCapacity,
     ExtendedCapacity,
     get_phf_extended,
-    [u8],
-    get_iter_phf
+    Vec<u8>,
+    get_iter_phf,
+    vec_u8_to_box_u8
 );
 
 macro_rules! impl_dispatch {
@@ -539,11 +552,11 @@ impl ZeroTrie<Vec<u8>> {
 #[cfg(feature = "alloc")]
 impl<'a, K> FromIterator<(K, usize)> for ZeroTrie<Vec<u8>>
 where
-    K: Borrow<[u8]>,
+    K: AsRef<[u8]>,
 {
     fn from_iter<T: IntoIterator<Item = (K, usize)>>(iter: T) -> Self {
         let items = Vec::from_iter(iter);
-        let mut items: Vec<(&[u8], usize)> = items.iter().map(|(k, v)| (k.borrow(), *v)).collect();
+        let mut items: Vec<(&[u8], usize)> = items.iter().map(|(k, v)| (k.as_ref(), *v)).collect();
         items.sort();
         let byte_str_slice = ByteStr::from_byte_slice_with_value(&items);
         #[allow(clippy::unwrap_used)] // FromIterator is panicky

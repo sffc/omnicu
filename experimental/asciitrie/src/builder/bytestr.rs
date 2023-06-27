@@ -36,11 +36,21 @@ impl ByteStr {
     }
 
     pub fn from_bytes(input: &[u8]) -> &Self {
+        // Safety: [u8] and ByteStr have the same layout and invariants
         unsafe { core::mem::transmute(input) }
     }
 
     pub fn from_boxed_bytes(input: Box<[u8]>) -> Box<Self> {
+        // Safety: [u8] and ByteStr have the same layout and invariants
         unsafe { core::mem::transmute(input) }
+    }
+
+    pub fn from_str(input: &str) -> &Self {
+        Self::from_bytes(input.as_bytes())
+    }
+
+    pub fn empty() -> &'static Self {
+        Self::from_bytes(&[])
     }
 
     pub const fn as_bytes(&self) -> &[u8] {
@@ -62,6 +72,20 @@ impl ByteStr {
 
     pub(crate) const fn byte_at_or_panic(&self, index: usize) -> u8 {
         self.0[index]
+    }
+
+    pub(crate) const fn is_less_then(&self, other: &Self) -> bool {
+        let mut i = 0;
+        while i < self.len() && i < other.len() {
+            if self.0[i] < other.0[i] {
+                return true;
+            }
+            if self.0[i] > other.0[i] {
+                return false;
+            }
+            i += 1;
+        }
+        self.len() < other.len()
     }
 
     pub(crate) const fn prefix_eq(&self, other: &ByteStr, prefix_len: usize) -> bool {

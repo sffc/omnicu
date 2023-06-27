@@ -10,6 +10,9 @@ use core::ops::Range;
 #[cfg(feature = "alloc")]
 use crate::AsciiStr;
 
+#[cfg(feature = "alloc")]
+use alloc::string::String;
+
 /// Like slice::split_at but returns an Option instead of panicking.
 ///
 /// Debug-panics if `mid` is out of range.
@@ -368,7 +371,7 @@ impl<'a> ZeroTrieIterator<'a> {
 
 #[cfg(feature = "alloc")]
 impl<'a> Iterator for ZeroTrieIterator<'a> {
-    type Item = (Box<[u8]>, usize);
+    type Item = (Vec<u8>, usize);
     fn next(&mut self) -> Option<Self::Item> {
         let (mut trie, mut string, mut branch_idx);
         (trie, string, branch_idx) = self.state.pop()?;
@@ -400,7 +403,7 @@ impl<'a> Iterator for ZeroTrieIterator<'a> {
                 continue;
             }
             if matches!(byte_type, ByteType::Value) {
-                let retval = string.clone().into_boxed_slice();
+                let retval = string.clone();
                 // Return to this position on the next step
                 self.state.push((trie, string, 0));
                 return Some((retval, x));
@@ -436,7 +439,7 @@ impl<'a> Iterator for ZeroTrieIterator<'a> {
 #[cfg(feature = "alloc")]
 pub(crate) fn get_iter_phf<S: AsRef<[u8]> + ?Sized>(
     store: &S,
-) -> impl Iterator<Item = (Box<[u8]>, usize)> + '_ {
+) -> impl Iterator<Item = (Vec<u8>, usize)> + '_ {
     ZeroTrieIterator::new(store, true)
 }
 
@@ -445,10 +448,10 @@ pub(crate) fn get_iter_phf<S: AsRef<[u8]> + ?Sized>(
 #[cfg(feature = "alloc")]
 pub(crate) fn get_iter_ascii_or_panic<S: AsRef<[u8]> + ?Sized>(
     store: &S,
-) -> impl Iterator<Item = (Box<AsciiStr>, usize)> + '_ {
+) -> impl Iterator<Item = (String, usize)> + '_ {
     ZeroTrieIterator::new(store, false).map(|(k, v)| {
         #[allow(clippy::unwrap_used)] // in signature of function
-        let ascii_str = AsciiStr::try_from_boxed_bytes(k).unwrap();
+        let ascii_str = String::from_utf8(k).unwrap();
         (ascii_str, v)
     })
 }

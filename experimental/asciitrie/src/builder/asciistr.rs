@@ -78,6 +78,7 @@ const fn ascii_slice_to_bytes(ascii_slice: &[AsciiByte]) -> &[u8] {
     unsafe { core::mem::transmute(ascii_slice) }
 }
 
+/// A string that is always ASCII.
 #[repr(transparent)]
 #[derive(PartialEq, Eq, PartialOrd, Ord, RefCastCustom)]
 pub struct AsciiStr([AsciiByte]);
@@ -99,48 +100,48 @@ impl AsciiStr {
     }
 
     #[cfg(feature = "alloc")]
-    pub fn try_from_boxed_str(s: Box<str>) -> Result<Box<AsciiStr>, NonAsciiError> {
+    pub(crate) fn try_from_boxed_str(s: Box<str>) -> Result<Box<AsciiStr>, NonAsciiError> {
         Self::try_from_boxed_bytes(s.into_boxed_bytes())
     }
 
     #[cfg(feature = "alloc")]
-    pub fn try_from_boxed_bytes(bytes: Box<[u8]>) -> Result<Box<AsciiStr>, NonAsciiError> {
+    pub(crate) fn try_from_boxed_bytes(bytes: Box<[u8]>) -> Result<Box<AsciiStr>, NonAsciiError> {
         let boxed = try_boxed_ascii_slice_from_boxed_bytes(bytes)?;
         Ok(Self::from_boxed_ascii_slice(boxed))
     }
 
-    pub const fn try_from_bytes(bytes: &[u8]) -> Result<&Self, NonAsciiError> {
+    pub(crate) const fn try_from_bytes(bytes: &[u8]) -> Result<&Self, NonAsciiError> {
         match try_ascii_slice_from_bytes(bytes) {
             Ok(ascii_slice) => Ok(Self::from_ascii_slice(ascii_slice)),
             Err(e) => Err(e),
         }
     }
 
-    pub const fn try_from_str(s: &str) -> Result<&Self, NonAsciiError> {
+    pub(crate) const fn try_from_str(s: &str) -> Result<&Self, NonAsciiError> {
         Self::try_from_bytes(s.as_bytes())
     }
 
-    pub const fn from_bytes_or_panic(s: &[u8]) -> &Self {
+    pub(crate) const fn from_bytes_or_panic(s: &[u8]) -> &Self {
         match Self::try_from_bytes(s) {
             Ok(s) => s,
             Err(_) => panic!("Non-ASCII string passed to AsciiStr"),
         }
     }
 
-    pub const fn from_str_or_panic(s: &str) -> &Self {
+    pub(crate) const fn from_str_or_panic(s: &str) -> &Self {
         Self::from_bytes_or_panic(s.as_bytes())
     }
 
-    pub const fn empty() -> &'static AsciiStr {
+    pub(crate) const fn empty() -> &'static AsciiStr {
         Self::from_str_or_panic("")
     }
 
-    pub fn try_from_bytes_with_value<T>(tuple: (&[u8], T)) -> Result<(&Self, T), NonAsciiError> {
+    pub(crate) fn try_from_bytes_with_value<T>(tuple: (&[u8], T)) -> Result<(&Self, T), NonAsciiError> {
         let s = AsciiStr::try_from_bytes(tuple.0)?;
         Ok((s, tuple.1))
     }
 
-    pub fn try_from_str_with_value<T>(tuple: (&str, T)) -> Result<(&Self, T), NonAsciiError> {
+    pub(crate) fn try_from_str_with_value<T>(tuple: (&str, T)) -> Result<(&Self, T), NonAsciiError> {
         let s = AsciiStr::try_from_str(tuple.0)?;
         Ok((s, tuple.1))
     }

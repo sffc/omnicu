@@ -3,14 +3,15 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use super::super::branch_meta::BranchMeta;
-use super::super::AsciiByte;
-use super::super::AsciiStr;
+use super::super::bytestr::ByteStr;
 use super::store::const_for_each;
 use super::store::ConstArrayBuilder;
 use super::store::ConstLengthsStack;
 use super::store::ConstSlice;
 use crate::error::Error;
 use crate::varint;
+
+type AsciiByte = u8;
 
 /// A low-level builder for ZeroTrieSimpleAscii. Works in const contexts.
 pub(crate) struct ZeroTrieBuilderConst<const N: usize> {
@@ -35,7 +36,7 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
 
     #[must_use]
     const fn prepend_ascii(self, ascii: AsciiByte) -> (Self, usize) {
-        let data = self.data.const_push_front_or_panic(ascii.get());
+        let data = self.data.const_push_front_or_panic(ascii);
         (Self { data }, 1)
     }
 
@@ -87,16 +88,16 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
 
     /// Panics if the items are not sorted
     pub const fn from_tuple_slice<'a, const K: usize>(
-        items: &[(&'a AsciiStr, usize)],
+        items: &[(&'a ByteStr, usize)],
     ) -> Result<Self, Error> {
         let items = ConstSlice::from_slice(items);
-        let mut prev: Option<&'a AsciiStr> = None;
+        let mut prev: Option<&'a ByteStr> = None;
         const_for_each!(items, (ascii_str, _), {
             match prev {
                 None => (),
                 Some(prev) => {
                     if !prev.is_less_then(ascii_str) {
-                        panic!("Strings in AsciiStr constructor are not sorted");
+                        panic!("Strings in ByteStr constructor are not sorted");
                     }
                 }
             };
@@ -107,7 +108,7 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
 
     /// Assumes that the items are sorted
     pub const fn from_sorted_const_tuple_slice<'a, const K: usize>(
-        items: ConstSlice<(&'a AsciiStr, usize)>,
+        items: ConstSlice<(&'a ByteStr, usize)>,
     ) -> Result<Self, Error> {
         let mut result = Self::new();
         let total_size;
@@ -119,7 +120,7 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
     #[must_use]
     const fn create_or_panic<'a, const K: usize>(
         mut self,
-        all_items: ConstSlice<(&'a AsciiStr, usize)>,
+        all_items: ConstSlice<(&'a ByteStr, usize)>,
     ) -> (Self, usize) {
         let mut prefix_len = match all_items.last() {
             Some(x) => x.0.len(),
@@ -147,9 +148,9 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
             let mut new_j = j;
             let mut diff_i = 0;
             let mut diff_j = 0;
-            let mut ascii_i = item_i.0.ascii_at_or_panic(prefix_len);
-            let mut ascii_j = item_j.0.ascii_at_or_panic(prefix_len);
-            assert!(ascii_i.get() == ascii_j.get());
+            let mut ascii_i = item_i.0.byte_at_or_panic(prefix_len);
+            let mut ascii_j = item_j.0.byte_at_or_panic(prefix_len);
+            assert!(ascii_i == ascii_j);
             let key_ascii = ascii_i;
             loop {
                 if new_i == 0 {
@@ -169,8 +170,8 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
                     // A string of length prefix_len can't be preceded by another with that prefix
                     break;
                 }
-                let candidate = candidate.ascii_at_or_panic(prefix_len);
-                if candidate.get() != ascii_i.get() {
+                let candidate = candidate.byte_at_or_panic(prefix_len);
+                if candidate != ascii_i {
                     diff_i += 1;
                     ascii_i = candidate;
                 }
@@ -192,8 +193,8 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
                 if candidate.len() == prefix_len {
                     panic!("A shorter string should be earlier in the sequence");
                 }
-                let candidate = candidate.ascii_at_or_panic(prefix_len);
-                if candidate.get() != ascii_j.get() {
+                let candidate = candidate.byte_at_or_panic(prefix_len);
+                if candidate != ascii_j {
                     diff_j += 1;
                     ascii_j = candidate;
                 }
@@ -210,7 +211,7 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
             // Branch
             if diff_j == 0 {
                 lengths_stack = lengths_stack.push_or_panic(BranchMeta {
-                    ascii: key_ascii.get(),
+                    ascii: key_ascii,
                     cumulative_length: current_len,
                     local_length: current_len,
                     count: 1,
@@ -222,7 +223,7 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
                     ..
                 } = lengths_stack.peek_or_panic();
                 lengths_stack = lengths_stack.push_or_panic(BranchMeta {
-                    ascii: key_ascii.get(),
+                    ascii: key_ascii,
                     cumulative_length: cumulative_length + current_len,
                     local_length: current_len,
                     count: count + 1,

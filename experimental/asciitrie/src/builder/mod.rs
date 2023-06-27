@@ -15,6 +15,8 @@ pub(crate) use asciistr::AsciiByte;
 pub use asciistr::AsciiStr;
 pub use asciistr::NonAsciiError;
 
+use bytestr::ByteStr;
+
 use super::ZeroTrieSimpleAscii;
 
 impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
@@ -22,7 +24,7 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     ///
     /// This function needs to know the exact length of the resulting trie at compile time.
     ///
-    /// Also see [`Self::from_str_value_array`].
+    /// Also see [`Self::from_sorted_str_tuples`].
     ///
     /// # Panics
     ///
@@ -36,7 +38,7 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
     ///
     /// // The required capacity for this trie happens to be 17 bytes
-    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_sorted_u8_tuples(&[
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
@@ -50,9 +52,9 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     ///
     /// Panics if strings are not sorted:
     ///
-    /// ```compile_fail
+    /// ```
     /// # use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
-    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_sorted_u8_tuples(&[
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
@@ -61,9 +63,9 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     ///
     /// Panics if capacity is too small:
     ///
-    /// ```compile_fail
+    /// ```
     /// # use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
-    /// const TRIE: ZeroTrieSimpleAscii<[u8; 15]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 15]> = ZeroTrieSimpleAscii::from_sorted_u8_tuples(&[
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
@@ -72,17 +74,18 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     ///
     /// Panics if capacity is too large:
     ///
-    /// ```compile_fail
+    /// ```
     /// # use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
-    /// const TRIE: ZeroTrieSimpleAscii<[u8; 20]> = ZeroTrieSimpleAscii::from_asciistr_value_slice(&[
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 20]> = ZeroTrieSimpleAscii::from_sorted_u8_tuples(&[
     ///     (AsciiStr::from_str_or_panic("bar"), 2),
     ///     (AsciiStr::from_str_or_panic("bazzoo"), 3),
     ///     (AsciiStr::from_str_or_panic("foo"), 1),
     /// ]);
     /// ```
-    pub const fn from_asciistr_value_slice(items: &[(&AsciiStr, usize)]) -> Self {
+    pub const fn from_sorted_u8_tuples(tuples: &[(&[u8], usize)]) -> Self {
         use konst::*;
-        let result = ZeroTrieBuilderConst::<N>::from_tuple_slice::<100>(items);
+        let byte_str_slice = ByteStr::from_byte_slice_with_value(&tuples);
+        let result = ZeroTrieBuilderConst::<N>::from_tuple_slice::<100>(byte_str_slice);
         match result {
             Ok(s) => Self::from_store(s.take_or_panic()),
             Err(_) => panic!("Failed to build ZeroTrie"),
@@ -93,7 +96,7 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     ///
     /// This function needs to know the exact length of the resulting trie at compile time.
     ///
-    /// Also see [`Self::from_asciistr_value_slice`].
+    /// Also see [`Self::from_sorted_u8_tuples`].
     ///
     /// # Panics
     ///
@@ -108,7 +111,7 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     /// use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
     ///
     /// // The required capacity for this trie happens to be 17 bytes
-    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_str_value_array([
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_sorted_str_tuples(&[
     ///     ("bar", 2),
     ///     ("bazzoo", 3),
     ///     ("foo", 1),
@@ -122,22 +125,21 @@ impl<const N: usize> ZeroTrieSimpleAscii<[u8; N]> {
     ///
     /// Panics if the strings are not ASCII:
     ///
-    /// ```compile_fail
+    /// ```
     /// # use asciitrie::{ZeroTrieSimpleAscii, AsciiStr};
-    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_str_value_array([
+    /// const TRIE: ZeroTrieSimpleAscii<[u8; 17]> = ZeroTrieSimpleAscii::from_sorted_str_tuples(&[
     ///     ("bár", 2),
     ///     ("båzzöo", 3),
     ///     ("foo", 1),
     /// ]);
     /// ```
-    pub const fn from_str_value_array<const M: usize>(items: [(&str, usize); M]) -> Self {
-        let mut asciistr_array = [(AsciiStr::empty(), 0); M];
-        let mut i = 0;
-        while i < items.len() {
-            asciistr_array[i].0 = AsciiStr::from_str_or_panic(items[i].0);
-            asciistr_array[i].1 = items[i].1;
-            i += 1;
+    pub const fn from_sorted_str_tuples(tuples: &[(&str, usize)]) -> Self {
+        use konst::*;
+        let byte_str_slice = ByteStr::from_str_slice_with_value(&tuples);
+        let result = ZeroTrieBuilderConst::<N>::from_tuple_slice::<100>(byte_str_slice);
+        match result {
+            Ok(s) => Self::from_store(s.take_or_panic()),
+            Err(_) => panic!("Failed to build ZeroTrie"),
         }
-        Self::from_asciistr_value_slice(&asciistr_array)
     }
 }

@@ -111,14 +111,14 @@ impl<S: TrieBuilderStore> ZeroTrieBuilder<S> {
     }
 
     /// Builds a ZeroTrie from an iterator of bytes. It first collects and sorts the iterator.
-    pub fn from_bytes_iter<'a, K: Borrow<[u8]>, I: IntoIterator<Item = (K, usize)>>(
+    pub fn from_bytes_iter<'a, K: AsRef<[u8]>, I: IntoIterator<Item = (K, usize)>>(
         iter: I,
         options: ZeroTrieBuilderOptions,
     ) -> Result<Self, Error> {
         let items = Vec::<(K, usize)>::from_iter(iter);
         let mut items = items
             .iter()
-            .map(|(k, v)| (k.borrow(), *v))
+            .map(|(k, v)| (k.as_ref(), *v))
             .collect::<Vec<(&[u8], usize)>>();
         items.sort();
         let ascii_str_slice = items.as_slice();

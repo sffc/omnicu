@@ -24,13 +24,13 @@ use single_byte_branch_equal as single_byte_short_match;
 #[allow(dead_code)]
 pub fn strings_to_litemap<'a>(
     strings: &[&'a str],
-) -> Result<LiteMap<&'a AsciiStr, usize>, NonAsciiError> {
+) -> LiteMap<&'a [u8], usize> {
     strings
         .iter()
         .copied()
-        .map(AsciiStr::try_from_str)
+        .map(|x| x.as_bytes())
         .enumerate()
-        .map(|(i, s)| s.map(|s| (s, i)))
+        .map(|(i, s)| (s, i))
         .collect()
 }
 
@@ -74,14 +74,14 @@ pub mod basic {
         b'n',
         single_byte_short_value(7),
     ];
-    pub static DATA_ASCII: &[(&AsciiStr, usize)] = &[
-        (AsciiStr::from_str_or_panic("ab"), 1),
-        (AsciiStr::from_str_or_panic("abc"), 2),
-        (AsciiStr::from_str_or_panic("abcd"), 3),
-        (AsciiStr::from_str_or_panic("abcdghi"), 4),
-        (AsciiStr::from_str_or_panic("abcejk"), 5),
-        (AsciiStr::from_str_or_panic("abcfl"), 6),
-        (AsciiStr::from_str_or_panic("abcfmn"), 7),
+    pub static DATA_ASCII: &[(&[u8], usize)] = &[
+        (b"ab", 1),
+        (b"abc", 2),
+        (b"abcd", 3),
+        (b"abcdghi", 4),
+        (b"abcejk", 5),
+        (b"abcfl", 6),
+        (b"abcfmn", 7),
     ];
 
     pub static TRIE_UNICODE: &[u8] = &[

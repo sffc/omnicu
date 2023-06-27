@@ -29,12 +29,12 @@ fn test_basic() {
 
     // Check that the getter works
     for (key, expected) in data_ascii {
-        let actual = match trie_ascii.get(key.as_bytes()) {
+        let actual = match trie_ascii.get(key) {
             Some(v) => v,
             None => panic!("value should be in trie: {:?} => {}", key, expected),
         };
         assert_eq!(*expected, actual);
-        let actual = match trie_phf_ascii.get(key.as_bytes()) {
+        let actual = match trie_phf_ascii.get(key) {
             Some(v) => v,
             None => panic!("value should be in trie6: {:?} => {}", key, expected),
         };
