@@ -15,10 +15,10 @@
 //! ```
 //! use asciitrie::ZeroTrie;
 //!
-//! let data: &[(&[u8], usize)] = &[
-//!     (b"abc", 11),
-//!     (b"xyz", 22),
-//!     (b"axyb", 33),
+//! let data: &[(&str, usize)] = &[
+//!     ("abc", 11),
+//!     ("xyz", 22),
+//!     ("axyb", 33),
 //! ];
 //!
 //! let trie: ZeroTrie<Vec<u8>> = data.iter().copied().collect();

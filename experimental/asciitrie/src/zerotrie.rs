@@ -43,12 +43,12 @@ use litemap::LiteMap;
 ///
 /// let trie = ZeroTrie::try_from(&map).unwrap();
 ///
-/// assert_eq!(trie.get("foo".as_bytes()), Some(1));
-/// assert_eq!(trie.get("bar".as_bytes()), Some(2));
-/// assert_eq!(trie.get("bazzoo".as_bytes()), Some(3));
-/// assert_eq!(trie.get("unknown".as_bytes()), None);
+/// assert_eq!(trie.get("foo"), Some(1));
+/// assert_eq!(trie.get("bar"), Some(2));
+/// assert_eq!(trie.get("bazzoo"), Some(3));
+/// assert_eq!(trie.get("unknown"), None);
 ///
-/// # Ok::<_, asciitrie::NonAsciiError>(())
+/// # Ok::<_, asciitrie::AsciiTrieError>(())
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ZeroTrie<S>(pub(crate) ZeroTrieInner<S>);
@@ -65,14 +65,13 @@ pub(crate) enum ZeroTrieInner<S> {
 /// # Examples
 ///
 /// ```
-/// use asciitrie::AsciiStr;
 /// use asciitrie::ZeroTrieSimpleAscii;
 /// use litemap::LiteMap;
 ///
 /// let mut map = LiteMap::new_vec();
-/// map.insert(AsciiStr::try_from_str("foo")?, 1);
-/// map.insert(AsciiStr::try_from_str("bar")?, 2);
-/// map.insert(AsciiStr::try_from_str("bazzoo")?, 3);
+/// map.insert(&b"foo"[..], 1);
+/// map.insert(b"bar", 2);
+/// map.insert(b"bazzoo", 3);
 ///
 /// let trie = ZeroTrieSimpleAscii::try_from(&map).unwrap();
 ///
@@ -81,7 +80,7 @@ pub(crate) enum ZeroTrieInner<S> {
 /// assert_eq!(trie.get(b"bazzoo"), Some(3));
 /// assert_eq!(trie.get(b"unknown"), None);
 ///
-/// # Ok::<_, asciitrie::NonAsciiError>(())
+/// # Ok::<_, asciitrie::AsciiTrieError>(())
 /// ```
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
@@ -109,7 +108,7 @@ pub struct ZeroTrieSimpleAscii<S: ?Sized> {
 /// assert_eq!(trie.get("båzzøø".as_bytes()), Some(3));
 /// assert_eq!(trie.get("bazzoo".as_bytes()), None);
 ///
-/// # Ok::<_, asciitrie::NonAsciiError>(())
+/// # Ok::<_, asciitrie::AsciiTrieError>(())
 /// ```
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
@@ -291,12 +290,10 @@ macro_rules! impl_zerotrie_subtype {
             /// let items = trie.to_btreemap();
             ///
             /// assert_eq!(items.len(), 2);
-            /// assert_eq!(items.get("abc".as_bytes()), Some(&1));
-            /// assert_eq!(items.get("abcdef".as_bytes()), Some(&2));
             ///
-            #[doc = concat!("let recovered_trie = ", stringify!($name), "::try_from(")]
-            ///     &items
-            /// ).unwrap();
+            #[doc = concat!("let recovered_trie: ", stringify!($name), "<Vec<u8>> = items")]
+            ///     .into_iter()
+            ///     .collect();
             /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
             /// ```
             pub fn to_btreemap(&self) -> BTreeMap<$iter_ty, usize> {
@@ -363,20 +360,18 @@ macro_rules! impl_zerotrie_subtype {
             /// # Examples
             ///
             /// ```
-            /// use asciitrie::AsciiStr;
             #[doc = concat!("use asciitrie::", stringify!($name), ";")]
             /// use litemap::LiteMap;
             ///
             #[doc = concat!("let trie = ", stringify!($name), "::from_bytes(b\"abc\\x81def\\x82\");")]
+            ///
             /// let items = trie.to_litemap();
-            ///
             /// assert_eq!(items.len(), 2);
-            /// assert_eq!(items.get("abc".as_bytes()), Some(&1));
-            /// assert_eq!(items.get("abcdef".as_bytes()), Some(&2));
             ///
-            #[doc = concat!("let recovered_trie = ", stringify!($name), "::try_from(")]
-            ///     &items
-            /// ).unwrap();
+            #[doc = concat!("let recovered_trie: ", stringify!($name), "<Vec<u8>> = items")]
+            ///     .iter()
+            ///     .map(|(k, v)| (k, *v))
+            ///     .collect();
             /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
             /// ```
             pub fn to_litemap(&self) -> LiteMap<$iter_ty, usize> {

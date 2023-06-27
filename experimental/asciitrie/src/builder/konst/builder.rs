@@ -11,8 +11,6 @@ use super::store::ConstSlice;
 use crate::error::Error;
 use crate::varint;
 
-type AsciiByte = u8;
-
 /// A low-level builder for ZeroTrieSimpleAscii. Works in const contexts.
 pub(crate) struct ZeroTrieBuilderConst<const N: usize> {
     data: ConstArrayBuilder<N, u8>,
@@ -35,7 +33,10 @@ impl<const N: usize> ZeroTrieBuilderConst<N> {
     }
 
     #[must_use]
-    const fn prepend_ascii(self, ascii: AsciiByte) -> (Self, usize) {
+    const fn prepend_ascii(self, ascii: u8) -> (Self, usize) {
+        if ascii >= 128 {
+            panic!("Non-ASCII not supported in ZeroTrieSimpleAscii");
+        }
         let data = self.data.const_push_front_or_panic(ascii);
         (Self { data }, 1)
     }
