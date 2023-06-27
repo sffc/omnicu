@@ -2,14 +2,17 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::AsciiStr;
-use crate::NonAsciiError;
+#[cfg(feature = "alloc")]
+use crate::{AsciiStr, NonAsciiError};
+
+#[cfg(feature = "alloc")]
+use alloc::{borrow::Borrow, boxed::Box};
 
 #[repr(transparent)]
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
-// #[derive(ref_cast::RefCastCustom)]
 pub(crate) struct ByteStr([u8]);
 
+#[cfg(feature = "alloc")] // impls only needed with the nonconst builder
 impl ByteStr {
     pub const fn from_ascii_str_slice_with_value<'a, 'l>(
         input: &'l [(&'a AsciiStr, usize)],
@@ -23,6 +26,25 @@ impl ByteStr {
     ) -> &'l [(&'a ByteStr, usize)] {
         // Safety: [u8] and ByteStr have the same layout and invariants
         unsafe { core::mem::transmute(input) }
+    }
+
+    pub const fn from_str_slice_with_value<'a, 'l>(
+        input: &'l [(&'a str, usize)],
+    ) -> &'l [(&'a ByteStr, usize)] {
+        // Safety: str and ByteStr have the same layout, and ByteStr is less restrictive
+        unsafe { core::mem::transmute(input) }
+    }
+
+    pub fn from_bytes(input: &[u8]) -> &Self {
+        unsafe { core::mem::transmute(input) }
+    }
+
+    pub fn from_boxed_bytes(input: Box<[u8]>) -> Box<Self> {
+        unsafe { core::mem::transmute(input) }
+    }
+
+    pub const fn as_bytes(&self) -> &[u8] {
+        &self.0
     }
 
     pub const fn len(&self) -> usize {
@@ -53,5 +75,18 @@ impl ByteStr {
             i += 1;
         }
         return true;
+    }
+}
+
+impl Borrow<[u8]> for ByteStr {
+    fn borrow(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl Borrow<[u8]> for alloc::boxed::Box<ByteStr> {
+    fn borrow(&self) -> &[u8] {
+        self.as_bytes()
     }
 }

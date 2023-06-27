@@ -2,12 +2,14 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::builder::bytestr::ByteStr;
 use crate::zerotrie::ZeroTrieInner;
 use crate::AsciiStr;
 use crate::ZeroTrie;
 use crate::ZeroTrieExtendedCapacity;
 use crate::ZeroTriePerfectHash;
 use crate::ZeroTrieSimpleAscii;
+use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -82,29 +84,8 @@ impl Serialize for Box<AsciiStr> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum BytesOrStr<'a> {
-    Borrowed(&'a [u8]),
-    Owned(Box<[u8]>),
-}
-
-impl BytesOrStr<'_> {
-    pub fn as_bytes(&self) -> &[u8] {
-        match self {
-            Self::Borrowed(s) => &s,
-            Self::Owned(s) => &s,
-        }
-    }
-}
-
-impl Borrow<[u8]> for BytesOrStr<'_> {
-    fn borrow(&self) -> &[u8] {
-        self.as_bytes()
-    }
-}
-
-struct BytesOrStrVisitor;
-impl<'de> Visitor<'de> for BytesOrStrVisitor {
+struct ByteStrVisitor;
+impl<'de> Visitor<'de> for ByteStrVisitor {
     type Value = Box<[u8]>;
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "a slice of borrowed bytes or a string")
@@ -127,7 +108,20 @@ impl<'de> Visitor<'de> for BytesOrStrVisitor {
     }
 }
 
-impl<'de, 'data> Deserialize<'de> for BytesOrStr<'data>
+impl<'de, 'data> Deserialize<'de> for &'data ByteStr
+where
+    'de: 'data,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = <&'data [u8]>::deserialize(deserializer)?;
+        Ok(ByteStr::from_bytes(s))
+    }
+}
+
+impl<'de, 'data> Deserialize<'de> for Box<ByteStr>
 where
     'de: 'data,
 {
@@ -136,16 +130,16 @@ where
         D: Deserializer<'de>,
     {
         if deserializer.is_human_readable() {
-            let s = deserializer.deserialize_any(BytesOrStrVisitor)?;
-            Ok(BytesOrStr::Owned(s))
+            let s = deserializer.deserialize_any(ByteStrVisitor)?;
+            Ok(ByteStr::from_boxed_bytes(s))
         } else {
-            let s = <&'data [u8]>::deserialize(deserializer)?;
-            Ok(BytesOrStr::Borrowed(s))
+            let s = Vec::<u8>::deserialize(deserializer)?;
+            Ok(ByteStr::from_boxed_bytes(s.into_boxed_slice()))
         }
     }
 }
 
-impl<'data> Serialize for BytesOrStr<'data> {
+impl<'data> Serialize for &'data ByteStr {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -176,8 +170,8 @@ where
         D: Deserializer<'de>,
     {
         if deserializer.is_human_readable() {
-            let lm = LiteMap::<&AsciiStr, usize>::deserialize(deserializer)?;
-            ZeroTrieSimpleAscii::try_from_litemap(&lm)
+            let lm = LiteMap::<Box<ByteStr>, usize>::deserialize(deserializer)?;
+            ZeroTrieSimpleAscii::try_from_serde_litemap(&lm)
                 .map_err(|e| D::Error::custom(e))
                 .map(|trie| trie.map_store())
         } else {
@@ -217,9 +211,8 @@ where
         D: Deserializer<'de>,
     {
         if deserializer.is_human_readable() {
-            let lm = LiteMap::<BytesOrStr, usize>::deserialize(deserializer)?;
-            let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            ZeroTriePerfectHash::try_from_litemap(&lm)
+            let lm = LiteMap::<Box<ByteStr>, usize>::deserialize(deserializer)?;
+            ZeroTriePerfectHash::try_from_serde_litemap(&lm)
                 .map_err(|e| D::Error::custom(e))
                 .map(|trie| trie.map_store())
         } else {
@@ -243,7 +236,7 @@ where
             let lm = self.to_litemap();
             let lm = lm
                 .iter()
-                .map(|(k, v)| (BytesOrStr::Borrowed(k), v))
+                .map(|(k, v)| (ByteStr::from_bytes(k), v))
                 .collect::<LiteMap<_, _>>();
             lm.serialize(serializer)
         } else {
@@ -263,9 +256,8 @@ where
         D: Deserializer<'de>,
     {
         if deserializer.is_human_readable() {
-            let lm = LiteMap::<BytesOrStr, usize>::deserialize(deserializer)?;
-            let lm = lm.to_borrowed_keys::<_, Vec<_>>();
-            ZeroTrieExtendedCapacity::try_from_litemap(&lm)
+            let lm = LiteMap::<Box<ByteStr>, usize>::deserialize(deserializer)?;
+            ZeroTrieExtendedCapacity::try_from_serde_litemap(&lm)
                 .map_err(|e| D::Error::custom(e))
                 .map(|trie| trie.map_store())
         } else {
@@ -289,7 +281,7 @@ where
             let lm = self.to_litemap();
             let lm = lm
                 .iter()
-                .map(|(k, v)| (BytesOrStr::Borrowed(k), v))
+                .map(|(k, v)| (ByteStr::from_bytes(k), v))
                 .collect::<LiteMap<_, _>>();
             lm.serialize(serializer)
         } else {
@@ -319,7 +311,7 @@ where
         D: Deserializer<'de>,
     {
         if deserializer.is_human_readable() {
-            let lm = LiteMap::<BytesOrStr, usize>::deserialize(deserializer)?;
+            let lm = LiteMap::<Box<ByteStr>, usize>::deserialize(deserializer)?;
             ZeroTrie::try_from_litemap(&lm)
                 .map_err(|e| D::Error::custom(e))
                 .map(|trie| trie.map_store())
@@ -358,7 +350,7 @@ where
             let lm = self.to_litemap();
             let lm = lm
                 .iter()
-                .map(|(k, v)| (BytesOrStr::Borrowed(k), v))
+                .map(|(k, v)| (ByteStr::from_bytes(k), v))
                 .collect::<LiteMap<_, _>>();
             lm.serialize(serializer)
         } else {

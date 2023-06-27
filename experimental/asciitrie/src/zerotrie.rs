@@ -8,7 +8,9 @@ use core::borrow::Borrow;
 use ref_cast::RefCast;
 
 #[cfg(feature = "alloc")]
-use crate::{builder::nonconst::ZeroTrieBuilder, builder::bytestr::ByteStr, error::Error, AsciiStr};
+use crate::{
+    builder::bytestr::ByteStr, builder::nonconst::ZeroTrieBuilder, error::Error, AsciiStr,
+};
 #[cfg(feature = "alloc")]
 use alloc::{boxed::Box, collections::BTreeMap, collections::VecDeque, vec::Vec};
 #[cfg(feature = "litemap")]
@@ -35,6 +37,28 @@ pub(crate) enum ZeroTrieInner<S> {
 }
 
 /// A data structure that compactly maps from ASCII strings to integers.
+///
+/// # Examples
+///
+/// ```
+/// use asciitrie::AsciiStr;
+/// use asciitrie::ZeroTrieSimpleAscii;
+/// use litemap::LiteMap;
+///
+/// let mut map = LiteMap::new_vec();
+/// map.insert(AsciiStr::try_from_str("foo")?, 1);
+/// map.insert(AsciiStr::try_from_str("bar")?, 2);
+/// map.insert(AsciiStr::try_from_str("bazzoo")?, 3);
+///
+/// let trie = ZeroTrieSimpleAscii::try_from(&map).unwrap();
+///
+/// assert_eq!(trie.get(b"foo"), Some(1));
+/// assert_eq!(trie.get(b"bar"), Some(2));
+/// assert_eq!(trie.get(b"bazzoo"), Some(3));
+/// assert_eq!(trie.get(b"unknown"), None);
+///
+/// # Ok::<_, asciitrie::NonAsciiError>(())
+/// ```
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
 pub struct ZeroTrieSimpleAscii<S: ?Sized> {
@@ -42,6 +66,27 @@ pub struct ZeroTrieSimpleAscii<S: ?Sized> {
 }
 
 /// A data structure that compactly maps from byte strings to integers.
+///
+/// # Examples
+///
+/// ```
+/// use asciitrie::ZeroTriePerfectHash;
+/// use litemap::LiteMap;
+///
+/// let mut map = LiteMap::<&[u8], usize>::new_vec();
+/// map.insert("foo".as_bytes(), 1);
+/// map.insert("bår".as_bytes(), 2);
+/// map.insert("båzzøø".as_bytes(), 3);
+///
+/// let trie = ZeroTriePerfectHash::try_from(&map).unwrap();
+///
+/// assert_eq!(trie.get("foo".as_bytes()), Some(1));
+/// assert_eq!(trie.get("bår".as_bytes()), Some(2));
+/// assert_eq!(trie.get("båzzøø".as_bytes()), Some(3));
+/// assert_eq!(trie.get("bazzoo".as_bytes()), None);
+///
+/// # Ok::<_, asciitrie::NonAsciiError>(())
+/// ```
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, ref_cast::RefCast)]
 pub struct ZeroTriePerfectHash<S: ?Sized> {
@@ -86,6 +131,7 @@ macro_rules! impl_zerotrie_subtype {
         {
             /// Queries the trie for a string.
             pub fn get<K>(&self, key: K) -> Option<usize> where K: AsRef<[u8]> {
+                // TODO: Should this be AsRef or Borrow?
                 $getter_fn(self.store.as_ref(), key.as_ref())
             }
             /// Returns `true` if the trie is empty.
@@ -165,6 +211,10 @@ macro_rules! impl_zerotrie_subtype {
                 .map(|s| Self {
                     store: s.to_bytes(),
                 })
+            }
+            pub(crate) fn try_from_serde_litemap(items: &LiteMap<Box<ByteStr>, usize>) -> Result<Self, Error> {
+                let lm_borrowed: LiteMap<&ByteStr, usize> = items.to_borrowed_keys();
+                Self::try_from_tuple_slice(lm_borrowed.as_slice())
             }
         }
         #[cfg(feature = "alloc")]
@@ -298,8 +348,8 @@ macro_rules! impl_zerotrie_subtype {
             /// assert_eq!(items.get("abc".as_bytes()), Some(&1));
             /// assert_eq!(items.get("abcdef".as_bytes()), Some(&2));
             ///
-            #[doc = concat!("let recovered_trie = ", stringify!($name), "::try_from_litemap(")]
-            ///     &items.to_borrowed_keys::<_, Vec<_>>()
+            #[doc = concat!("let recovered_trie = ", stringify!($name), "::try_from(")]
+            ///     &items
             /// ).unwrap();
             /// assert_eq!(trie.as_bytes(), recovered_trie.as_bytes());
             /// ```
