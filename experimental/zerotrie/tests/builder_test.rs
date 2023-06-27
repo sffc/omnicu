@@ -2,9 +2,9 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use litemap::LiteMap;
 use zerotrie::ZeroTriePerfectHash;
 use zerotrie::ZeroTrieSimpleAscii;
-use litemap::LiteMap;
 
 mod testdata {
     include!("data.rs");
@@ -13,16 +13,7 @@ mod testdata {
 use testdata::strings_to_litemap;
 
 const NON_EXISTENT_STRINGS: &[&str] = &[
-    "a9PS",
-    "ahsY",
-    "ahBO",
-    "a8IN",
-    "xk8o",
-    "xv1l",
-    "xI2S",
-    "618y",
-    "d6My",
-    "uszy",
+    "a9PS", "ahsY", "ahBO", "a8IN", "xk8o", "xv1l", "xI2S", "618y", "d6My", "uszy",
 ];
 
 macro_rules! assert_bytes_eq {
@@ -195,12 +186,7 @@ fn test_single_string() {
 
 #[test]
 fn test_prefix_strings() {
-    let litemap: LiteMap<&[u8], usize> = [
-        (&b"x"[..], 0),
-        (b"xy", 1),
-    ]
-    .into_iter()
-    .collect();
+    let litemap: LiteMap<&[u8], usize> = [(&b"x"[..], 0), (b"xy", 1)].into_iter().collect();
     let trie = ZeroTrieSimpleAscii::try_from(&litemap.as_sliced()).unwrap();
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"xyz"), None);
@@ -216,12 +202,7 @@ fn test_prefix_strings() {
 
 #[test]
 fn test_single_byte_branch() {
-    let litemap: LiteMap<&[u8], usize> = [
-        (&b"x"[..], 0),
-        (b"y", 1),
-    ]
-    .into_iter()
-    .collect();
+    let litemap: LiteMap<&[u8], usize> = [(&b"x"[..], 0), (b"y", 1)].into_iter().collect();
     let trie = ZeroTrieSimpleAscii::try_from(&litemap.as_sliced()).unwrap();
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"xy"), None);
@@ -237,12 +218,7 @@ fn test_single_byte_branch() {
 
 #[test]
 fn test_multi_byte_branch() {
-    let litemap: LiteMap<&[u8], usize> = [
-        (&b"axb"[..], 0),
-        (b"ayc", 1),
-    ]
-    .into_iter()
-    .collect();
+    let litemap: LiteMap<&[u8], usize> = [(&b"axb"[..], 0), (b"ayc", 1)].into_iter().collect();
     let trie = ZeroTrieSimpleAscii::try_from(&litemap.as_sliced()).unwrap();
     assert_eq!(trie.get(b""), None);
     assert_eq!(trie.get(b"a"), None);
@@ -262,13 +238,9 @@ fn test_multi_byte_branch() {
 
 #[test]
 fn test_linear_varint_values() {
-    let litemap: LiteMap<&[u8], usize> = [
-        (&b""[..], 100),
-        (b"x", 500),
-        (b"xyz", 5000),
-    ]
-    .into_iter()
-    .collect();
+    let litemap: LiteMap<&[u8], usize> = [(&b""[..], 100), (b"x", 500), (b"xyz", 5000)]
+        .into_iter()
+        .collect();
     let trie = ZeroTrieSimpleAscii::try_from(&litemap.as_sliced()).unwrap();
     assert_eq!(trie.get(b"xy"), None);
     assert_eq!(trie.get(b"xz"), None);
@@ -285,8 +257,7 @@ fn test_linear_varint_values() {
 
 #[test]
 fn test_varint_branch() {
-    let chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     let litemap: LiteMap<&[u8], usize> = (0..chars.len())
         .map(|i| (chars.get(i..i + 1).unwrap().as_bytes(), i))
         .collect();
@@ -369,42 +340,15 @@ fn test_varint_branch() {
 #[test]
 fn test_below_wide() {
     let litemap: LiteMap<&[u8], usize> = [
-        (
-            &b"abcdefghijklmnopqrstuvwxyz"[..],
-            1,
-        ),
-        (
-            b"bcdefghijklmnopqrstuvwxyza",
-            2,
-        ),
-        (
-            b"cdefghijklmnopqrstuvwxyzab",
-            3,
-        ),
-        (
-            b"defghijklmnopqrstuvwxyzabc",
-            4,
-        ),
-        (
-            b"efghijklmnopqrstuvwxyzabcd",
-            5,
-        ),
-        (
-            b"fghijklmnopqrstuvwxyzabcde",
-            6,
-        ),
-        (
-            b"ghijklmnopqrstuvwxyzabcdef",
-            7,
-        ),
-        (
-            b"hijklmnopqrstuvwxyzabcdefg",
-            8,
-        ),
-        (
-            b"ijklmnopqrstuvwxyzabcdefgh",
-            9,
-        ),
+        (&b"abcdefghijklmnopqrstuvwxyz"[..], 1),
+        (b"bcdefghijklmnopqrstuvwxyza", 2),
+        (b"cdefghijklmnopqrstuvwxyzab", 3),
+        (b"defghijklmnopqrstuvwxyzabc", 4),
+        (b"efghijklmnopqrstuvwxyzabcd", 5),
+        (b"fghijklmnopqrstuvwxyzabcde", 6),
+        (b"ghijklmnopqrstuvwxyzabcdef", 7),
+        (b"hijklmnopqrstuvwxyzabcdefg", 8),
+        (b"ijklmnopqrstuvwxyzabcdefgh", 9),
         (b"jklmnopqrstuvwxyzabcd", 10),
     ]
     .into_iter()
@@ -458,46 +402,16 @@ fn test_below_wide() {
 #[test]
 fn test_at_wide() {
     let litemap: LiteMap<&[u8], usize> = [
-        (
-            &b"abcdefghijklmnopqrstuvwxyz"[..],
-            1,
-        ),
-        (
-            b"bcdefghijklmnopqrstuvwxyza",
-            2,
-        ),
-        (
-            b"cdefghijklmnopqrstuvwxyzab",
-            3,
-        ),
-        (
-            b"defghijklmnopqrstuvwxyzabc",
-            4,
-        ),
-        (
-            b"efghijklmnopqrstuvwxyzabcd",
-            5,
-        ),
-        (
-            b"fghijklmnopqrstuvwxyzabcde",
-            6,
-        ),
-        (
-            b"ghijklmnopqrstuvwxyzabcdef",
-            7,
-        ),
-        (
-            b"hijklmnopqrstuvwxyzabcdefg",
-            8,
-        ),
-        (
-            b"ijklmnopqrstuvwxyzabcdefgh",
-            9,
-        ),
-        (
-            b"jklmnopqrstuvwxyzabcde",
-            10,
-        ),
+        (&b"abcdefghijklmnopqrstuvwxyz"[..], 1),
+        (b"bcdefghijklmnopqrstuvwxyza", 2),
+        (b"cdefghijklmnopqrstuvwxyzab", 3),
+        (b"defghijklmnopqrstuvwxyzabc", 4),
+        (b"efghijklmnopqrstuvwxyzabcd", 5),
+        (b"fghijklmnopqrstuvwxyzabcde", 6),
+        (b"ghijklmnopqrstuvwxyzabcdef", 7),
+        (b"hijklmnopqrstuvwxyzabcdefg", 8),
+        (b"ijklmnopqrstuvwxyzabcdefgh", 9),
+        (b"jklmnopqrstuvwxyzabcde", 10),
     ]
     .into_iter()
     .collect();
@@ -552,46 +466,16 @@ fn test_at_wide() {
 #[test]
 fn test_at_wide_plus() {
     let litemap: LiteMap<&[u8], usize> = [
-        (
-            &b"abcdefghijklmnopqrstuvwxyz"[..],
-            1,
-        ),
-        (
-            b"bcdefghijklmnopqrstuvwxyza",
-            2,
-        ),
-        (
-            b"cdefghijklmnopqrstuvwxyzab",
-            3,
-        ),
-        (
-            b"defghijklmnopqrstuvwxyzabc",
-            4,
-        ),
-        (
-            b"efghijklmnopqrstuvwxyzabcd",
-            5,
-        ),
-        (
-            b"fghijklmnopqrstuvwxyzabcde",
-            6,
-        ),
-        (
-            b"ghijklmnopqrstuvwxyzabcdef",
-            7,
-        ),
-        (
-            b"hijklmnopqrstuvwxyzabcdefg",
-            8,
-        ),
-        (
-            b"ijklmnopqrstuvwxyzabcdefgh",
-            9,
-        ),
-        (
-            b"jklmnopqrstuvwxyzabcdef",
-            10,
-        ),
+        (&b"abcdefghijklmnopqrstuvwxyz"[..], 1),
+        (b"bcdefghijklmnopqrstuvwxyza", 2),
+        (b"cdefghijklmnopqrstuvwxyzab", 3),
+        (b"defghijklmnopqrstuvwxyzabc", 4),
+        (b"efghijklmnopqrstuvwxyzabcd", 5),
+        (b"fghijklmnopqrstuvwxyzabcde", 6),
+        (b"ghijklmnopqrstuvwxyzabcdef", 7),
+        (b"hijklmnopqrstuvwxyzabcdefg", 8),
+        (b"ijklmnopqrstuvwxyzabcdefgh", 9),
+        (b"jklmnopqrstuvwxyzabcdef", 10),
     ]
     .into_iter()
     .collect();
@@ -748,27 +632,19 @@ fn test_everything() {
     assert_bytes_eq!(36, trie_phf.as_bytes(), expected_bytes);
     check_phf_ascii_trie(&litemap, &trie_phf);
 
-    let zhm: zerovec::ZeroMap<[u8], usize> =
-        litemap.iter().map(|(a, b)| (*a, b)).collect();
+    let zhm: zerovec::ZeroMap<[u8], usize> = litemap.iter().map(|(a, b)| (*a, b)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 75);
 
-    let zhm: zerovec::ZeroMap<[u8], u8> = litemap
-        .iter()
-        .map(|(a, b)| (*a, *b as u8))
-        .collect();
+    let zhm: zerovec::ZeroMap<[u8], u8> = litemap.iter().map(|(a, b)| (*a, *b as u8)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 65);
 
-    let zhm: zerovec::ZeroHashMap<[u8], usize> =
-        litemap.iter().map(|(a, b)| (*a, b)).collect();
+    let zhm: zerovec::ZeroHashMap<[u8], usize> = litemap.iter().map(|(a, b)| (*a, b)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 148);
 
-    let zhm: zerovec::ZeroHashMap<[u8], u8> = litemap
-        .iter()
-        .map(|(a, b)| (*a, *b as u8))
-        .collect();
+    let zhm: zerovec::ZeroHashMap<[u8], u8> = litemap.iter().map(|(a, b)| (*a, *b as u8)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 138);
 }
@@ -912,27 +788,19 @@ fn test_short_subtags_10pct() {
     assert_eq!(trie_phf.byte_len(), 1100);
     check_phf_ascii_trie(&litemap, &trie_phf);
 
-    let zhm: zerovec::ZeroMap<[u8], usize> =
-        litemap.iter().map(|(a, b)| (*a, b)).collect();
+    let zhm: zerovec::ZeroMap<[u8], usize> = litemap.iter().map(|(a, b)| (*a, b)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 1331);
 
-    let zhm: zerovec::ZeroMap<[u8], u8> = litemap
-        .iter()
-        .map(|(a, b)| (*a, *b as u8))
-        .collect();
+    let zhm: zerovec::ZeroMap<[u8], u8> = litemap.iter().map(|(a, b)| (*a, *b as u8)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 1330);
 
-    let zhm: zerovec::ZeroHashMap<[u8], usize> =
-        litemap.iter().map(|(a, b)| (*a, b)).collect();
+    let zhm: zerovec::ZeroHashMap<[u8], usize> = litemap.iter().map(|(a, b)| (*a, b)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 2837);
 
-    let zhm: zerovec::ZeroHashMap<[u8], u8> = litemap
-        .iter()
-        .map(|(a, b)| (*a, *b as u8))
-        .collect();
+    let zhm: zerovec::ZeroHashMap<[u8], u8> = litemap.iter().map(|(a, b)| (*a, *b as u8)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 2836);
 }
@@ -950,27 +818,19 @@ fn test_short_subtags() {
     assert_eq!(trie_phf.byte_len(), 9400);
     check_phf_ascii_trie(&litemap, &trie_phf);
 
-    let zm: zerovec::ZeroMap<[u8], usize> =
-        litemap.iter().map(|(a, b)| (*a, b)).collect();
+    let zm: zerovec::ZeroMap<[u8], usize> = litemap.iter().map(|(a, b)| (*a, b)).collect();
     let zhm_buf = postcard::to_allocvec(&zm).unwrap();
     assert_eq!(zhm_buf.len(), 15182);
 
-    let zm: zerovec::ZeroMap<[u8], u8> = litemap
-        .iter()
-        .map(|(a, b)| (*a, *b as u8))
-        .collect();
+    let zm: zerovec::ZeroMap<[u8], u8> = litemap.iter().map(|(a, b)| (*a, *b as u8)).collect();
     let zhm_buf = postcard::to_allocvec(&zm).unwrap();
     assert_eq!(zhm_buf.len(), 13304);
 
-    let zhm: zerovec::ZeroHashMap<[u8], usize> =
-        litemap.iter().map(|(a, b)| (*a, b)).collect();
+    let zhm: zerovec::ZeroHashMap<[u8], usize> = litemap.iter().map(|(a, b)| (*a, b)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 30200);
 
-    let zhm: zerovec::ZeroHashMap<[u8], u8> = litemap
-        .iter()
-        .map(|(a, b)| (*a, *b as u8))
-        .collect();
+    let zhm: zerovec::ZeroHashMap<[u8], u8> = litemap.iter().map(|(a, b)| (*a, *b as u8)).collect();
     let zhm_buf = postcard::to_allocvec(&zhm).unwrap();
     assert_eq!(zhm_buf.len(), 28322);
 }

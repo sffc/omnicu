@@ -2,7 +2,6 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-#[allow(dead_code)]
 use litemap::LiteMap;
 
 const fn single_byte_intermediate_value(x: u8) -> u8 {
@@ -20,9 +19,7 @@ const fn single_byte_branch_equal(x: u8) -> u8 {
 use single_byte_branch_equal as single_byte_short_match;
 
 #[allow(dead_code)]
-pub fn strings_to_litemap<'a>(
-    strings: &[&'a str],
-) -> LiteMap<&'a [u8], usize> {
+pub fn strings_to_litemap<'a>(strings: &[&'a str]) -> LiteMap<&'a [u8], usize> {
     strings
         .iter()
         .copied()

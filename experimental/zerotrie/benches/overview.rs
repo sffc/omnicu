@@ -2,12 +2,12 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use zerotrie::ZeroTrieExtendedCapacity;
-use zerotrie::ZeroTriePerfectHash;
-use zerotrie::ZeroTrieSimpleAscii;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use litemap::LiteMap;
 use std::collections::HashMap;
+use zerotrie::ZeroTrieExtendedCapacity;
+use zerotrie::ZeroTriePerfectHash;
+use zerotrie::ZeroTrieSimpleAscii;
 use zerovec::ZeroHashMap;
 use zerovec::ZeroMap;
 
@@ -73,11 +73,7 @@ fn get_basic_bench(c: &mut Criterion) {
     });
 
     g.bench_function("HashMap", |b| {
-        let hm: HashMap<&[u8], usize> = data
-            .iter()
-            .copied()
-            .map(|(a, b)| (a, b))
-            .collect();
+        let hm: HashMap<&[u8], usize> = data.iter().copied().map(|(a, b)| (a, b)).collect();
         b.iter(|| {
             for (key, expected) in black_box(data) {
                 let actual = black_box(&hm).get(key);

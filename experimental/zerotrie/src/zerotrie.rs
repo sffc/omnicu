@@ -8,11 +8,9 @@ use core::borrow::Borrow;
 use ref_cast::RefCast;
 
 #[cfg(feature = "alloc")]
-use crate::{
-    builder::bytestr::ByteStr, builder::nonconst::ZeroTrieBuilder, error::Error,
-};
+use crate::{builder::bytestr::ByteStr, builder::nonconst::ZeroTrieBuilder, error::Error};
 #[cfg(feature = "alloc")]
-use alloc::{boxed::Box, collections::BTreeMap, collections::VecDeque, vec::Vec, string::String};
+use alloc::{boxed::Box, collections::BTreeMap, collections::VecDeque, string::String, vec::Vec};
 #[cfg(feature = "litemap")]
 use litemap::LiteMap;
 

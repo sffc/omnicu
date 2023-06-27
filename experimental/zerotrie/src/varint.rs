@@ -360,7 +360,7 @@ mod tests {
     #[test]
     fn test_roundtrip() {
         let mut i = 0usize;
-        while i < MAX_VARINT as usize {
+        while i < MAX_VARINT {
             let bytes = write_varint(i);
             let recovered = read_varint(bytes.as_slice()[0], &bytes.as_slice()[1..]);
             assert!(recovered.is_some(), "{:?}", i);

@@ -14,7 +14,7 @@ pub struct PerfectByteHashMapCacheOwned {
 }
 
 impl PerfectByteHashMapCacheOwned {
-    pub const fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             data: BTreeMap::new(),
         }

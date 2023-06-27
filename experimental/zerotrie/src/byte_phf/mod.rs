@@ -158,10 +158,8 @@ where
                     return Err(("seen", b));
                 }
                 seen[i] = true;
-            } else {
-                if get_result.is_some() {
-                    return Err(("did not expect to find", b));
-                }
+            } else if get_result.is_some() {
+                return Err(("did not expect to find", b));
             }
         }
         Ok(())
@@ -202,7 +200,7 @@ mod tests {
                 let computed = PerfectByteHashMap::try_new(&keys).expect(keys_str);
                 computed
                     .check()
-                    .expect(std::str::from_utf8(&keys).expect(keys_str));
+                    .unwrap_or_else(|_| panic!("{}", std::str::from_utf8(&keys).expect(keys_str)));
                 let (p, qmax) = computed.p_qmax().unwrap();
                 count_by_p[p as usize] += 1;
                 count_by_qmax[qmax as usize] += 1;
@@ -230,7 +228,7 @@ mod tests {
                 let computed = PerfectByteHashMap::try_new(&keys).expect(keys_str);
                 computed
                     .check()
-                    .expect(std::str::from_utf8(&keys).expect(keys_str));
+                    .unwrap_or_else(|_| panic!("{}", std::str::from_utf8(&keys).expect(keys_str)));
                 let (p, qmax) = computed.p_qmax().unwrap();
                 count_by_p[p as usize] += 1;
                 count_by_qmax[qmax as usize] += 1;

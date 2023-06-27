@@ -2,10 +2,10 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use zerotrie::ZeroTriePerfectHash;
-use zerotrie::ZeroTrieSimpleAscii;
 use postcard::ser_flavors::{AllocVec, Flavor};
 use serde::Serialize;
+use zerotrie::ZeroTriePerfectHash;
+use zerotrie::ZeroTrieSimpleAscii;
 use zerovec::ZeroMap;
 
 mod testdata {
