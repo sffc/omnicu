@@ -139,11 +139,11 @@ macro_rules! impl_zerotrie_subtype {
                 self.store
             }
             /// Maps the store into another type implementing `From`
-            pub fn map_store<X: From<S>>(self) -> $name<X> {
-                $name::<X>::from_store(self.store.into())
+            pub fn map_store<X>(self, f: impl FnOnce(S) -> X) -> $name<X> {
+                $name::<X>::from_store(f(self.store))
             }
-            pub(crate) fn map_store_into_zerotrie<X: From<S>>(self) -> ZeroTrie<X> {
-                $name::<X>::from_store(self.store.into()).into_zerotrie()
+            pub(crate) fn map_store_into_zerotrie<X>(self, f: impl FnOnce(S) -> X) -> ZeroTrie<X> {
+                $name::<X>::from_store(f(self.store)).into_zerotrie()
             }
         }
         impl<S> $name<S>
@@ -470,6 +470,13 @@ macro_rules! impl_dispatch {
             ZeroTrieInner::ExtendedCapacity(subtype) => subtype.$inner_fn(),
         }
     };
+    ($self:ident, $inner_fn:ident($arg:ident)) => {
+        match $self.0 {
+            ZeroTrieInner::SimpleAscii(subtype) => subtype.$inner_fn($arg),
+            ZeroTrieInner::PerfectHash(subtype) => subtype.$inner_fn($arg),
+            ZeroTrieInner::ExtendedCapacity(subtype) => subtype.$inner_fn($arg),
+        }
+    };
     (&$self:ident, $inner_fn:ident($arg:ident)) => {
         match &$self.0 {
             ZeroTrieInner::SimpleAscii(subtype) => subtype.$inner_fn($arg),
@@ -485,8 +492,8 @@ impl<S> ZeroTrie<S> {
         impl_dispatch!(self, take_store())
     }
     /// Maps the store into another type implementing `From`
-    pub fn map_store<X: From<S>>(self) -> ZeroTrie<X> {
-        impl_dispatch!(self, map_store_into_zerotrie())
+    pub fn map_store<X>(self, f: impl FnOnce(S) -> X) -> ZeroTrie<X> {
+        impl_dispatch!(self, map_store_into_zerotrie(f))
     }
 }
 
