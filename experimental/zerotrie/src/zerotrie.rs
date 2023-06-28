@@ -320,9 +320,9 @@ macro_rules! impl_zerotrie_subtype {
         #[cfg(feature = "alloc")]
         impl alloc::borrow::ToOwned for $name<[u8]> {
             type Owned = $name<Box<[u8]>>;
-            /// This impl allows [`$name`] to be used inside of a [`Cow`](alloc::borrow::Cow).
+            #[doc = concat!("This impl allows [`", stringify!($name), "`] to be used inside of a [`Cow`](alloc::borrow::Cow).")]
             ///
-            /// Note that it is also possible to use `$name<ZeroVec<u8>>` for a similar result.
+            #[doc = concat!("Note that it is also possible to use `", stringify!($name), "<ZeroVec<u8>>` for a similar result.")]
             ///
             /// ***Enable this impl with the `"alloc"` feature.***
             ///
