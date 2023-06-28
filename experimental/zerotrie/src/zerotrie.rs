@@ -138,7 +138,7 @@ macro_rules! impl_zerotrie_subtype {
             pub fn take_store(self) -> S {
                 self.store
             }
-            /// Maps the store into another type implementing `From`
+            /// Maps the store into another type.
             pub fn map_store<X>(self, f: impl FnOnce(S) -> X) -> $name<X> {
                 $name::<X>::from_store(f(self.store))
             }
@@ -491,7 +491,7 @@ impl<S> ZeroTrie<S> {
     pub fn take_store(self) -> S {
         impl_dispatch!(self, take_store())
     }
-    /// Maps the store into another type implementing `From`
+    /// Maps the store into another type.
     pub fn map_store<X>(self, f: impl FnOnce(S) -> X) -> ZeroTrie<X> {
         impl_dispatch!(self, map_store_into_zerotrie(f))
     }
