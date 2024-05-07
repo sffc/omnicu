@@ -13,6 +13,7 @@ use std::hash::Hasher;
 
 const BLOB_V1: &[u8] = include_bytes!("data/v1.postcard");
 const BLOB_V2: &[u8] = include_bytes!("data/v2.postcard");
+const BLOB_V3: &[u8] = &[];
 
 fn run_driver(exporter: BlobExporter) -> Result<(), DataError> {
     DatagenDriver::new()
@@ -124,6 +125,23 @@ fn test_v2_bigger() {
         .unwrap();
         assert_eq!(blob_result.get().message, format!("Hello {loc}!"))
     }
+}
+
+#[test]
+fn test_v3() {
+    simple_logger::SimpleLogger::new()
+        .env()
+        .with_level(log::LevelFilter::Trace)
+        .init()
+        .unwrap();
+
+    let mut blob: Vec<u8> = Vec::new();
+    let exporter = BlobExporter::new_v3_with_sink(Box::new(&mut blob));
+    run_driver(exporter).unwrap();
+    // assert_eq!(BLOB_V3, blob.as_slice());
+
+    let blob_provider = BlobDataProvider::try_new_from_blob(blob.into_boxed_slice()).unwrap();
+    check_hello_world(blob_provider.as_deserializing());
 }
 
 struct ManyLocalesProvider;

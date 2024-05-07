@@ -3,10 +3,11 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use alloc::boxed::Box;
+use core::fmt::Write;
 use icu_provider::prelude::*;
 use serde::Deserialize;
 use writeable::Writeable;
-use zerotrie::ZeroTrieSimpleAscii;
+use zerotrie::{ZeroTrieSimpleAscii, ZeroTriePerfectHash};
 use zerovec::maps::{ZeroMap2dBorrowed, ZeroMapKV};
 use zerovec::vecs::{Index16, Index32, VarZeroSlice, VarZeroVec, VarZeroVecFormat, ZeroSlice};
 
@@ -22,6 +23,8 @@ pub(crate) enum BlobSchema<'data> {
     V002(BlobSchemaV2<'data, Index16>),
     #[serde(borrow)]
     V002Bigger(BlobSchemaV2<'data, Index32>),
+    #[serde(borrow)]
+    V003(BlobSchemaV3<'data>),
 }
 
 impl<'data> BlobSchema<'data> {
@@ -39,6 +42,7 @@ impl<'data> BlobSchema<'data> {
             BlobSchema::V001(s) => s.load(key, req),
             BlobSchema::V002(s) => s.load(key, req),
             BlobSchema::V002Bigger(s) => s.load(key, req),
+            BlobSchema::V003(s) => s.load(key, req),
         }
     }
 
@@ -48,6 +52,7 @@ impl<'data> BlobSchema<'data> {
             BlobSchema::V001(s) => s.list_locales(key),
             BlobSchema::V002(s) => s.list_locales(key),
             BlobSchema::V002Bigger(s) => s.list_locales(key),
+            BlobSchema::V003(s) => s.list_locales(key),
         }
     }
 
@@ -57,6 +62,7 @@ impl<'data> BlobSchema<'data> {
             BlobSchema::V001(s) => s.check_invariants(),
             BlobSchema::V002(s) => s.check_invariants(),
             BlobSchema::V002Bigger(s) => s.check_invariants(),
+            BlobSchema::V003(s) => s.check_invariants(),
         }
     }
 }
@@ -246,6 +252,101 @@ impl<'data, LocaleVecFormat: VarZeroVecFormat> BlobSchemaV2<'data, LocaleVecForm
         }
         debug_assert!(seen_min);
         debug_assert!(seen_max);
+    }
+}
+
+/// Version 3 of the ICU4X data blob schema.
+#[derive(Clone, Copy, Debug, serde::Deserialize, yoke::Yokeable)]
+#[yoke(prove_covariance_manually)]
+#[cfg_attr(feature = "export", derive(serde::Serialize))]
+pub(crate) struct BlobSchemaV3<'data> {
+    /// Map from key hash to locale trie.
+    /// Weak invariant: should be sorted.
+    #[serde(borrow)]
+    pub keys: &'data ZeroSlice<DataKeyHash>,
+    #[serde(borrow)]
+    pub langids: &'data [u8],
+    #[serde(borrow)]
+    pub auxkeys: &'data [u8],
+    #[serde(borrow)]
+    pub locales: &'data VarZeroSlice<[u8], Index32>,
+    /// Vector of buffers
+    #[serde(borrow)]
+    pub buffers: &'data VarZeroSlice<[u8], Index32>,
+}
+
+impl<'data> BlobSchemaV3<'data> {
+    pub fn load(&self, key: DataKey, req: DataRequest) -> Result<&'data [u8], DataError> {
+        let key_index = self
+            .keys
+            .binary_search(&key.hashed())
+            .ok()
+            .ok_or_else(|| DataErrorKind::MissingDataKey.with_req(key, req))?;
+        if key.metadata().singleton && !req.locale.is_empty() {
+            return Err(DataErrorKind::ExtraneousLocale.with_req(key, req));
+        }
+
+        let mut langid_cursor = ZeroTrieSimpleAscii::from_store(self.langids).into_cursor();
+        let mut dnoaux = req.locale.clone();
+        dnoaux.remove_aux();
+        #[allow(clippy::unwrap_used)] // DataLocale::write_to produces ASCII only
+        dnoaux
+            .write_to(&mut langid_cursor)
+            .unwrap();
+        let langid_index = langid_cursor
+            .take_value()
+            .ok_or_else(|| DataErrorKind::MissingLocale.with_req(key, req).with_str_context("langid"))?;
+        let langid_char: char = u32::try_from(langid_index).unwrap().try_into().unwrap();
+
+        let auxkey_char = match req.locale.get_aux() {
+            Some(auxkey) => {
+                let mut auxkey_cursor = ZeroTrieSimpleAscii::from_store(self.auxkeys).into_cursor();
+                auxkey.write_to(&mut auxkey_cursor).unwrap();
+                #[allow(clippy::unwrap_used)] // DataLocale::write_to produces ASCII only
+                let auxkey_index = auxkey_cursor
+                    .take_value()
+                    .ok_or_else(|| DataErrorKind::MissingLocale.with_req(key, req).with_str_context("auxkey"))?;
+                let auxkey_char: char = u32::try_from(auxkey_index).unwrap().try_into().unwrap();
+                Some(auxkey_char)
+            }
+            None => None,
+        };
+
+        let zerotrie = self
+            .locales
+            .get(key_index)
+            .map(ZeroTriePerfectHash::from_store)
+            .ok_or_else(|| DataError::custom("Invalid blob bytes").with_req(key, req))?;
+
+        let mut lookup_bytes = [0u8; 8];
+        let langid_len = langid_char.encode_utf8(&mut lookup_bytes).len();
+        let len = langid_len + if let Some(auxkey_char) = auxkey_char {
+            auxkey_char.encode_utf8(&mut lookup_bytes[langid_len..]).len()
+        } else { 0 };
+
+        eprintln!("lookup_bytes: {lookup_bytes:?}");
+
+        let blob_index = zerotrie.get(&lookup_bytes[..len])
+            .ok_or_else(|| DataErrorKind::MissingLocale.with_req(key, req).with_str_context("langid+auxkey"))?;
+
+        eprintln!("blob_index: {blob_index}");
+
+        let buffer = self
+            .buffers
+            .get(blob_index)
+            .ok_or_else(|| DataError::custom("Invalid blob bytes").with_req(key, req))?;
+        Ok(buffer)
+    }
+
+    #[cfg(feature = "export")]
+    pub fn list_locales(&self, key: DataKey) -> Result<Vec<DataLocale>, DataError> {
+        todo!()
+    }
+
+    /// Verifies the weak invariants using debug assertions
+    #[cfg(debug_assertions)]
+    fn check_invariants(&self) {
+        // TODO
     }
 }
 

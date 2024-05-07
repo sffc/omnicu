@@ -370,6 +370,17 @@ impl DataLocale {
         self == <&DataLocale>::default()
     }
 
+    /// Parses a byte slice into a [`DataLocale`].
+    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, DataError> {
+        let locale = Locale::try_from_bytes(bytes).map_err(|e| {
+            DataErrorKind::KeyLocaleSyntax
+                .into_error()
+                .with_debug_context(bytes)
+                .with_display_context(&e)
+        })?;
+        Ok(DataLocale::from(locale))
+    }
+
     /// Returns an ordering suitable for use in [`BTreeSet`].
     ///
     /// The ordering may or may not be equivalent to string ordering, and it

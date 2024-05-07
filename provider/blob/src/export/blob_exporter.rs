@@ -11,7 +11,7 @@ use icu_provider::prelude::*;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Mutex;
 use writeable::Writeable;
-use zerotrie::ZeroTrieSimpleAscii;
+use zerotrie::{ZeroTrieSimpleAscii, ZeroTriePerfectHash};
 use zerovec::ule::VarULE;
 use zerovec::vecs::Index32;
 use zerovec::vecs::VarZeroVecOwned;
@@ -24,6 +24,7 @@ use postcard::ser_flavors::{AllocVec, Flavor};
 enum VersionConfig {
     V001,
     V002,
+    V003,
 }
 
 /// A data exporter that writes data to a single-file blob.
@@ -32,7 +33,7 @@ pub struct BlobExporter<'w> {
     /// Map of key hash -> locale byte string -> blob ID
     #[allow(clippy::type_complexity)]
     resources: Mutex<BTreeMap<DataKeyHash, BTreeMap<Vec<u8>, usize>>>,
-    // All seen keys
+    /// All seen keys
     all_keys: Mutex<BTreeSet<DataKeyHash>>,
     /// Map from blob to blob ID
     unique_resources: Mutex<HashMap<Vec<u8>, usize>>,
@@ -80,6 +81,19 @@ impl<'w> BlobExporter<'w> {
             version: VersionConfig::V002,
         }
     }
+
+    /// Creates a version 3 [`BlobExporter`] that writes to the given I/O stream.
+    ///
+    /// Version 3 is optimized for data with many locales.
+    pub fn new_v3_with_sink(sink: Box<dyn std::io::Write + Sync + 'w>) -> Self {
+        Self {
+            resources: Default::default(),
+            unique_resources: Default::default(),
+            all_keys: Default::default(),
+            sink,
+            version: VersionConfig::V003,
+        }
+    }
 }
 
 impl DataExporter for BlobExporter<'_> {
@@ -122,6 +136,7 @@ impl DataExporter for BlobExporter<'_> {
         match self.version {
             VersionConfig::V001 => self.close_v1(),
             VersionConfig::V002 => self.close_v2(),
+            VersionConfig::V003 => self.close_v3(),
         }
     }
 }
@@ -260,6 +275,96 @@ impl BlobExporter<'_> {
                 self.sink.write_all(&output)?;
             }
         }
+
+        Ok(())
+    }
+
+    fn close_v3(&mut self) -> Result<(), DataError> {
+        let FinalizedBuffers { vzv, remap } = self.finalize_buffers();
+
+        let all_keys = self.all_keys.lock().expect("poison");
+        let resources = self.resources.lock().expect("poison");
+
+        let keys: ZeroVec<DataKeyHash> = all_keys.iter().copied().collect();
+
+        let mut all_langids = BTreeSet::new();
+        let mut all_auxkeys = BTreeSet::new();
+
+        for data_locale_buf in resources.values().flat_map(|sub_map| sub_map.keys()) {
+            let data_locale = DataLocale::try_from_bytes(data_locale_buf).unwrap();
+            let mut dnoaux = data_locale.clone();
+            dnoaux.remove_aux();
+            let langid_bytes = dnoaux.write_to_string().into_owned().into_bytes();
+            all_langids.insert(langid_bytes);
+            if let Some(auxkey) = data_locale.get_aux() {
+                let auxkey_bytes = auxkey.write_to_string().into_owned().into_bytes();
+                all_auxkeys.insert(auxkey_bytes);
+            }
+        }
+
+        let langids_map: BTreeMap<Vec<u8>, usize> = all_langids.into_iter().enumerate().map(|(a, b)| (b, a)).collect();
+        let auxkeys_map: BTreeMap<Vec<u8>, usize> = all_auxkeys.into_iter().enumerate().map(|(a, b)| (b, a)).collect();
+
+        let locales_vec: Vec<Vec<u8>> = all_keys
+            .iter()
+            .map(|data_key_hash| resources.get(data_key_hash))
+            .map(|option_sub_map| {
+                if let Some(sub_map) = option_sub_map {
+                    let sub_map: BTreeMap<String, usize> = sub_map.iter().map(|(data_locale_buf, old_id)| {
+                        let data_locale = DataLocale::try_from_bytes(data_locale_buf).unwrap();
+                        let mut dnoaux = data_locale.clone();
+                        dnoaux.remove_aux();
+                        let langid_bytes = dnoaux.write_to_string().into_owned().into_bytes();
+                        let langid_char: char = u32::try_from(*langids_map.get(&langid_bytes).unwrap()).unwrap().try_into().unwrap();
+                        let mut key_str = String::new();
+                        key_str.push(langid_char);
+                        if let Some(auxkey) = data_locale.get_aux() {
+                            let auxkey_bytes = auxkey.write_to_string().into_owned().into_bytes();
+                            let auxkey_char: char = u32::try_from(*auxkeys_map.get(&auxkey_bytes).unwrap()).unwrap().try_into().unwrap();
+                            key_str.push(auxkey_char);
+                        };
+                        let new_id = *remap.get(old_id).expect("in-bound index");
+                        let hello_world = postcard::from_bytes::<icu_provider::hello_world::HelloWorldV1>(vzv.get(new_id).unwrap()).unwrap();
+                        eprintln!("{data_locale:?} => {hello_world:?}");
+                        (key_str, new_id)
+                    }).collect();
+                    let zerotrie = sub_map.into_iter().collect::<ZeroTriePerfectHash<_>>();
+                    let json = serde_json::to_string(&zerotrie).unwrap();
+                    eprintln!("{json:}");
+                    zerotrie.take_store()
+                } else {
+                    // Key with no locales: insert an empty ZeroTrie
+                    ZeroTriePerfectHash::default().take_store()
+                }
+            })
+            .collect();
+
+        let langids_zerotrie = ZeroTrieSimpleAscii::try_from(&langids_map).unwrap();
+        let auxkeys_zerotrie = ZeroTrieSimpleAscii::try_from(&auxkeys_map).unwrap();
+
+        let json = serde_json::to_string(&langids_zerotrie).unwrap();
+        eprintln!("{json:}");
+
+        let json = serde_json::to_string(&auxkeys_zerotrie).unwrap();
+        eprintln!("{json:}");
+
+        let locales_vzv = VarZeroVecOwned::<[u8], Index32>::try_from_elements(locales_vec.as_slice()).unwrap();
+
+        let blob = BlobSchema::V003(BlobSchemaV3 {
+            keys: &keys,
+            langids: langids_zerotrie.as_bytes(),
+            auxkeys: auxkeys_zerotrie.as_bytes(),
+            locales: &locales_vzv,
+            buffers: &vzv,
+        });
+
+        let json = serde_json::to_string(&blob).unwrap();
+        eprintln!("{json:}");
+
+        log::info!("Serializing blob to output stream...");
+
+        let output = postcard::to_allocvec(&blob)?;
+        self.sink.write_all(&output)?;
 
         Ok(())
     }

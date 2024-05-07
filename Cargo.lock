@@ -1476,6 +1476,8 @@ dependencies = [
  "log",
  "postcard",
  "serde",
+ "serde_json",
+ "simple_logger",
  "twox-hash",
  "writeable",
  "zerotrie",
