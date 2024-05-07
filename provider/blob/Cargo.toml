@@ -25,7 +25,7 @@ postcard = { workspace = true, features = ["alloc"] }
 serde = { workspace = true, features = ["alloc"] }
 writeable = {workspace = true }
 zerovec = { workspace = true, features = ["serde", "yoke"] }
-zerotrie = { workspace = true, features = ["serde", "zerovec"] }
+zerotrie = { workspace = true, features = ["log", "serde", "zerovec"] }
 
 log = { workspace = true, optional = true }
 

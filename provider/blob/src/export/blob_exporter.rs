@@ -324,10 +324,9 @@ impl BlobExporter<'_> {
                             key_str.push(auxkey_char);
                         };
                         let new_id = *remap.get(old_id).expect("in-bound index");
-                        let hello_world = postcard::from_bytes::<icu_provider::hello_world::HelloWorldV1>(vzv.get(new_id).unwrap()).unwrap();
-                        eprintln!("{data_locale:?} => {hello_world:?}");
                         (key_str, new_id)
                     }).collect();
+                    eprintln!("{sub_map:?}");
                     let zerotrie = sub_map.into_iter().collect::<ZeroTriePerfectHash<_>>();
                     let json = serde_json::to_string(&zerotrie).unwrap();
                     eprintln!("{json:}");

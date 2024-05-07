@@ -114,11 +114,32 @@ fn make_blob_v2() -> Vec<u8> {
     blob
 }
 
+fn make_blob_v3() -> Vec<u8> {
+    simple_logger::SimpleLogger::new()
+        .env()
+        .with_level(log::LevelFilter::Trace)
+        .init()
+        .unwrap();
+
+    let mut blob: Vec<u8> = Vec::new();
+    let exporter = BlobExporter::new_v3_with_sink(Box::new(&mut blob));
+    DatagenDriver::new()
+        .with_keys(skeleton_markers!(key_array_cb))
+        .with_locales_and_fallback([LocaleFamily::FULL], Default::default())
+        .export(&Baked, exporter)
+        .unwrap();
+    assert_eq!(blob.len(), 2000);
+    assert!(blob.len() > 100);
+    blob
+}
+
 fn auxkey_bench(c: &mut Criterion) {
     let blob_v1 = make_blob_v1();
     auxkey_bench_for_version(c, &blob_v1, "v1");
     let blob_v2 = make_blob_v2();
     auxkey_bench_for_version(c, &blob_v2, "v2");
+    let blob_v3 = make_blob_v3();
+    auxkey_bench_for_version(c, &blob_v3, "v3");
 }
 
 fn auxkey_bench_for_version(c: &mut Criterion, blob: &[u8], version_id: &str) {
