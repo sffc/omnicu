@@ -228,6 +228,10 @@ impl<P> LocaleFallbackProvider<P> {
             if fallback_iterator.get().is_und() {
                 break;
             }
+            // Auxkey does not change over fallback.
+            if let Err(e) = result {
+                base_req.metadata.auxkey_cache = e.auxkey_cache;
+            }
             fallback_iterator.step();
         }
         base_req.metadata.silent = base_silent;

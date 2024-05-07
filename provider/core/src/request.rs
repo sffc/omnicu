@@ -52,6 +52,9 @@ impl fmt::Display for DataRequest<'_> {
 pub struct DataRequestMetadata {
     /// Silent requests do not log errors. This can be used for exploratory querying, such as fallbacks.
     pub silent: bool,
+    /// A provider-specific cache value for accelerating repeated lookups.
+    /// Reset if aux key changes.
+    pub auxkey_cache: Option<char>,
 }
 
 /// A locale type optimized for use in fallbacking and the ICU4X data pipeline.

@@ -7,7 +7,7 @@ use core::fmt::Write;
 use icu_provider::prelude::*;
 use serde::Deserialize;
 use writeable::Writeable;
-use zerotrie::{ZeroTrieSimpleAscii, ZeroTriePerfectHash};
+use zerotrie::{ZeroTriePerfectHash, ZeroTrieSimpleAscii};
 use zerovec::maps::{ZeroMap2dBorrowed, ZeroMapKV};
 use zerovec::vecs::{Index16, Index32, VarZeroSlice, VarZeroVec, VarZeroVecFormat, ZeroSlice};
 
@@ -286,29 +286,38 @@ impl<'data> BlobSchemaV3<'data> {
             return Err(DataErrorKind::ExtraneousLocale.with_req(key, req));
         }
 
+        let auxkey_char = match req.metadata.auxkey_cache {
+            Some(cache) => Some(cache),
+            None => match req.locale.get_aux() {
+                Some(auxkey) => {
+                    let mut auxkey_cursor =
+                        ZeroTrieSimpleAscii::from_store(self.auxkeys).into_cursor();
+                    auxkey.write_to(&mut auxkey_cursor).unwrap();
+                    #[allow(clippy::unwrap_used)] // DataLocale::write_to produces ASCII only
+                    let auxkey_index = auxkey_cursor.take_value().ok_or_else(|| {
+                        DataErrorKind::MissingLocale
+                            .with_req(key, req)
+                            .with_str_context("auxkey")
+                    })?;
+                    let auxkey_char: char =
+                        u32::try_from(auxkey_index).unwrap().try_into().unwrap();
+                    Some(auxkey_char)
+                }
+                None => None,
+            },
+        };
+
         let mut langid_cursor = ZeroTrieSimpleAscii::from_store(self.langids).into_cursor();
         #[allow(clippy::unwrap_used)] // DataLocale::write_to produces ASCII only
-        req.locale
-            .write_without_aux(&mut langid_cursor)
-            .unwrap();
-        let langid_index = langid_cursor
-            .take_value()
-            .ok_or_else(|| DataErrorKind::MissingLocale.with_req(key, req).with_str_context("langid"))?;
+        req.locale.write_without_aux(&mut langid_cursor).unwrap();
+        let langid_index = langid_cursor.take_value().ok_or_else(|| {
+            let mut e = DataErrorKind::MissingLocale
+                .with_req(key, req)
+                .with_str_context("langid");
+            e.auxkey_cache = auxkey_char;
+            e
+        })?;
         let langid_char: char = u32::try_from(langid_index).unwrap().try_into().unwrap();
-
-        let auxkey_char = match req.locale.get_aux() {
-            Some(auxkey) => {
-                let mut auxkey_cursor = ZeroTrieSimpleAscii::from_store(self.auxkeys).into_cursor();
-                auxkey.write_to(&mut auxkey_cursor).unwrap();
-                #[allow(clippy::unwrap_used)] // DataLocale::write_to produces ASCII only
-                let auxkey_index = auxkey_cursor
-                    .take_value()
-                    .ok_or_else(|| DataErrorKind::MissingLocale.with_req(key, req).with_str_context("auxkey"))?;
-                let auxkey_char: char = u32::try_from(auxkey_index).unwrap().try_into().unwrap();
-                Some(auxkey_char)
-            }
-            None => None,
-        };
 
         let zerotrie = self
             .locales
@@ -318,12 +327,20 @@ impl<'data> BlobSchemaV3<'data> {
 
         let mut lookup_bytes = [0u8; 8];
         let langid_len = langid_char.encode_utf8(&mut lookup_bytes).len();
-        let len = langid_len + if let Some(auxkey_char) = auxkey_char {
-            auxkey_char.encode_utf8(&mut lookup_bytes[langid_len..]).len()
-        } else { 0 };
+        let len = langid_len
+            + if let Some(auxkey_char) = auxkey_char {
+                auxkey_char
+                    .encode_utf8(&mut lookup_bytes[langid_len..])
+                    .len()
+            } else {
+                0
+            };
 
-        let blob_index = zerotrie.get(&lookup_bytes[..len])
-            .ok_or_else(|| DataErrorKind::MissingLocale.with_req(key, req).with_str_context("langid+auxkey"))?;
+        let blob_index = zerotrie.get(&lookup_bytes[..len]).ok_or_else(|| {
+            DataErrorKind::MissingLocale
+                .with_req(key, req)
+                .with_str_context("langid+auxkey")
+        })?;
 
         let buffer = self
             .buffers

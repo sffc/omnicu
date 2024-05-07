@@ -4,9 +4,11 @@
 
 use icu_datagen::prelude::*;
 use icu_locid::Locale;
+use icu_locid_transform::LocaleFallbacker;
 use icu_provider::datagen::IterableDataProvider;
 use icu_provider::hello_world::*;
 use icu_provider::prelude::*;
+use icu_provider_adapters::fallback::LocaleFallbackProvider;
 use icu_provider_blob::export::*;
 use icu_provider_blob::BlobDataProvider;
 use std::hash::Hasher;
@@ -42,6 +44,39 @@ fn check_hello_world(blob_provider: impl DataProvider<HelloWorldV1Marker>) {
             .take_payload()
             .unwrap();
         assert_eq!(blob_result, expected_result, "{locale:?}");
+    }
+    // Test fallback, too
+    let provider_with_fallback = LocaleFallbackProvider::new_with_fallbacker(
+        blob_provider,
+        LocaleFallbacker::new().static_to_owned(),
+    );
+    for (start_locale_str, end_locale_str) in [
+        ("en-ZA", "en-001"),
+        ("ja-JP", "ja"),
+        ("ja-JP-x-reverse", "ja-x-reverse"),
+    ] {
+        let start_locale = start_locale_str.parse::<DataLocale>().unwrap();
+        let end_locale = end_locale_str.parse::<DataLocale>().unwrap();
+        let blob_result = provider_with_fallback
+            .load(DataRequest {
+                locale: &start_locale,
+                metadata: Default::default(),
+            })
+            .unwrap()
+            .take_payload()
+            .unwrap();
+        let expected_result = hello_world_provider
+            .load(DataRequest {
+                locale: &end_locale,
+                metadata: Default::default(),
+            })
+            .unwrap()
+            .take_payload()
+            .unwrap();
+        assert_eq!(
+            blob_result, expected_result,
+            "{start_locale:?}..{end_locale:?}"
+        );
     }
 }
 

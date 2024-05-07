@@ -11,7 +11,7 @@ use icu_provider::prelude::*;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Mutex;
 use writeable::Writeable;
-use zerotrie::{ZeroTrieSimpleAscii, ZeroTriePerfectHash};
+use zerotrie::{ZeroTriePerfectHash, ZeroTrieSimpleAscii};
 use zerovec::ule::VarULE;
 use zerovec::vecs::Index32;
 use zerovec::vecs::VarZeroVecOwned;
@@ -302,30 +302,50 @@ impl BlobExporter<'_> {
             }
         }
 
-        let langids_map: BTreeMap<Vec<u8>, usize> = all_langids.into_iter().enumerate().map(|(a, b)| (b, a)).collect();
-        let auxkeys_map: BTreeMap<Vec<u8>, usize> = all_auxkeys.into_iter().enumerate().map(|(a, b)| (b, a)).collect();
+        let langids_map: BTreeMap<Vec<u8>, usize> = all_langids
+            .into_iter()
+            .enumerate()
+            .map(|(a, b)| (b, a))
+            .collect();
+        let auxkeys_map: BTreeMap<Vec<u8>, usize> = all_auxkeys
+            .into_iter()
+            .enumerate()
+            .map(|(a, b)| (b, a))
+            .collect();
 
         let locales_vec: Vec<Vec<u8>> = all_keys
             .iter()
             .map(|data_key_hash| resources.get(data_key_hash))
             .map(|option_sub_map| {
                 if let Some(sub_map) = option_sub_map {
-                    let sub_map: BTreeMap<String, usize> = sub_map.iter().map(|(data_locale_buf, old_id)| {
-                        let data_locale = DataLocale::try_from_bytes(data_locale_buf).unwrap();
-                        let mut dnoaux = data_locale.clone();
-                        dnoaux.remove_aux();
-                        let langid_bytes = dnoaux.write_to_string().into_owned().into_bytes();
-                        let langid_char: char = u32::try_from(*langids_map.get(&langid_bytes).unwrap()).unwrap().try_into().unwrap();
-                        let mut key_str = String::new();
-                        key_str.push(langid_char);
-                        if let Some(auxkey) = data_locale.get_aux() {
-                            let auxkey_bytes = auxkey.write_to_string().into_owned().into_bytes();
-                            let auxkey_char: char = u32::try_from(*auxkeys_map.get(&auxkey_bytes).unwrap()).unwrap().try_into().unwrap();
-                            key_str.push(auxkey_char);
-                        };
-                        let new_id = *remap.get(old_id).expect("in-bound index");
-                        (key_str, new_id)
-                    }).collect();
+                    let sub_map: BTreeMap<String, usize> = sub_map
+                        .iter()
+                        .map(|(data_locale_buf, old_id)| {
+                            let data_locale = DataLocale::try_from_bytes(data_locale_buf).unwrap();
+                            let mut dnoaux = data_locale.clone();
+                            dnoaux.remove_aux();
+                            let langid_bytes = dnoaux.write_to_string().into_owned().into_bytes();
+                            let langid_char: char =
+                                u32::try_from(*langids_map.get(&langid_bytes).unwrap())
+                                    .unwrap()
+                                    .try_into()
+                                    .unwrap();
+                            let mut key_str = String::new();
+                            key_str.push(langid_char);
+                            if let Some(auxkey) = data_locale.get_aux() {
+                                let auxkey_bytes =
+                                    auxkey.write_to_string().into_owned().into_bytes();
+                                let auxkey_char: char =
+                                    u32::try_from(*auxkeys_map.get(&auxkey_bytes).unwrap())
+                                        .unwrap()
+                                        .try_into()
+                                        .unwrap();
+                                key_str.push(auxkey_char);
+                            };
+                            let new_id = *remap.get(old_id).expect("in-bound index");
+                            (key_str, new_id)
+                        })
+                        .collect();
                     let zerotrie = sub_map.into_iter().collect::<ZeroTriePerfectHash<_>>();
                     zerotrie.take_store()
                 } else {
@@ -338,7 +358,8 @@ impl BlobExporter<'_> {
         let langids_zerotrie = ZeroTrieSimpleAscii::try_from(&langids_map).unwrap();
         let auxkeys_zerotrie = ZeroTrieSimpleAscii::try_from(&auxkeys_map).unwrap();
 
-        let locales_vzv = VarZeroVecOwned::<[u8], Index32>::try_from_elements(locales_vec.as_slice()).unwrap();
+        let locales_vzv =
+            VarZeroVecOwned::<[u8], Index32>::try_from_elements(locales_vec.as_slice()).unwrap();
 
         let blob = BlobSchema::V003(BlobSchemaV3 {
             keys: &keys,

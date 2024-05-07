@@ -107,6 +107,9 @@ pub struct DataError {
     /// Additional context, if available.
     pub str_context: Option<&'static str>,
 
+    /// Auxkey cache, if available.
+    pub auxkey_cache: Option<char>,
+
     /// Whether this error was created in silent mode to not log.
     pub silent: bool,
 }
@@ -137,6 +140,7 @@ impl DataErrorKind {
             kind: self,
             key: None,
             str_context: None,
+            auxkey_cache: None,
             silent: false,
         }
     }
@@ -174,6 +178,7 @@ impl DataError {
             kind: DataErrorKind::Custom,
             key: None,
             str_context: Some(str_context),
+            auxkey_cache: None,
             silent: false,
         }
     }
@@ -185,6 +190,7 @@ impl DataError {
             kind: self.kind,
             key: Some(key),
             str_context: self.str_context,
+            auxkey_cache: None,
             silent: self.silent,
         }
     }
@@ -196,6 +202,7 @@ impl DataError {
             kind: self.kind,
             key: self.key,
             str_context: Some(context),
+            auxkey_cache: None,
             silent: self.silent,
         }
     }
@@ -268,6 +275,7 @@ impl DataError {
             kind: DataErrorKind::MismatchedType(core::any::type_name::<T>()),
             key: None,
             str_context: None,
+            auxkey_cache: None,
             silent: false,
         }
     }
