@@ -326,10 +326,7 @@ impl BlobExporter<'_> {
                         let new_id = *remap.get(old_id).expect("in-bound index");
                         (key_str, new_id)
                     }).collect();
-                    eprintln!("{sub_map:?}");
                     let zerotrie = sub_map.into_iter().collect::<ZeroTriePerfectHash<_>>();
-                    let json = serde_json::to_string(&zerotrie).unwrap();
-                    eprintln!("{json:}");
                     zerotrie.take_store()
                 } else {
                     // Key with no locales: insert an empty ZeroTrie
@@ -341,12 +338,6 @@ impl BlobExporter<'_> {
         let langids_zerotrie = ZeroTrieSimpleAscii::try_from(&langids_map).unwrap();
         let auxkeys_zerotrie = ZeroTrieSimpleAscii::try_from(&auxkeys_map).unwrap();
 
-        let json = serde_json::to_string(&langids_zerotrie).unwrap();
-        eprintln!("{json:}");
-
-        let json = serde_json::to_string(&auxkeys_zerotrie).unwrap();
-        eprintln!("{json:}");
-
         let locales_vzv = VarZeroVecOwned::<[u8], Index32>::try_from_elements(locales_vec.as_slice()).unwrap();
 
         let blob = BlobSchema::V003(BlobSchemaV3 {
@@ -356,9 +347,6 @@ impl BlobExporter<'_> {
             locales: &locales_vzv,
             buffers: &vzv,
         });
-
-        let json = serde_json::to_string(&blob).unwrap();
-        eprintln!("{json:}");
 
         log::info!("Serializing blob to output stream...");
 

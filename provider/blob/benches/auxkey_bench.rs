@@ -115,12 +115,6 @@ fn make_blob_v2() -> Vec<u8> {
 }
 
 fn make_blob_v3() -> Vec<u8> {
-    simple_logger::SimpleLogger::new()
-        .env()
-        .with_level(log::LevelFilter::Trace)
-        .init()
-        .unwrap();
-
     let mut blob: Vec<u8> = Vec::new();
     let exporter = BlobExporter::new_v3_with_sink(Box::new(&mut blob));
     DatagenDriver::new()
@@ -128,7 +122,7 @@ fn make_blob_v3() -> Vec<u8> {
         .with_locales_and_fallback([LocaleFamily::FULL], Default::default())
         .export(&Baked, exporter)
         .unwrap();
-    assert_eq!(blob.len(), 2000);
+    assert_eq!(blob.len(), 196215);
     assert!(blob.len() > 100);
     blob
 }

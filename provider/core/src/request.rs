@@ -715,6 +715,17 @@ impl DataLocale {
     pub fn remove_aux(&mut self) -> Option<AuxiliaryKeys> {
         self.aux.take()
     }
+
+    /// Writes this [`DataLocale`] to the sink without the aux keys.
+    #[cfg(feature = "experimental")]
+    pub fn write_without_aux<W: fmt::Write + ?Sized>(&self, sink: &mut W) -> fmt::Result {
+        self.langid.write_to(sink)?;
+        if !self.keywords.is_empty() {
+            sink.write_str("-u-")?;
+            self.keywords.write_to(sink)?;
+        }
+        Ok(())
+    }
 }
 
 /// The "auxiliary key" is an annotation on [`DataLocale`] that can contain an arbitrary

@@ -287,11 +287,9 @@ impl<'data> BlobSchemaV3<'data> {
         }
 
         let mut langid_cursor = ZeroTrieSimpleAscii::from_store(self.langids).into_cursor();
-        let mut dnoaux = req.locale.clone();
-        dnoaux.remove_aux();
         #[allow(clippy::unwrap_used)] // DataLocale::write_to produces ASCII only
-        dnoaux
-            .write_to(&mut langid_cursor)
+        req.locale
+            .write_without_aux(&mut langid_cursor)
             .unwrap();
         let langid_index = langid_cursor
             .take_value()
@@ -324,12 +322,8 @@ impl<'data> BlobSchemaV3<'data> {
             auxkey_char.encode_utf8(&mut lookup_bytes[langid_len..]).len()
         } else { 0 };
 
-        eprintln!("lookup_bytes: {lookup_bytes:?}");
-
         let blob_index = zerotrie.get(&lookup_bytes[..len])
             .ok_or_else(|| DataErrorKind::MissingLocale.with_req(key, req).with_str_context("langid+auxkey"))?;
-
-        eprintln!("blob_index: {blob_index}");
 
         let buffer = self
             .buffers
