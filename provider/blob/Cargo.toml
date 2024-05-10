@@ -40,6 +40,7 @@ twox-hash = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 criterion = { workspace = true }
+pprof = { version = "0.13", features = ["criterion", "protobuf-codec", "_protobuf"] }
 
 [features]
 bench = []

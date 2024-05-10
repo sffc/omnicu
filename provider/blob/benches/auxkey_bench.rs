@@ -5,6 +5,7 @@
 extern crate alloc;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use pprof::criterion::{Output, PProfProfiler};
 use icu_datagen::prelude::*;
 use icu_datetime::provider::neo::*;
 use icu_locid_transform::LocaleFallbacker;
@@ -152,5 +153,9 @@ fn auxkey_bench_for_version(c: &mut Criterion, blob: &[u8], version_id: &str) {
     }
 }
 
-criterion_group!(benches, auxkey_bench,);
+criterion_group! {
+    name = benches;
+    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Protobuf));
+    targets = auxkey_bench
+}
 criterion_main!(benches);

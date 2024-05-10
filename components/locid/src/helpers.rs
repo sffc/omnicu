@@ -321,6 +321,7 @@ macro_rules! impl_tinystr_subtag {
 macro_rules! impl_writeable_for_each_subtag_str_no_test {
     ($type:tt $(, $self:ident, $borrow_cond:expr => $borrow:expr)?) => {
         impl writeable::Writeable for $type {
+            #[inline(never)]
             fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
                 let mut initial = true;
                 self.for_each_subtag_str(&mut |subtag| {

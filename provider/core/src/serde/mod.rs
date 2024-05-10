@@ -132,6 +132,7 @@ impl DataPayload<BufferMarker> {
     ///
     /// assert_eq!(payload.get().message, "Hallo Welt");
     /// ```
+    #[inline(never)]
     pub fn into_deserialized<M>(
         self,
         buffer_format: BufferFormat,
@@ -197,6 +198,7 @@ where
     /// - `deserialize_json`
     /// - `deserialize_postcard_1`
     /// - `deserialize_bincode_1`
+    #[inline(never)]
     fn load(&self, req: DataRequest) -> Result<DataResponse<M>, DataError> {
         self.load_data(M::KEY, req)
     }

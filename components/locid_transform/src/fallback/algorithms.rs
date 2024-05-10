@@ -12,6 +12,7 @@ use super::*;
 const SUBDIVISION_KEY: Key = key!("sd");
 
 impl<'a> LocaleFallbackerWithConfig<'a> {
+    #[inline(never)]
     pub(crate) fn normalize(&self, locale: &mut DataLocale) {
         let language = locale.language();
         // 1. Populate the region (required for region fallback only)
@@ -79,6 +80,7 @@ impl<'a> LocaleFallbackerWithConfig<'a> {
 }
 
 impl<'a> LocaleFallbackIteratorInner<'a> {
+    #[inline(never)]
     pub fn step(&mut self, locale: &mut DataLocale) {
         match self.config.priority {
             FallbackPriority::Language => self.step_language(locale),

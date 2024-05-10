@@ -144,6 +144,7 @@ impl fmt::Debug for DataLocale {
 }
 
 impl Writeable for DataLocale {
+    #[inline(never)]
     fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
         self.langid.write_to(sink)?;
         if !self.keywords.is_empty() {
@@ -158,6 +159,7 @@ impl Writeable for DataLocale {
         Ok(())
     }
 
+    #[inline(never)]
     fn writeable_length_hint(&self) -> LengthHint {
         let mut length_hint = self.langid.writeable_length_hint();
         if !self.keywords.is_empty() {
@@ -170,6 +172,7 @@ impl Writeable for DataLocale {
         length_hint
     }
 
+    #[inline(never)]
     fn write_to_string(&self) -> alloc::borrow::Cow<str> {
         #[cfg_attr(not(feature = "experimental"), allow(unused_mut))]
         let mut is_only_langid = self.keywords.is_empty();

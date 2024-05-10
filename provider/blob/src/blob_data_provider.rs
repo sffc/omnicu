@@ -120,6 +120,7 @@ impl BlobDataProvider {
 }
 
 impl BufferProvider for BlobDataProvider {
+    #[inline(never)]
     fn load_buffer(
         &self,
         key: DataKey,
