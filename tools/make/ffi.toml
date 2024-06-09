@@ -42,7 +42,7 @@ args = ["-C", "ffi/npm", "install-ci-test"]
 [tasks.test-tinywasm]
 description = "Test the Tiny WASM example"
 category = "ICU4X Development"
-dependencies = ["install-wasm-nightly"]
+# dependencies = ["install-wasm-nightly"]
 command = "make"
 args = ["-C", "tutorials/js-tiny", "test"]
 

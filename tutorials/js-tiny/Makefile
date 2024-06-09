@@ -26,8 +26,8 @@ diplomat.config.mjs:
 	echo "export default { wasm_path: new URL('target/wasm32-unknown-unknown/release/icu_capi.wasm', import.meta.url) };" > diplomat.config.mjs
 
 target/wasm32-unknown-unknown/release/icu_capi.wasm: FORCE
-	rustup toolchain install ${PINNED_CI_NIGHTLY}
-	rustup component add rust-src --toolchain ${PINNED_CI_NIGHTLY}
+	# rustup toolchain install ${PINNED_CI_NIGHTLY}
+	# rustup component add rust-src --toolchain ${PINNED_CI_NIGHTLY}
 	# Build the WASM library
 	RUSTFLAGS="-Cpanic=abort -Copt-level=s -C link-arg=-zstack-size=${WASM_STACK_SIZE} -Clinker-plugin-lto -Ccodegen-units=1 -C linker=${BASEDIR}/ld.py -C linker-flavor=wasm-ld -Clto -Cembed-bitcode" \
 	cargo +${PINNED_CI_NIGHTLY} rustc \
