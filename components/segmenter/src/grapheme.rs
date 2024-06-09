@@ -238,6 +238,19 @@ impl GraphemeClusterSegmenter {
     /// Creates a grapheme cluster break iterator for a UTF-16 string.
     ///
     /// There are always breakpoints at 0 and the string length, or only at 0 for the empty string.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use icu::segmenter::GraphemeClusterSegmenter;
+    /// let segmenter =
+    ///     GraphemeClusterSegmenter::new();
+    ///
+    /// let s = "𑄃𑄨𑄁𑄢𑄨𑄎𑄨";
+    /// let s16 = s.encode_utf16().collect::<Vec<_>>();
+    /// let boundaries: Vec<usize> = segmenter.segment_utf16(&s16).collect();
+    /// assert_eq!(&boundaries, &[0, 6, 10, s16.len()]);
+    /// ```
     pub fn segment_utf16<'l, 's>(
         &'l self,
         input: &'s [u16],
