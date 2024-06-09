@@ -9,14 +9,14 @@ import subprocess
 SYMBOLS = [
     "ICU4XDataProvider_create_compiled",
     "ICU4XDataProvider_destroy",
-    "ICU4XFixedDecimal_create_from_i32",
-    "ICU4XFixedDecimal_destroy",
-    "ICU4XFixedDecimal_multiply_pow10",
-    "ICU4XFixedDecimalFormatter_create_with_grouping_strategy",
-    "ICU4XFixedDecimalFormatter_destroy",
-    "ICU4XFixedDecimalFormatter_format",
-    "ICU4XLocale_create_from_string",
-    "ICU4XLocale_destroy",
+    "ICU4XGraphemeClusterSegmenter_create",
+    "ICU4XGraphemeClusterSegmenter_destroy",
+    # "ICU4XGraphemeClusterSegmenter_segment_utf8",
+    # "ICU4XGraphemeClusterBreakIteratorUtf8_next",
+    # "ICU4XGraphemeClusterBreakIteratorUtf8_destroy",
+    "ICU4XGraphemeClusterSegmenter_segment_utf16",
+    "ICU4XGraphemeClusterBreakIteratorUtf16_next",
+    "ICU4XGraphemeClusterBreakIteratorUtf16_destroy",
 ]
 
 def main():
