@@ -72,6 +72,12 @@ impl<A: AsCalendar> Date<A> {
     /// assert_eq!(date.month().number(), 7);
     /// assert_eq!(date.day_of_month().0, 17);
     /// ```
+    /// 
+    /// ```
+    /// use icu::calendar::{Date, Iso};
+    /// 
+    /// let date = Date::try_from_str("2000-01-01T00:00Z[Etc/GMT]", Iso).unwrap();
+    /// ```
     pub fn try_from_str(rfc_9557_str: &str, calendar: A) -> Result<Self, ParseError> {
         Self::try_from_utf8(rfc_9557_str.as_bytes(), calendar)
     }

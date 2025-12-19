@@ -563,6 +563,7 @@ impl<A: AsCalendar> ZonedDateTime<A, TimeZoneInfo<models::AtTime>> {
     /// use icu::calendar::Iso;
     /// use icu::time::{
     ///     zone::UtcOffset, ParseError, TimeZone, TimeZoneInfo, ZonedDateTime,
+    ///     zone::IanaParser,
     /// };
     /// use tinystr::tinystr;
     ///
@@ -586,6 +587,9 @@ impl<A: AsCalendar> ZonedDateTime<A, TimeZoneInfo<models::AtTime>> {
     ///     inconsistent_tz_from_both,
     ///     Err(ParseError::InconsistentTimeUtcOffsets)
     /// ));
+    ///
+    /// // 'Z' and 'Etc/GMT' are compatible
+    /// ZonedDateTime::try_strict_from_str("2000-01-01T00:00Z[Etc/GMT]", Iso, IanaParser::new()).unwrap();
     /// ```
     pub fn try_strict_from_str(
         rfc_9557_str: &str,
