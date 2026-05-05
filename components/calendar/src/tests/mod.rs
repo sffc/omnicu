@@ -3,11 +3,13 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 mod arithmetic;
+mod constructor_roundtrip;
 mod continuity_test;
 mod date_arithmetic_snapshot;
 mod exhaustive;
 mod extended_year;
 mod extrema;
+mod month;
 mod not_enough_fields;
 
 macro_rules! test_all_cals {
@@ -16,7 +18,7 @@ macro_rules! test_all_cals {
             #[allow(unused_imports)]
             use super::*;
 
-            fn test<C: crate::Calendar + Copy>(cal: C) {
+            fn test<C: crate::Calendar + Copy>(cal: C) where Date<C>: Ord {
                 let $cal = cal;
                 $tt
             }

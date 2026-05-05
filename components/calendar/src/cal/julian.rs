@@ -4,7 +4,9 @@
 
 use crate::calendar_arithmetic::ArithmeticDate;
 use crate::calendar_arithmetic::DateFieldsResolver;
-use crate::error::{DateError, DateFromFieldsError, EcmaReferenceYearError, UnknownEraError};
+use crate::error::{
+    DateAddError, DateFromFieldsError, DateNewError, EcmaReferenceYearError, UnknownEraError,
+};
 use crate::options::DateFromFieldsOptions;
 use crate::options::{DateAddOptions, DateDifferenceOptions};
 use crate::types::DateFields;
@@ -69,6 +71,47 @@ use tinystr::tinystr;
 /// The calendar was used [incorrectly](https://en.wikipedia.org/wiki/Julian_calendar#Leap_year_error)
 /// for a while after adoption, so the first year where the months align with this proleptic
 /// implementation is probably 4 CE.
+///
+/// # Examples
+///
+/// The `Julian` variant of [`AnyCalendar`](crate::AnyCalendar) can be used to implement a date that
+/// switches between [`Julian`] and [`Gregorian`](crate::cal::Gregorian).
+///
+/// ```rust
+/// use icu::calendar::AnyCalendar;
+/// use icu::calendar::AnyCalendarKind;
+/// use icu::calendar::Date;
+/// use icu::calendar::error::RangeError;
+/// use icu::calendar::Gregorian;
+///
+/// fn historical_french_date(year: i32, month: u8, day: u8) -> Result<Date<AnyCalendar>, RangeError> {
+///     if (year, month, day) <= (1582, 10, 4) {
+///         // October 4, 1582 was the last day of the Julian calendar in France
+///         Ok(Date::try_new_julian(year, month, day)?.to_any())
+///     } else if (year, month, day) >= (1582, 10, 15) {
+///         // October 15, 1582 was the first day of the Gregorian calendar in France
+///         Ok(Date::try_new_gregorian(year, month, day)?.to_any())
+///     } else {
+///         // October 5-14 did not exist in France in 1582
+///         Err(RangeError {
+///            field: "day",
+///            value: day.into(),
+///            min: 15,
+///            max: 4
+///         })
+///     }
+/// }
+///
+/// let julian = historical_french_date(1500, 1, 1).unwrap();
+/// let gregorian = historical_french_date(1600, 1, 1).unwrap();
+///
+/// assert_eq!(julian.calendar().kind(), AnyCalendarKind::Julian);
+/// assert_eq!(gregorian.calendar().kind(), AnyCalendarKind::Gregorian);
+///
+/// // Check the resolved dates in the proleptic Gregorian calendar:
+/// assert_eq!(julian.to_calendar(Gregorian), Date::try_new_gregorian(1500, 1, 10).unwrap());
+/// assert_eq!(gregorian.to_calendar(Gregorian), Date::try_new_gregorian(1600, 1, 1).unwrap());
+/// ```
 #[derive(Copy, Clone, Debug, Hash, Default, Eq, PartialEq, PartialOrd, Ord)]
 #[allow(clippy::exhaustive_structs)] // this type is stable
 pub struct Julian;
@@ -91,11 +134,11 @@ impl DateFieldsResolver for Julian {
     }
 
     #[inline]
-    fn year_info_from_era(
+    fn extended_year_from_era_year_unchecked(
         &self,
         era: &[u8],
         era_year: i32,
-    ) -> Result<Self::YearInfo, UnknownEraError> {
+    ) -> Result<i32, UnknownEraError> {
         match era {
             b"ad" | b"ce" => Ok(era_year),
             b"bc" | b"bce" => Ok(1 - era_year),
@@ -109,13 +152,18 @@ impl DateFieldsResolver for Julian {
     }
 
     #[inline]
+    fn extended_from_year_info(&self, year_info: Self::YearInfo) -> i32 {
+        year_info
+    }
+
+    #[inline]
     fn reference_year_from_month_day(
         &self,
         month: types::Month,
         day: u8,
     ) -> Result<Self::YearInfo, EcmaReferenceYearError> {
         let (ordinal_month, false) = (month.number(), month.is_leap()) else {
-            return Err(EcmaReferenceYearError::MonthCodeNotInCalendar);
+            return Err(EcmaReferenceYearError::MonthNotInCalendar);
         };
         // December 31, 1972 occurs on 12th month, 18th day, 1972 Old Style
         // Note: 1972 is a leap year
@@ -136,20 +184,17 @@ impl crate::cal::scaffold::UnstableSealed for Julian {}
 impl Calendar for Julian {
     type DateInner = JulianDateInner;
     type Year = types::EraYear;
-    type DifferenceError = core::convert::Infallible;
+    type DateCompatibilityError = core::convert::Infallible;
 
-    fn from_codes(
+    fn new_date(
         &self,
-        era: Option<&str>,
-        year: i32,
-        month: types::MonthCode,
+        year: types::YearInput,
+        month: types::Month,
         day: u8,
-    ) -> Result<Self::DateInner, DateError> {
-        ArithmeticDate::from_era_year_month_code_day(era, year, month, day, self)
-            .map(JulianDateInner)
+    ) -> Result<Self::DateInner, DateNewError> {
+        ArithmeticDate::from_input_year_month_code_day(year, month, day, self).map(JulianDateInner)
     }
 
-    #[cfg(feature = "unstable")]
     fn from_fields(
         &self,
         fields: DateFields,
@@ -187,24 +232,26 @@ impl Calendar for Julian {
         Self::days_in_provided_month(date.0.year(), date.0.month())
     }
 
-    #[cfg(feature = "unstable")]
     fn add(
         &self,
         date: &Self::DateInner,
         duration: types::DateDuration,
         options: DateAddOptions,
-    ) -> Result<Self::DateInner, DateError> {
+    ) -> Result<Self::DateInner, DateAddError> {
         date.0.added(duration, self, options).map(JulianDateInner)
     }
 
-    #[cfg(feature = "unstable")]
     fn until(
         &self,
         date1: &Self::DateInner,
         date2: &Self::DateInner,
         options: DateDifferenceOptions,
-    ) -> Result<types::DateDuration, Self::DifferenceError> {
-        Ok(date1.0.until(&date2.0, self, options))
+    ) -> types::DateDuration {
+        date1.0.until(&date2.0, self, options)
+    }
+
+    fn check_date_compatibility(&self, &Self: &Self) -> Result<(), Self::DateCompatibilityError> {
+        Ok(())
     }
 
     /// The calendar-specific year represented by `date`
@@ -274,7 +321,7 @@ impl Date<Julian> {
     /// Construct new Julian [`Date`].
     ///
     /// Years are arithmetic, meaning there is a year 0 preceded by negative years, with a
-    /// valid range of `-1,000,000..=1,000,000`.
+    /// valid range of `-9999..=9999`.
     ///
     /// ```rust
     /// use icu::calendar::Date;

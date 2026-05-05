@@ -5,15 +5,17 @@
 [package]
 name = "bies"
 description = "Helpers for dealing with BIES vectors with text segmentation applications"
-version = "0.3.0-dev"
+version = "0.3.0"
+keywords = ["compression", "binary"]
 
 authors.workspace = true
-edition.workspace = true
+edition = "2021"
 homepage.workspace = true
 include.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version = "1.82"
+
 
 [package.metadata.workspaces]
 independent = true

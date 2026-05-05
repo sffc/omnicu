@@ -420,7 +420,7 @@ impl CollationElement32 {
     pub(crate) fn tag(self) -> Tag {
         debug_assert!(self.low_byte() >= SPECIAL_CE32_LOW_BYTE);
         // Safety: Tag has values 0 to 15, which are filtered for with the 0xF mask.
-        unsafe { core::mem::transmute(self.low_byte() & 0xF) }
+        unsafe { core::mem::transmute::<u8, Tag>(self.low_byte() & 0xF) }
     }
 
     /// Expands to 64 bits if the expansion is to a single 64-bit collation
@@ -1502,16 +1502,7 @@ where
                 if (decomposition & !(BACKWARD_COMBINING_MARKER | NON_ROUND_TRIP_MARKER)) == 0 {
                     // The character is its own decomposition
                     let jamo_index = (c as usize).wrapping_sub(HANGUL_L_BASE as usize);
-                    // Attribute belongs on an inner expression, but
-                    // https://github.com/rust-lang/rust/issues/15701
-                    #[expect(clippy::indexing_slicing)]
-                    if jamo_index >= self.jamo.len() {
-                        ce32 = data.ce32_for_char(c);
-                        if ce32 == FALLBACK_CE32 {
-                            data = self.root;
-                            ce32 = data.ce32_for_char(c);
-                        }
-                    } else {
+                    if let Some(&jamo) = self.jamo.get(jamo_index) {
                         // The purpose of reading the CE32 from the jamo table instead
                         // of the trie even in this case is to make it unnecessary
                         // for all search collation tries to carry a copy of the Hangul
@@ -1531,7 +1522,13 @@ where
                         data = self.root;
                         // Index in range by construction above. Not using `get` with
                         // `if let` in order to put the likely branch first.
-                        ce32 = CollationElement32::new_from_ule(self.jamo[jamo_index]);
+                        ce32 = CollationElement32::new_from_ule(jamo);
+                    } else {
+                        ce32 = data.ce32_for_char(c);
+                        if ce32 == FALLBACK_CE32 {
+                            data = self.root;
+                            ce32 = data.ce32_for_char(c);
+                        }
                     }
                     if self.is_next_decomposition_starts_with_starter() {
                         if let Some(ce) = ce32.to_ce_simple_or_long_primary() {
@@ -2095,22 +2092,34 @@ where
                                             digits.push(ce32.digit());
                                         }
                                     }
-                                    // Skip leading zeros
-                                    let mut zeros = 0;
-                                    while let Some(&digit) = digits.get(zeros) {
-                                        if digit != 0 {
-                                            break;
-                                        }
-                                        zeros += 1;
-                                    }
-                                    if zeros == digits.len() {
-                                        // All zeros, keep a zero
-                                        zeros = digits.len() - 1;
-                                    }
-                                    // Index in range by construction above
-                                    #[expect(clippy::indexing_slicing)]
-                                    let mut remaining = &digits[zeros..];
+                                    let mut remaining = digits.as_slice();
                                     while !remaining.is_empty() {
+                                        // Skip leading zeros
+
+                                        // If this isn't our initial loop round and we've truncated
+                                        // a chunk to 254 digits on a previous round, the eventual
+                                        // comparison result can be wrong, but that replicates an
+                                        // ICU4C bug. Let's fix both as a follow-up.
+                                        //
+                                        // https://unicode-org.atlassian.net/browse/ICU-23351
+                                        loop {
+                                            let Some((first, tail)) = remaining.split_first()
+                                            else {
+                                                // Keep one zero
+                                                // If we get here, we must have skipped a zero, since
+                                                // 1) the while loop condition above meant that we started
+                                                //    with a non-empty slice AND
+                                                // 2) this loop only skips zeros
+                                                // Instead of trying to recover the same zero that we already
+                                                // skipped, let's just fill in a static slice.
+                                                remaining = &[0];
+                                                break;
+                                            };
+                                            if *first != 0 {
+                                                break;
+                                            }
+                                            remaining = tail;
+                                        }
                                         // Numeric CEs are generated for segments of
                                         // up to 254 digits.
                                         let (head, tail) = remaining

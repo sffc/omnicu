@@ -15,117 +15,67 @@ use icu_locale_core::LanguageIdentifier;
 use icu_provider::prelude::*;
 use utf8_iter::Utf8CharIndices;
 
-// TODO(#1637): These constants should be data driven.
-#[allow(dead_code)]
-const UNKNOWN: u8 = 0;
-#[allow(dead_code)]
-const AI: u8 = 1;
-#[allow(dead_code)]
-const AK: u8 = 2;
-#[allow(dead_code)]
-const AL: u8 = 3;
-#[allow(dead_code)]
-const AL_DOTTED_CIRCLE: u8 = 4;
-#[allow(dead_code)]
-const AP: u8 = 5;
-#[allow(dead_code)]
-const AS: u8 = 6;
-#[allow(dead_code)]
-const B2: u8 = 7;
-#[allow(dead_code)]
-const BA: u8 = 8;
-#[allow(dead_code)]
-const BB: u8 = 9;
-#[allow(dead_code)]
-const BK: u8 = 10;
-#[allow(dead_code)]
-const CB: u8 = 11;
-#[allow(dead_code)]
-const CJ: u8 = 12;
-#[allow(dead_code)]
-const CL: u8 = 13;
-#[allow(dead_code)]
-const CM: u8 = 14;
-#[allow(dead_code)]
-const CP: u8 = 15;
-#[allow(dead_code)]
-const CR: u8 = 16;
-#[allow(dead_code)]
-const EB: u8 = 17;
-#[allow(dead_code)]
-const EM: u8 = 18;
-#[allow(dead_code)]
-const EX: u8 = 19;
-#[allow(dead_code)]
-const GL: u8 = 20;
-#[allow(dead_code)]
-const H2: u8 = 21;
-#[allow(dead_code)]
-const H3: u8 = 22;
-#[allow(dead_code)]
-const HL: u8 = 23;
-#[allow(dead_code)]
-const HY: u8 = 24;
-#[allow(dead_code)]
-const ID: u8 = 25;
-#[allow(dead_code)]
-const ID_CN: u8 = 26;
-#[allow(dead_code)]
-const IN: u8 = 27;
-#[allow(dead_code)]
-const IS: u8 = 28;
-#[allow(dead_code)]
-const JL: u8 = 29;
-#[allow(dead_code)]
-const JT: u8 = 30;
-#[allow(dead_code)]
-const JV: u8 = 31;
-#[allow(dead_code)]
-const LF: u8 = 32;
-#[allow(dead_code)]
-const NL: u8 = 33;
-#[allow(dead_code)]
-const NS: u8 = 34;
-#[allow(dead_code)]
-const NU: u8 = 35;
-#[allow(dead_code)]
-const OP_EA: u8 = 36;
-#[allow(dead_code)]
-const OP_OP30: u8 = 37;
-#[allow(dead_code)]
-const PO: u8 = 38;
-#[allow(dead_code)]
-const PO_EAW: u8 = 39;
-#[allow(dead_code)]
-const PR: u8 = 40;
-#[allow(dead_code)]
-const PR_EAW: u8 = 41;
-#[allow(dead_code)]
-const QU: u8 = 42;
-#[allow(dead_code)]
-const QU_PF: u8 = 43;
-#[allow(dead_code)]
-const QU_PI: u8 = 44;
-#[allow(dead_code)]
-const RI: u8 = 45;
-#[allow(dead_code)]
-const SA: u8 = 46;
-#[allow(dead_code)]
-const SP: u8 = 47;
-#[allow(dead_code)]
-const SY: u8 = 48;
-#[allow(dead_code)]
-const VF: u8 = 49;
-#[allow(dead_code)]
-const VI: u8 = 50;
-#[allow(dead_code)]
-const WJ: u8 = 51;
-#[allow(dead_code)]
-const XX: u8 = 52;
-#[allow(dead_code)]
-const ZW: u8 = 53;
-#[allow(dead_code)]
-const ZWJ: u8 = 54;
+#[doc(hidden)]
+impl RuleBreakData<'_> {
+    pub const LINE_PROPERTY_AI: u8 = 1;
+    pub const LINE_PROPERTY_AL: u8 = 3;
+    pub const LINE_PROPERTY_BA: u8 = 8;
+    pub const LINE_PROPERTY_BK: u8 = 10;
+    pub const LINE_PROPERTY_CJ: u8 = 12;
+    pub const LINE_PROPERTY_CM: u8 = 14;
+    pub const LINE_PROPERTY_CR: u8 = 16;
+    pub const LINE_PROPERTY_EX: u8 = 19;
+    pub const LINE_PROPERTY_H2: u8 = 21;
+    pub const LINE_PROPERTY_H3: u8 = 22;
+    pub const LINE_PROPERTY_HY: u8 = 24;
+    pub const LINE_PROPERTY_ID: u8 = 25;
+    pub const LINE_PROPERTY_IN: u8 = 27;
+    pub const LINE_PROPERTY_JL: u8 = 29;
+    pub const LINE_PROPERTY_JT: u8 = 30;
+    pub const LINE_PROPERTY_JV: u8 = 31;
+    pub const LINE_PROPERTY_LF: u8 = 32;
+    pub const LINE_PROPERTY_NL: u8 = 33;
+    pub const LINE_PROPERTY_NS: u8 = 34;
+    pub const LINE_PROPERTY_NU: u8 = 35;
+    pub const LINE_PROPERTY_PO_EAW: u8 = 39;
+    pub const LINE_PROPERTY_PR_EAW: u8 = 41;
+    pub const LINE_PROPERTY_SP: u8 = 47;
+    pub const LINE_PROPERTY_ZW: u8 = 53;
+    pub const LINE_PROPERTY_ZWJ: u8 = 54;
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+#[doc(hidden)]
+impl RuleBreakData<'_> {
+    pub const LINE_PROPERTY_AK: u8 = 2;
+    pub const LINE_PROPERTY_AL_DOTTED_CIRCLE: u8 = 4;
+    pub const LINE_PROPERTY_AP: u8 = 5;
+    pub const LINE_PROPERTY_AS: u8 = 6;
+    pub const LINE_PROPERTY_B2: u8 = 7;
+    pub const LINE_PROPERTY_BB: u8 = 9;
+    pub const LINE_PROPERTY_CB: u8 = 11;
+    pub const LINE_PROPERTY_CL: u8 = 13;
+    pub const LINE_PROPERTY_CP: u8 = 15;
+    pub const LINE_PROPERTY_EB: u8 = 17;
+    pub const LINE_PROPERTY_EM: u8 = 18;
+    pub const LINE_PROPERTY_GL: u8 = 20;
+    pub const LINE_PROPERTY_HL: u8 = 23;
+    pub const LINE_PROPERTY_ID_CN: u8 = 26;
+    pub const LINE_PROPERTY_IS: u8 = 28;
+    pub const LINE_PROPERTY_OP_EA: u8 = 36;
+    pub const LINE_PROPERTY_OP_OP30: u8 = 37;
+    pub const LINE_PROPERTY_PO: u8 = 38;
+    pub const LINE_PROPERTY_PR: u8 = 40;
+    pub const LINE_PROPERTY_QU: u8 = 42;
+    pub const LINE_PROPERTY_QU_PF: u8 = 43;
+    pub const LINE_PROPERTY_QU_PI: u8 = 44;
+    pub const LINE_PROPERTY_RI: u8 = 45;
+    pub const LINE_PROPERTY_SY: u8 = 48;
+    pub const LINE_PROPERTY_VF: u8 = 49;
+    pub const LINE_PROPERTY_VI: u8 = 50;
+    pub const LINE_PROPERTY_WJ: u8 = 51;
+    pub const LINE_PROPERTY_XX: u8 = 52;
+}
 
 /// An enum specifies the strictness of line-breaking rules. It can be passed as
 /// an argument when creating a line segmenter.
@@ -265,6 +215,10 @@ impl LineBreakOptions<'_> {
 /// For consistency with the grapheme, word, and sentence segmenters, there is
 /// always a breakpoint returned at index 0, but this breakpoint is not a
 /// meaningful line break opportunity.
+///
+/// Line segmenter is curretly compatible with [Unicode Standard Annex #14][UAX14] (Version 15.1.0).
+///
+/// [UAX14]: https://www.unicode.org/reports/tr14/tr14-51.html
 ///
 /// [LD3]: https://www.unicode.org/reports/tr14/#LD3
 /// [LD7]: https://www.unicode.org/reports/tr14/#LD7
@@ -443,11 +397,9 @@ impl LineSegmenter {
     #[cfg(feature = "lstm")]
     #[cfg(feature = "compiled_data")]
     pub fn new_lstm(options: LineBreakOptions) -> LineSegmenterBorrowed<'static> {
-        LineSegmenterBorrowed {
-            options: options.resolve(),
-            data: Baked::SINGLETON_SEGMENTER_BREAK_LINE_V1,
-            complex: ComplexPayloadsBorrowed::new_lstm(),
-        }
+        let mut s = Self::new_for_non_complex_scripts(options);
+        s.load_lstm();
+        s
     }
 
     #[cfg(feature = "lstm")]
@@ -473,11 +425,9 @@ impl LineSegmenter {
             + DataProvider<SegmenterBreakGraphemeClusterV1>
             + ?Sized,
     {
-        Ok(Self {
-            options: options.resolve(),
-            payload: provider.load(Default::default())?.payload,
-            complex: ComplexPayloads::try_new_lstm(provider)?,
-        })
+        let mut s = Self::try_new_for_non_complex_scripts_unstable(provider, options)?;
+        s.load_lstm_unstable(provider)?;
+        Ok(s)
     }
 
     /// Constructs a [`LineSegmenter`] with an invariant locale, custom [`LineBreakOptions`], and
@@ -491,17 +441,9 @@ impl LineSegmenter {
     /// [📚 Help choosing a constructor](icu_provider::constructors)
     #[cfg(feature = "compiled_data")]
     pub fn new_dictionary(options: LineBreakOptions) -> LineSegmenterBorrowed<'static> {
-        LineSegmenterBorrowed {
-            options: options.resolve(),
-            data: Baked::SINGLETON_SEGMENTER_BREAK_LINE_V1,
-            // Line segmenter doesn't need to load CJ dictionary because UAX 14 rules handles CJK
-            // characters [1]. Southeast Asian languages however require complex context analysis
-            // [2].
-            //
-            // [1]: https://www.unicode.org/reports/tr14/#ID
-            // [2]: https://www.unicode.org/reports/tr14/#SA
-            complex: ComplexPayloadsBorrowed::new_southeast_asian(),
-        }
+        let mut s = Self::new_for_non_complex_scripts(options);
+        s.load_dictionary();
+        s
     }
 
     icu_provider::gen_buffer_data_constructors!(
@@ -525,17 +467,9 @@ impl LineSegmenter {
             + DataProvider<SegmenterBreakGraphemeClusterV1>
             + ?Sized,
     {
-        Ok(Self {
-            options: options.resolve(),
-            payload: provider.load(Default::default())?.payload,
-            // Line segmenter doesn't need to load CJ dictionary because UAX 14 rules handles CJK
-            // characters [1]. Southeast Asian languages however require complex context analysis
-            // [2].
-            //
-            // [1]: https://www.unicode.org/reports/tr14/#ID
-            // [2]: https://www.unicode.org/reports/tr14/#SA
-            complex: ComplexPayloads::try_new_southeast_asian(provider)?,
-        })
+        let mut s = Self::try_new_for_non_complex_scripts_unstable(provider, options)?;
+        s.load_dictionary_unstable(provider)?;
+        Ok(s)
     }
 
     /// Constructs a [`LineSegmenter`] with an invariant locale, custom [`LineBreakOptions`], and
@@ -551,7 +485,7 @@ impl LineSegmenter {
         LineSegmenterBorrowed {
             options: options.resolve(),
             data: Baked::SINGLETON_SEGMENTER_BREAK_LINE_V1,
-            complex: ComplexPayloadsBorrowed::empty(),
+            complex: ComplexPayloadsBorrowed::new(),
         }
     }
 
@@ -578,8 +512,68 @@ impl LineSegmenter {
         Ok(Self {
             options: options.resolve(),
             payload: provider.load(Default::default())?.payload,
-            complex: ComplexPayloads::try_new_empty(provider)?,
+            complex: ComplexPayloads::try_new(provider)?,
         })
+    }
+
+    /// Loads LSTM data for a [`LineSegmenter`] constructed with
+    /// [`LineSegmenter::new_for_non_complex_scripts`].
+    ///
+    /// ✨ *Enabled with the `lstm` Cargo feature.*
+    #[cfg(feature = "lstm")]
+    pub fn load_lstm_unstable<D>(&mut self, provider: &D) -> Result<(), DataError>
+    where
+        D: DataProvider<SegmenterLstmAutoV1> + ?Sized,
+    {
+        // Line segmenter doesn't need to load CJ dictionary because UAX 14 rules handles CJK
+        // characters [1]. Southeast Asian languages however require complex context analysis
+        // [2].
+        //
+        // [1]: https://www.unicode.org/reports/tr14/#ID
+        // [2]: https://www.unicode.org/reports/tr14/#SA
+        self.complex.with_southeast_asian_lstms(provider)?;
+        Ok(())
+    }
+
+    /// A version of [`Self::load_lstm_unstable`] that uses custom data
+    /// provided by a [`BufferProvider`].
+    ///
+    /// ✨ *Enabled with the `serde` Cargo feature.*
+    #[cfg(feature = "serde")]
+    #[cfg(feature = "lstm")]
+    pub fn load_lstm_with_buffer_provider(
+        &mut self,
+        provider: &(impl BufferProvider + ?Sized),
+    ) -> Result<(), DataError> {
+        self.load_lstm_unstable(&provider.as_deserializing())
+    }
+
+    /// Loads dictionary data for a [`LineSegmenter`] constructed with
+    /// [`LineSegmenter::new_for_non_complex_scripts`].
+    pub fn load_dictionary_unstable<D>(&mut self, provider: &D) -> Result<(), DataError>
+    where
+        D: DataProvider<SegmenterDictionaryExtendedV1> + ?Sized,
+    {
+        // Line segmenter doesn't need to load CJ dictionary because UAX 14 rules handles CJK
+        // characters [1]. Southeast Asian languages however require complex context analysis
+        // [2].
+        //
+        // [1]: https://www.unicode.org/reports/tr14/#ID
+        // [2]: https://www.unicode.org/reports/tr14/#SA
+        self.complex.with_southeast_asian_dictionaries(provider)?;
+        Ok(())
+    }
+
+    /// A version of [`Self::load_dictionary_unstable`] that uses custom data
+    /// provided by a [`BufferProvider`].
+    ///
+    /// ✨ *Enabled with the `serde` Cargo feature.*
+    #[cfg(feature = "serde")]
+    pub fn load_dictionary_with_buffer_provider(
+        &mut self,
+        provider: &(impl BufferProvider + ?Sized),
+    ) -> Result<(), DataError> {
+        self.load_dictionary_unstable(&provider.as_deserializing())
     }
 
     /// Constructs a borrowed version of this type for more efficient querying.
@@ -595,6 +589,14 @@ impl LineSegmenter {
 }
 
 impl<'data> LineSegmenterBorrowed<'data> {
+    #[doc(hidden)]
+    pub fn with_options(self, options: LineBreakOptions) -> Self {
+        Self {
+            options: options.resolve(),
+            ..self
+        }
+    }
+
     /// Creates a line break iterator for an `str` (a UTF-8 string).
     ///
     /// There are always breakpoints at 0 and the string length, or only at 0 for the empty string.
@@ -660,6 +662,37 @@ impl<'data> LineSegmenterBorrowed<'data> {
 }
 
 impl LineSegmenterBorrowed<'static> {
+    /// Loads LSTM data for a [`LineSegmenter`] constructed with
+    /// [`LineSegmenter::new_for_non_complex_scripts`].
+    ///
+    /// ✨ *Enabled with the `compiled_data` and `lstm` Cargo features.*
+    #[cfg(feature = "lstm")]
+    #[cfg(feature = "compiled_data")]
+    pub fn load_lstm(&mut self) {
+        // Line segmenter doesn't need to load CJ dictionary because UAX 14 rules handles CJK
+        // characters [1]. Southeast Asian languages however require complex context analysis
+        // [2].
+        //
+        // [1]: https://www.unicode.org/reports/tr14/#ID
+        // [2]: https://www.unicode.org/reports/tr14/#SA
+        self.complex.with_southeast_asian_lstms();
+    }
+
+    /// Loads dictionary data for a [`LineSegmenter`] constructed with
+    /// [`LineSegmenter::new_for_non_complex_scripts`].
+    ///
+    /// ✨ *Enabled with the `compiled_data` Cargo feature.*
+    #[cfg(feature = "compiled_data")]
+    pub fn load_dictionary(&mut self) {
+        // Line segmenter doesn't need to load CJ dictionary because UAX 14 rules handles CJK
+        // characters [1]. Southeast Asian languages however require complex context analysis
+        // [2].
+        //
+        // [1]: https://www.unicode.org/reports/tr14/#ID
+        // [2]: https://www.unicode.org/reports/tr14/#SA
+        self.complex.with_southeast_asian_dictionaries();
+    }
+
     /// Cheaply converts a [`LineSegmenterBorrowed<'static>`] into a [`LineSegmenter`].
     ///
     /// Note: Due to branching and indirection, using [`LineSegmenter`] might inhibit some
@@ -688,7 +721,7 @@ impl RuleBreakData<'_> {
             || strictness == LineBreakStrictness::Normal
         {
             return match prop {
-                CJ => ID, // All CJ's General_Category is Other_Letter (Lo).
+                RuleBreakData::LINE_PROPERTY_CJ => RuleBreakData::LINE_PROPERTY_ID, // All CJ's General_Category is Other_Letter (Lo).
                 _ => prop,
             };
         }
@@ -713,8 +746,12 @@ impl RuleBreakData<'_> {
             LineBreakWordOption::Normal,
         );
 
-        line_break_property == SA
+        line_break_property == self.complex_property
     }
+}
+
+fn is_break_utf32_by_normal(codepoint: u32, ja_zh: bool) -> bool {
+    matches!(codepoint, 0x301C | 0x30A0 if ja_zh)
 }
 
 #[inline]
@@ -724,59 +761,35 @@ fn is_break_utf32_by_loose(
     right_prop: u8,
     ja_zh: bool,
 ) -> Option<bool> {
-    // breaks before hyphens
-    if right_prop == BA {
-        if left_prop == ID && (right_codepoint == 0x2010 || right_codepoint == 0x2013) {
-            return Some(true);
-        }
-    } else if right_prop == NS {
+    Some(match (right_prop, right_codepoint, left_prop) {
+        // breaks before hyphens
+        (RuleBreakData::LINE_PROPERTY_BA, 0x2010 | 0x2013, RuleBreakData::LINE_PROPERTY_ID) => true,
         // breaks before certain CJK hyphen-like characters
-        if right_codepoint == 0x301C || right_codepoint == 0x30A0 {
-            return Some(ja_zh);
-        }
-
+        (RuleBreakData::LINE_PROPERTY_NS, 0x301C | 0x30A0, _) => ja_zh,
         // breaks before iteration marks
-        if right_codepoint == 0x3005
-            || right_codepoint == 0x303B
-            || right_codepoint == 0x309D
-            || right_codepoint == 0x309E
-            || right_codepoint == 0x30FD
-            || right_codepoint == 0x30FE
-        {
-            return Some(true);
-        }
-
+        (
+            RuleBreakData::LINE_PROPERTY_NS,
+            0x3005 | 0x303B | 0x309D | 0x309E | 0x30FD | 0x30FE,
+            _,
+        ) => true,
         // breaks before certain centered punctuation marks:
-        if right_codepoint == 0x30FB
-            || right_codepoint == 0xFF1A
-            || right_codepoint == 0xFF1B
-            || right_codepoint == 0xFF65
-            || right_codepoint == 0x203C
-            || (0x2047..=0x2049).contains(&right_codepoint)
-        {
-            return Some(ja_zh);
-        }
-    } else if right_prop == IN {
+        (
+            RuleBreakData::LINE_PROPERTY_NS,
+            0x30FB | 0xFF1A | 0xFF1B | 0xFF65 | 0x203C | 0x2047..=0x2049,
+            _,
+        ) => ja_zh,
         // breaks between inseparable characters such as U+2025, U+2026 i.e. characters with the Unicode Line Break property IN
-        return Some(true);
-    } else if right_prop == EX {
+        (RuleBreakData::LINE_PROPERTY_IN, _, _) => true,
         // breaks before certain centered punctuation marks:
-        if right_codepoint == 0xFF01 || right_codepoint == 0xFF1F {
-            return Some(ja_zh);
-        }
-    }
-
-    // breaks before suffixes:
-    // Characters with the Unicode Line Break property PO and the East Asian Width property
-    if right_prop == PO_EAW {
-        return Some(ja_zh);
-    }
-    // breaks after prefixes:
-    // Characters with the Unicode Line Break property PR and the East Asian Width property
-    if left_prop == PR_EAW {
-        return Some(ja_zh);
-    }
-    None
+        (RuleBreakData::LINE_PROPERTY_EX, 0xFF01 | 0xFF1F, _) => ja_zh,
+        // breaks before suffixes:
+        // Characters with the Unicode Line Break property PO and the East Asian Width property
+        (RuleBreakData::LINE_PROPERTY_PO_EAW, _, _) => ja_zh,
+        // breaks after prefixes:
+        // Characters with the Unicode Line Break property PR and the East Asian Width property
+        (_, _, RuleBreakData::LINE_PROPERTY_PR_EAW) => ja_zh,
+        _ => return None,
+    })
 }
 
 /// A trait allowing for `LineBreakIterator` to be generalized to multiple string iteration methods.
@@ -865,7 +878,8 @@ impl<Y: LineBreakType> Iterator for LineBreakIterator<'_, '_, Y> {
             let left_codepoint = self.get_current_codepoint()?;
             let mut left_prop =
                 lb9_left.unwrap_or_else(|| self.get_linebreak_property(left_codepoint));
-            let after_zwj = lb8a_after_lb9 || (lb9_left.is_none() && left_prop == ZWJ);
+            let after_zwj = lb8a_after_lb9
+                || (lb9_left.is_none() && left_prop == RuleBreakData::LINE_PROPERTY_ZWJ);
             self.advance_iter();
 
             let Some(right_codepoint) = self.get_current_codepoint() else {
@@ -875,17 +889,18 @@ impl<Y: LineBreakType> Iterator for LineBreakIterator<'_, '_, Y> {
             // NOTE(egg): The special-casing of `LineBreakStrictness::Anywhere` allows us to pass
             // a test, but eventually that option should just be simplified to call the extended
             // grapheme cluster segmenter.
-            if (right_prop == CM
-                || (right_prop == ZWJ && self.options.strictness != LineBreakStrictness::Anywhere))
-                && left_prop != BK
-                && left_prop != CR
-                && left_prop != LF
-                && left_prop != NL
-                && left_prop != SP
-                && left_prop != ZW
+            if (right_prop == RuleBreakData::LINE_PROPERTY_CM
+                || (right_prop == RuleBreakData::LINE_PROPERTY_ZWJ
+                    && self.options.strictness != LineBreakStrictness::Anywhere))
+                && left_prop != RuleBreakData::LINE_PROPERTY_BK
+                && left_prop != RuleBreakData::LINE_PROPERTY_CR
+                && left_prop != RuleBreakData::LINE_PROPERTY_LF
+                && left_prop != RuleBreakData::LINE_PROPERTY_NL
+                && left_prop != RuleBreakData::LINE_PROPERTY_SP
+                && left_prop != RuleBreakData::LINE_PROPERTY_ZW
             {
                 lb9_left = Some(left_prop);
-                lb8a_after_lb9 = right_prop == ZWJ;
+                lb8a_after_lb9 = right_prop == RuleBreakData::LINE_PROPERTY_ZWJ;
                 continue;
             } else {
                 lb9_left = None;
@@ -894,14 +909,41 @@ impl<Y: LineBreakType> Iterator for LineBreakIterator<'_, '_, Y> {
 
             // CSS word-break property handling
             match (self.options.word_option, left_prop, right_prop) {
-                (LineBreakWordOption::BreakAll, AL | NU | SA, _) => {
-                    left_prop = ID;
+                (LineBreakWordOption::BreakAll, p, _) if p == self.data.complex_property => {
+                    left_prop = RuleBreakData::LINE_PROPERTY_ID;
+                }
+                (
+                    LineBreakWordOption::BreakAll,
+                    RuleBreakData::LINE_PROPERTY_AL | RuleBreakData::LINE_PROPERTY_NU,
+                    _,
+                ) => {
+                    left_prop = RuleBreakData::LINE_PROPERTY_ID;
                 }
                 //  typographic letter units shouldn't be break
                 (
                     LineBreakWordOption::KeepAll,
-                    AI | AL | ID | NU | HY | H2 | H3 | JL | JV | JT | CJ,
-                    AI | AL | ID | NU | HY | H2 | H3 | JL | JV | JT | CJ,
+                    RuleBreakData::LINE_PROPERTY_AI
+                    | RuleBreakData::LINE_PROPERTY_AL
+                    | RuleBreakData::LINE_PROPERTY_ID
+                    | RuleBreakData::LINE_PROPERTY_NU
+                    | RuleBreakData::LINE_PROPERTY_HY
+                    | RuleBreakData::LINE_PROPERTY_H2
+                    | RuleBreakData::LINE_PROPERTY_H3
+                    | RuleBreakData::LINE_PROPERTY_JL
+                    | RuleBreakData::LINE_PROPERTY_JV
+                    | RuleBreakData::LINE_PROPERTY_JT
+                    | RuleBreakData::LINE_PROPERTY_CJ,
+                    RuleBreakData::LINE_PROPERTY_AI
+                    | RuleBreakData::LINE_PROPERTY_AL
+                    | RuleBreakData::LINE_PROPERTY_ID
+                    | RuleBreakData::LINE_PROPERTY_NU
+                    | RuleBreakData::LINE_PROPERTY_HY
+                    | RuleBreakData::LINE_PROPERTY_H2
+                    | RuleBreakData::LINE_PROPERTY_H3
+                    | RuleBreakData::LINE_PROPERTY_JL
+                    | RuleBreakData::LINE_PROPERTY_JV
+                    | RuleBreakData::LINE_PROPERTY_JT
+                    | RuleBreakData::LINE_PROPERTY_CJ,
                 ) => {
                     continue;
                 }
@@ -910,10 +952,11 @@ impl<Y: LineBreakType> Iterator for LineBreakIterator<'_, '_, Y> {
 
             // CSS line-break property handling
             match self.options.strictness {
-                LineBreakStrictness::Normal => {
-                    if self.is_break_by_normal(right_codepoint) && !after_zwj {
-                        return self.get_current_position();
-                    }
+                LineBreakStrictness::Normal
+                    if is_break_utf32_by_normal(right_codepoint.into(), self.options.ja_zh)
+                        && !after_zwj =>
+                {
+                    return self.get_current_position();
                 }
                 LineBreakStrictness::Loose => {
                     if let Some(breakable) = is_break_utf32_by_loose(
@@ -982,7 +1025,7 @@ impl<Y: LineBreakType> Iterator for LineBreakIterator<'_, '_, Y> {
 
                     loop {
                         self.advance_iter();
-                        let after_zwj = left_prop_pre_lb9 == ZWJ;
+                        let after_zwj = left_prop_pre_lb9 == RuleBreakData::LINE_PROPERTY_ZWJ;
 
                         let previous_break_state_is_cp_prop =
                             index <= self.data.last_codepoint_property;
@@ -1006,13 +1049,14 @@ impl<Y: LineBreakType> Iterator for LineBreakIterator<'_, '_, Y> {
                             return Some(self.len);
                         };
 
-                        if (prop == CM || prop == ZWJ)
-                            && left_prop_pre_lb9 != BK
-                            && left_prop_pre_lb9 != CR
-                            && left_prop_pre_lb9 != LF
-                            && left_prop_pre_lb9 != NL
-                            && left_prop_pre_lb9 != SP
-                            && left_prop_pre_lb9 != ZW
+                        if (prop == RuleBreakData::LINE_PROPERTY_CM
+                            || prop == RuleBreakData::LINE_PROPERTY_ZWJ)
+                            && left_prop_pre_lb9 != RuleBreakData::LINE_PROPERTY_BK
+                            && left_prop_pre_lb9 != RuleBreakData::LINE_PROPERTY_CR
+                            && left_prop_pre_lb9 != RuleBreakData::LINE_PROPERTY_LF
+                            && left_prop_pre_lb9 != RuleBreakData::LINE_PROPERTY_NL
+                            && left_prop_pre_lb9 != RuleBreakData::LINE_PROPERTY_SP
+                            && left_prop_pre_lb9 != RuleBreakData::LINE_PROPERTY_ZW
                         {
                             left_prop_pre_lb9 = prop;
                             continue;
@@ -1119,13 +1163,6 @@ impl<Y: LineBreakType> LineBreakIterator<'_, '_, Y> {
     fn get_current_linebreak_property(&self) -> Option<u8> {
         self.get_current_codepoint()
             .map(|c| self.get_linebreak_property(c))
-    }
-
-    fn is_break_by_normal(&self, codepoint: Y::CharType) -> bool {
-        match codepoint.into() {
-            0x301C | 0x30A0 => self.options.ja_zh,
-            _ => false,
-        }
     }
 }
 
@@ -1336,20 +1373,62 @@ mod tests {
             )
         };
 
-        assert_eq!(get_linebreak_property('\u{0020}'), SP);
-        assert_eq!(get_linebreak_property('\u{0022}'), QU);
-        assert_eq!(get_linebreak_property('('), OP_OP30);
-        assert_eq!(get_linebreak_property('\u{0030}'), NU);
-        assert_eq!(get_linebreak_property('['), OP_OP30);
-        assert_eq!(get_linebreak_property('\u{1f3fb}'), EM);
-        assert_eq!(get_linebreak_property('\u{20000}'), ID);
-        assert_eq!(get_linebreak_property('\u{e0020}'), CM);
-        assert_eq!(get_linebreak_property('\u{3041}'), CJ);
-        assert_eq!(get_linebreak_property('\u{0025}'), PO);
-        assert_eq!(get_linebreak_property('\u{00A7}'), AI);
-        assert_eq!(get_linebreak_property('\u{50005}'), XX);
-        assert_eq!(get_linebreak_property('\u{17D6}'), NS);
-        assert_eq!(get_linebreak_property('\u{2014}'), B2);
+        assert_eq!(
+            get_linebreak_property('\u{0020}'),
+            RuleBreakData::LINE_PROPERTY_SP
+        );
+        assert_eq!(
+            get_linebreak_property('\u{0022}'),
+            RuleBreakData::LINE_PROPERTY_QU
+        );
+        assert_eq!(
+            get_linebreak_property('('),
+            RuleBreakData::LINE_PROPERTY_OP_OP30
+        );
+        assert_eq!(
+            get_linebreak_property('\u{0030}'),
+            RuleBreakData::LINE_PROPERTY_NU
+        );
+        assert_eq!(
+            get_linebreak_property('['),
+            RuleBreakData::LINE_PROPERTY_OP_OP30
+        );
+        assert_eq!(
+            get_linebreak_property('\u{1f3fb}'),
+            RuleBreakData::LINE_PROPERTY_EM
+        );
+        assert_eq!(
+            get_linebreak_property('\u{20000}'),
+            RuleBreakData::LINE_PROPERTY_ID
+        );
+        assert_eq!(
+            get_linebreak_property('\u{e0020}'),
+            RuleBreakData::LINE_PROPERTY_CM
+        );
+        assert_eq!(
+            get_linebreak_property('\u{3041}'),
+            RuleBreakData::LINE_PROPERTY_CJ
+        );
+        assert_eq!(
+            get_linebreak_property('\u{0025}'),
+            RuleBreakData::LINE_PROPERTY_PO
+        );
+        assert_eq!(
+            get_linebreak_property('\u{00A7}'),
+            RuleBreakData::LINE_PROPERTY_AI
+        );
+        assert_eq!(
+            get_linebreak_property('\u{50005}'),
+            RuleBreakData::LINE_PROPERTY_XX
+        );
+        assert_eq!(
+            get_linebreak_property('\u{17D6}'),
+            RuleBreakData::LINE_PROPERTY_NS
+        );
+        assert_eq!(
+            get_linebreak_property('\u{2014}'),
+            RuleBreakData::LINE_PROPERTY_B2
+        );
     }
 
     #[test]
@@ -1368,89 +1447,431 @@ mod tests {
         };
 
         // LB4
-        assert_eq!(is_break(BK, AL), true);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_BK,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            true
+        );
         // LB5
-        assert_eq!(is_break(CR, LF), false);
-        assert_eq!(is_break(CR, AL), true);
-        assert_eq!(is_break(LF, AL), true);
-        assert_eq!(is_break(NL, AL), true);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_CR,
+                RuleBreakData::LINE_PROPERTY_LF
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_CR,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            true
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_LF,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            true
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_NL,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            true
+        );
         // LB6
-        assert_eq!(is_break(AL, BK), false);
-        assert_eq!(is_break(AL, CR), false);
-        assert_eq!(is_break(AL, LF), false);
-        assert_eq!(is_break(AL, NL), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_BK
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_CR
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_LF
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_NL
+            ),
+            false
+        );
         // LB7
-        assert_eq!(is_break(AL, SP), false);
-        assert_eq!(is_break(AL, ZW), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_SP
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_ZW
+            ),
+            false
+        );
         // LB8
         // LB8a and LB9 omitted: These are handled outside of the state table.
         // LB10
-        assert_eq!(is_break(ZWJ, SP), false);
-        assert_eq!(is_break(SP, CM), true);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_ZWJ,
+                RuleBreakData::LINE_PROPERTY_SP
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_SP,
+                RuleBreakData::LINE_PROPERTY_CM
+            ),
+            true
+        );
         // LB11
-        assert_eq!(is_break(AL, WJ), false);
-        assert_eq!(is_break(WJ, AL), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_WJ
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_WJ,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            false
+        );
         // LB12
-        assert_eq!(is_break(GL, AL), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_GL,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            false
+        );
         // LB12a
-        assert_eq!(is_break(AL, GL), false);
-        assert_eq!(is_break(SP, GL), true);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_GL
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_SP,
+                RuleBreakData::LINE_PROPERTY_GL
+            ),
+            true
+        );
         // LB13
-        assert_eq!(is_break(AL, CL), false);
-        assert_eq!(is_break(AL, CP), false);
-        assert_eq!(is_break(AL, EX), false);
-        assert_eq!(is_break(AL, IS), false);
-        assert_eq!(is_break(AL, SY), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_CL
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_CP
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_EX
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_IS
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_SY
+            ),
+            false
+        );
         // LB18
-        assert_eq!(is_break(SP, AL), true);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_SP,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            true
+        );
         // LB19
-        assert_eq!(is_break(AL, QU), false);
-        assert_eq!(is_break(QU, AL), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_QU
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_QU,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            false
+        );
         // LB20
-        assert_eq!(is_break(AL, CB), true);
-        assert_eq!(is_break(CB, AL), true);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_CB
+            ),
+            true
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_CB,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            true
+        );
         // LB20
-        assert_eq!(is_break(AL, BA), false);
-        assert_eq!(is_break(AL, HY), false);
-        assert_eq!(is_break(AL, NS), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_BA
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_HY
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_NS
+            ),
+            false
+        );
         // LB21
-        assert_eq!(is_break(AL, BA), false);
-        assert_eq!(is_break(BB, AL), false);
-        assert_eq!(is_break(ID, BA), false);
-        assert_eq!(is_break(ID, NS), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_BA
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_BB,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_ID,
+                RuleBreakData::LINE_PROPERTY_BA
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_ID,
+                RuleBreakData::LINE_PROPERTY_NS
+            ),
+            false
+        );
         // LB21a
         // LB21b
-        assert_eq!(is_break(SY, HL), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_SY,
+                RuleBreakData::LINE_PROPERTY_HL
+            ),
+            false
+        );
         // LB22
-        assert_eq!(is_break(AL, IN), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_IN
+            ),
+            false
+        );
         // LB 23
-        assert_eq!(is_break(AL, NU), false);
-        assert_eq!(is_break(HL, NU), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_NU
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_HL,
+                RuleBreakData::LINE_PROPERTY_NU
+            ),
+            false
+        );
         // LB 23a
-        assert_eq!(is_break(PR, ID), false);
-        assert_eq!(is_break(PR, EB), false);
-        assert_eq!(is_break(PR, EM), false);
-        assert_eq!(is_break(ID, PO), false);
-        assert_eq!(is_break(EB, PO), false);
-        assert_eq!(is_break(EM, PO), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_PR,
+                RuleBreakData::LINE_PROPERTY_ID
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_PR,
+                RuleBreakData::LINE_PROPERTY_EB
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_PR,
+                RuleBreakData::LINE_PROPERTY_EM
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_ID,
+                RuleBreakData::LINE_PROPERTY_PO
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_EB,
+                RuleBreakData::LINE_PROPERTY_PO
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_EM,
+                RuleBreakData::LINE_PROPERTY_PO
+            ),
+            false
+        );
         // LB26
-        assert_eq!(is_break(JL, JL), false);
-        assert_eq!(is_break(JL, JV), false);
-        assert_eq!(is_break(JL, H2), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_JL,
+                RuleBreakData::LINE_PROPERTY_JL
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_JL,
+                RuleBreakData::LINE_PROPERTY_JV
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_JL,
+                RuleBreakData::LINE_PROPERTY_H2
+            ),
+            false
+        );
         // LB27
-        assert_eq!(is_break(JL, IN), false);
-        assert_eq!(is_break(JL, PO), false);
-        assert_eq!(is_break(PR, JL), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_JL,
+                RuleBreakData::LINE_PROPERTY_IN
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_JL,
+                RuleBreakData::LINE_PROPERTY_PO
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_PR,
+                RuleBreakData::LINE_PROPERTY_JL
+            ),
+            false
+        );
         // LB28
-        assert_eq!(is_break(AL, AL), false);
-        assert_eq!(is_break(HL, AL), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_AL,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_HL,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            false
+        );
         // LB29
-        assert_eq!(is_break(IS, AL), false);
-        assert_eq!(is_break(IS, HL), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_IS,
+                RuleBreakData::LINE_PROPERTY_AL
+            ),
+            false
+        );
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_IS,
+                RuleBreakData::LINE_PROPERTY_HL
+            ),
+            false
+        );
         // LB30b
-        assert_eq!(is_break(EB, EM), false);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_EB,
+                RuleBreakData::LINE_PROPERTY_EM
+            ),
+            false
+        );
         // LB31
-        assert_eq!(is_break(ID, ID), true);
+        assert_eq!(
+            is_break(
+                RuleBreakData::LINE_PROPERTY_ID,
+                RuleBreakData::LINE_PROPERTY_ID
+            ),
+            true
+        );
     }
 
     #[test]

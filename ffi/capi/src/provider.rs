@@ -12,7 +12,7 @@ pub mod ffi {
 
     use crate::unstable::errors::ffi::DataError;
 
-    #[diplomat::opaque]
+    #[diplomat::opaque_mut]
     /// An ICU4X data provider, capable of loading ICU4X data keys from some source.
     ///
     /// Currently the only source supported is loading from "blob" formatted data from a bytes buffer or the file system.
@@ -33,7 +33,7 @@ pub mod ffi {
                 None => Err(icu_provider::DataError::custom(
                     "This provider has been destroyed",
                 ))?,
-                Some(ref buffer_provider) => Ok(buffer_provider),
+                Some(buffer_provider) => Ok(buffer_provider),
             }
         }
 

@@ -36,7 +36,7 @@ use icu::calendar::{Date, Iso};
 use icu::time::zone::UtcOffset;
 use icu::time::Time;
 use icu_provider::prelude::*;
-use source::{AbstractFs, SerdeCache, TzdbCache, UnihanCache};
+use source::{AbstractFs, SerdeCache, TzdbCache, UnicodeCache};
 use std::collections::{BTreeSet, HashSet};
 use std::fmt::Debug;
 use std::path::Path;
@@ -89,6 +89,9 @@ mod tests;
 /// * [`is_missing_cldr_error`](Self::is_missing_cldr_error)
 /// * [`is_missing_icuexport_error`](Self::is_missing_icuexport_error)
 /// * [`is_missing_segmenter_lstm_error`](Self::is_missing_segmenter_lstm_error)
+/// * [`is_missing_unihan_error`](Self::is_missing_unihan_error)
+/// * [`is_missing_ucd_error`](Self::is_missing_ucd_error)
+/// * [`is_missing_tzdb_error`](Self::is_missing_tzdb_error)
 #[allow(clippy::exhaustive_structs)] // any information will be added to SourceData
 #[derive(Debug, Clone)]
 pub struct SourceDataProvider {
@@ -96,7 +99,7 @@ pub struct SourceDataProvider {
     icuexport_paths: Option<Arc<SerdeCache>>,
     segmenter_lstm_paths: Option<Arc<SerdeCache>>,
     tzdb_paths: Option<Arc<TzdbCache>>,
-    unihan_paths: Option<Arc<UnihanCache>>,
+    unicode_paths: Option<Arc<UnicodeCache>>,
     trie_type: TrieType,
     collation_root_han: CollationRootHan,
     pub(crate) timezone_horizon: time_zones::Timestamp,
@@ -124,7 +127,7 @@ icu_provider::marker::impl_data_provider_never_marker!(SourceDataProvider);
 
 impl SourceDataProvider {
     /// The CLDR JSON tag that has been verified to work with this version of `SourceDataProvider`.
-    pub const TESTED_CLDR_TAG: &'static str = "48.1.0";
+    pub const TESTED_CLDR_TAG: &'static str = "48.2.0";
 
     /// The ICU export tag that has been verified to work with this version of `SourceDataProvider`.
     pub const TESTED_ICUEXPORT_TAG: &'static str = "release-78.1rc";
@@ -136,13 +139,14 @@ impl SourceDataProvider {
     pub const TESTED_UCD_TAG: &'static str = "17.0.0";
 
     /// The TZDB tag that has been verified to work with this version of `SourceDataProvider`.
-    pub const TESTED_TZDB_TAG: &'static str = "2025c";
+    pub const TESTED_TZDB_TAG: &'static str = "2026b";
 
     /// A provider using the data that has been verified to work with this version of `SourceDataProvider`.
     ///
     /// See [`TESTED_CLDR_TAG`](Self::TESTED_CLDR_TAG),
     /// [`TESTED_ICUEXPORT_TAG`](Self::TESTED_ICUEXPORT_TAG),
     /// [`TESTED_SEGMENTER_LSTM_TAG`](Self::TESTED_SEGMENTER_LSTM_TAG),
+    /// [`TESTED_UCD_TAG`](Self::TESTED_UCD_TAG),
     /// [`TESTED_TZDB_TAG`](Self::TESTED_TZDB_TAG).
     ///
     /// ✨ *Enabled with the `networking` Cargo feature.*
@@ -158,7 +162,7 @@ impl SourceDataProvider {
                     .with_icuexport_for_tag(Self::TESTED_ICUEXPORT_TAG)
                     .with_segmenter_lstm_for_tag(Self::TESTED_SEGMENTER_LSTM_TAG)
                     .with_tzdb_for_tag(Self::TESTED_TZDB_TAG)
-                    .with_unihan_for_tag(Self::TESTED_UCD_TAG)
+                    .with_ucd_for_tag(Self::TESTED_UCD_TAG)
             })
             .clone()
     }
@@ -174,7 +178,7 @@ impl SourceDataProvider {
             icuexport_paths: None,
             segmenter_lstm_paths: None,
             tzdb_paths: None,
-            unihan_paths: None,
+            unicode_paths: None,
             trie_type: Default::default(),
             timezone_horizon: time_zones::Timestamp::try_offset_only_from_str(
                 "2015-01-01T00:00:00Z",
@@ -191,9 +195,7 @@ impl SourceDataProvider {
     /// [GitHub releases](https://github.com/unicode-org/cldr-json/releases)).
     pub fn with_cldr(self, root: &Path) -> Result<Self, DataError> {
         Ok(Self {
-            cldr_paths: Some(Arc::new(CldrCache::from_serde_cache(SerdeCache::new(
-                AbstractFs::new(root)?,
-            )))),
+            cldr_paths: Some(Arc::new(CldrCache::new(AbstractFs::new(root)?))),
             ..self
         })
     }
@@ -218,14 +220,17 @@ impl SourceDataProvider {
         })
     }
 
-    /// Adds Unihan source data to the provider. The path should point to the Unihan ZIP file
-    /// (see [Unicode Character Database](https://www.unicode.org/ucd/)).
-    pub fn with_unihan(self, root: &Path) -> Result<Self, DataError> {
+    /// Deprecated, see [`Self::with_ucd`].
+    #[deprecated(since = "2.3.0", note = "use .with_ucd")]
+    pub fn with_unihan(self, _root: &Path) -> Result<Self, DataError> {
+        panic!("Use `.with_ucd` to set UCD data, which includes Unihan data.");
+    }
+
+    /// Adds Unicode source data to the provider. The path should point to a
+    /// directory structure matching <https://www.unicode.org/Public/{version}/>.
+    pub fn with_ucd(self, root: &Path) -> Result<Self, DataError> {
         Ok(Self {
-            unihan_paths: Some(Arc::new(UnihanCache {
-                root: AbstractFs::new(root)?,
-                irg_cache: Default::default(),
-            })),
+            unicode_paths: Some(Arc::new(UnicodeCache::new_local(AbstractFs::new(root)?))),
             ..self
         })
     }
@@ -234,10 +239,7 @@ impl SourceDataProvider {
     /// `tz` directory or ZIP file (see [GitHub](https://github.com/eggert/tz)).
     pub fn with_tzdb(self, root: &Path) -> Result<Self, DataError> {
         Ok(Self {
-            tzdb_paths: Some(Arc::new(TzdbCache {
-                root: AbstractFs::new(root)?,
-                transitions: Default::default(),
-            })),
+            tzdb_paths: Some(Arc::new(TzdbCache::new(AbstractFs::new(root)?))),
             ..self
         })
     }
@@ -251,9 +253,9 @@ impl SourceDataProvider {
     #[cfg(feature = "networking")]
     pub fn with_cldr_for_tag(self, tag: &str) -> Self {
         Self {
-                cldr_paths: Some(Arc::new(CldrCache::from_serde_cache(SerdeCache::new(AbstractFs::new_from_url(format!(
+                cldr_paths: Some(Arc::new(CldrCache::new(AbstractFs::new_zip_from_url(format!(
                     "https://github.com/unicode-org/cldr-json/releases/download/{tag}/cldr-{tag}-json-full.zip",
-                )))))),
+                ))))),
                 ..self
         }
     }
@@ -278,7 +280,7 @@ impl SourceDataProvider {
             )
         };
         Self {
-            icuexport_paths: Some(Arc::new(SerdeCache::new(AbstractFs::new_from_url(url)))),
+            icuexport_paths: Some(Arc::new(SerdeCache::new(AbstractFs::new_zip_from_url(url)))),
             ..self
         }
     }
@@ -292,28 +294,32 @@ impl SourceDataProvider {
     #[cfg(feature = "networking")]
     pub fn with_segmenter_lstm_for_tag(self, tag: &str) -> Self {
         Self {
-            segmenter_lstm_paths: Some(Arc::new(SerdeCache::new(AbstractFs::new_from_url(format!(
+            segmenter_lstm_paths: Some(Arc::new(SerdeCache::new(AbstractFs::new_zip_from_url(format!(
                 "https://github.com/unicode-org/lstm_word_segmentation/releases/download/{tag}/models.zip"
             ))))),
             ..self
         }
     }
 
-    /// Adds UCD Unihan source data to the provider. The data will be downloaded from unicode.org
-    /// using the given version tag (see [Unicode Character Database](https://www.unicode.org/ucd/)).
+    /// Deprecated, see [`Self::with_ucd_for_tag`].
+    ///
+    /// ✨ *Enabled with the `networking` Cargo feature.*
+    #[cfg(feature = "networking")]
+    #[deprecated(since = "2.3.0", note = "use .with_ucd_for_tag")]
+    pub fn with_unihan_for_tag(self, _tag: &str) -> Self {
+        panic!("Use `.with_ucd_for_tag` to set UCD data, which includes Unihan data.");
+    }
+
+    /// Adds Unicode source data to the provider. The data will be downloaded from
+    /// <https://unicode.org/Public> using the given version tag.
     ///
     /// Also see: [`TESTED_UCD_TAG`](Self::TESTED_UCD_TAG)
     ///
     /// ✨ *Enabled with the `networking` Cargo feature.*
     #[cfg(feature = "networking")]
-    pub fn with_unihan_for_tag(self, tag: &str) -> Self {
+    pub fn with_ucd_for_tag(self, tag: &str) -> Self {
         Self {
-            unihan_paths: Some(Arc::new(UnihanCache {
-                root: AbstractFs::new_from_url(format!(
-                    "https://www.unicode.org/Public/{tag}/ucd/Unihan.zip"
-                )),
-                irg_cache: Default::default(),
-            })),
+            unicode_paths: Some(Arc::new(UnicodeCache::new_remote(tag))),
             ..self
         }
     }
@@ -327,12 +333,9 @@ impl SourceDataProvider {
     #[cfg(feature = "networking")]
     pub fn with_tzdb_for_tag(self, tag: &str) -> Self {
         Self {
-            tzdb_paths: Some(Arc::new(TzdbCache {
-                root: AbstractFs::new_from_url(format!(
-                    "https://www.iana.org/time-zones/repository/releases/tzdata{tag}.tar.gz",
-                )),
-                transitions: Default::default(),
-            })),
+            tzdb_paths: Some(Arc::new(TzdbCache::new(AbstractFs::new_tar_from_url(
+                format!("https://www.iana.org/time-zones/repository/releases/tzdata{tag}.tar.gz",),
+            )))),
             ..self
         }
     }
@@ -347,8 +350,8 @@ impl SourceDataProvider {
         "Missing segmenter data. Use `.with_segmenter_lstm[_for_tag]` to set segmenter data.",
     );
 
-    const MISSING_UNIHAN_ERROR: DataError =
-        DataError::custom("Missing Unihan data. Use `.with_unihan[_for_tag]` to set Unihan data.");
+    const MISSING_UCD_ERROR: DataError =
+        DataError::custom("Missing UCD data. Use `.with_ucd[_for_tag]` to set UCD data.");
 
     const MISSING_TZDB_ERROR: DataError =
         DataError::custom("Missing tzdb data. Use `.with_tzdb[_for_tag]` to set tzdb data.");
@@ -378,9 +381,15 @@ impl SourceDataProvider {
     }
 
     /// Identifies errors that are due to missing UCD data.
-    pub fn is_missing_unihan_error(mut e: DataError) -> bool {
+    #[deprecated]
+    pub fn is_missing_unihan_error(e: DataError) -> bool {
+        Self::is_missing_ucd_error(e)
+    }
+
+    /// Identifies errors that are due to missing UCD data.
+    pub fn is_missing_ucd_error(mut e: DataError) -> bool {
         e.marker = None;
-        e == Self::MISSING_UNIHAN_ERROR
+        e == Self::MISSING_UCD_ERROR
     }
 
     fn cldr(&self) -> Result<&CldrCache, DataError> {
@@ -400,10 +409,8 @@ impl SourceDataProvider {
     }
 
     #[allow(dead_code)]
-    fn unihan(&self) -> Result<&UnihanCache, DataError> {
-        self.unihan_paths
-            .as_deref()
-            .ok_or(Self::MISSING_UNIHAN_ERROR)
+    fn unicode(&self) -> Result<&UnicodeCache, DataError> {
+        self.unicode_paths.as_deref().ok_or(Self::MISSING_UCD_ERROR)
     }
 
     fn tzdb(&self) -> Result<&TzdbCache, DataError> {
@@ -617,6 +624,15 @@ enum TrieType {
     #[serde(rename = "small")]
     #[default]
     Small,
+}
+
+impl From<TrieType> for icu::collections::codepointtrie::TrieType {
+    fn from(other: TrieType) -> Self {
+        match other {
+            TrieType::Fast => Self::Fast,
+            TrieType::Small => Self::Small,
+        }
+    }
 }
 
 impl std::fmt::Display for TrieType {

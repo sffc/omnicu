@@ -5,8 +5,9 @@
 use crate::calendar_arithmetic::ArithmeticDate;
 use crate::calendar_arithmetic::DateFieldsResolver;
 use crate::calendar_arithmetic::PackWithMD;
-use crate::calendar_arithmetic::ToExtendedYear;
-use crate::error::{DateError, DateFromFieldsError, EcmaReferenceYearError, UnknownEraError};
+use crate::error::{
+    DateAddError, DateFromFieldsError, DateNewError, EcmaReferenceYearError, UnknownEraError,
+};
 use crate::options::DateFromFieldsOptions;
 use crate::options::{DateAddOptions, DateDifferenceOptions};
 use crate::types::DateFields;
@@ -14,6 +15,7 @@ use crate::types::Month;
 use crate::{types, Calendar, Date};
 use crate::{AsCalendar, RangeError};
 use calendrical_calculations::rata_die::RataDie;
+use core::cmp::Ordering;
 use core::fmt::Debug;
 use icu_locale_core::preferences::extensions::unicode::keywords::{
     CalendarAlgorithm, HijriCalendarAlgorithm,
@@ -126,7 +128,8 @@ pub trait Rules: Clone + Debug + crate::cal::scaffold::UnstableSealed {
         year
     }
 
-    /// Returns an ECMA reference year that contains the given month-day combination.
+    /// Returns an ECMA reference year (represented as an extended year)
+    /// that contains the given month-day combination.
     ///
     /// If the day is out of range, it will return a year that contains the given month
     /// and the maximum day possible for that month. See [the spec][spec] for the
@@ -142,6 +145,15 @@ pub trait Rules: Clone + Debug + crate::cal::scaffold::UnstableSealed {
     fn ecma_reference_year(&self, _month: Month, _day: u8) -> Result<i32, EcmaReferenceYearError> {
         Err(EcmaReferenceYearError::Unimplemented)
     }
+
+    /// The error that is returned by [`Self::check_date_compatibility`].
+    ///
+    /// Set this to [`core::convert::Infallible`] if the type is a singleton or
+    /// the parameterization does not affect calendar semantics.
+    type DateCompatibilityError: Debug;
+
+    /// Checks whether two [`Rules`] values are equal for the purpose of [`Date`] interaction.
+    fn check_date_compatibility(&self, other: &Self) -> Result<(), Self::DateCompatibilityError>;
 
     /// The BCP-47 [`CalendarAlgorithm`] for the Hijri calendar using these rules, if defined.
     fn calendar_algorithm(&self) -> Option<CalendarAlgorithm> {
@@ -197,6 +209,12 @@ impl Rules for AstronomicalSimulation {
     fn year_containing_rd(&self, rd: RataDie) -> HijriYear {
         UmmAlQura.year_containing_rd(rd)
     }
+
+    type DateCompatibilityError = core::convert::Infallible;
+
+    fn check_date_compatibility(&self, &Self: &Self) -> Result<(), Self::DateCompatibilityError> {
+        Ok(())
+    }
 }
 
 /// [`Hijri`] [`Rules`] for the [Umm al-Qura](https://en.wikipedia.org/wiki/Islamic_calendar#Saudi_Arabia's_Umm_al-Qura_calendar) calendar.
@@ -226,7 +244,7 @@ impl Rules for UmmAlQura {
 
     fn ecma_reference_year(&self, month: Month, day: u8) -> Result<i32, EcmaReferenceYearError> {
         if month.is_leap() {
-            return Err(EcmaReferenceYearError::MonthCodeNotInCalendar);
+            return Err(EcmaReferenceYearError::MonthNotInCalendar);
         }
 
         let extended_year = match (month.number(), day) {
@@ -245,11 +263,11 @@ impl Rules for UmmAlQura {
             (9, _) => 1392,
             (10, 30..) => 1390,
             (10, _) => 1392,
-            (11, ..=25) => 1392,
+            (11, ..26) => 1392,
             (11, _) => 1391,
             (12, 30..) => 1390,
             (12, _) => 1391,
-            _ => return Err(EcmaReferenceYearError::MonthCodeNotInCalendar),
+            _ => return Err(EcmaReferenceYearError::MonthNotInCalendar),
         };
         Ok(extended_year)
     }
@@ -272,6 +290,12 @@ impl Rules for UmmAlQura {
             }
             .year(extended_year)
         }
+    }
+
+    type DateCompatibilityError = core::convert::Infallible;
+
+    fn check_date_compatibility(&self, &Self: &Self) -> Result<(), Self::DateCompatibilityError> {
+        Ok(())
     }
 }
 
@@ -315,31 +339,26 @@ impl Rules for TabularAlgorithm {
 
     fn ecma_reference_year(&self, month: Month, day: u8) -> Result<i32, EcmaReferenceYearError> {
         if month.is_leap() {
-            return Err(EcmaReferenceYearError::MonthCodeNotInCalendar);
+            return Err(EcmaReferenceYearError::MonthNotInCalendar);
         }
 
         Ok(match (month.number(), day) {
             (1, _) => 1392,
-            (2, 30..) => 1389,
             (2, _) => 1392,
             (3, _) => 1392,
-            (4, 30..) => 1389,
             (4, _) => 1392,
             (5, _) => 1392,
-            (6, 30..) => 1389,
             (6, _) => 1392,
             (7, _) => 1392,
-            (8, 30..) => 1389,
             (8, _) => 1392,
             (9, _) => 1392,
-            (10, 30..) => 1389,
             (10, _) => 1392,
-            (11, ..=26) if self.epoch == TabularAlgorithmEpoch::Thursday => 1392,
-            (11, ..=25) if self.epoch == TabularAlgorithmEpoch::Friday => 1392,
+            (11, ..26) if self.epoch == TabularAlgorithmEpoch::Friday => 1392,
+            (11, ..27) if self.epoch == TabularAlgorithmEpoch::Thursday => 1392,
             (11, _) => 1391,
             (12, 30..) => 1390,
             (12, _) => 1391,
-            _ => return Err(EcmaReferenceYearError::MonthCodeNotInCalendar),
+            _ => return Err(EcmaReferenceYearError::MonthNotInCalendar),
         })
     }
 
@@ -372,6 +391,15 @@ impl Rules for TabularAlgorithm {
             packed: PackedHijriYearData::new_unchecked(extended_year, month_lengths, start_day),
             extended_year,
         }
+    }
+
+    type DateCompatibilityError = crate::error::MismatchedCalendarError;
+
+    fn check_date_compatibility(&self, other: &Self) -> Result<(), Self::DateCompatibilityError> {
+        if self != other {
+            return Err(crate::error::MismatchedCalendarError);
+        }
+        Ok(())
     }
 }
 
@@ -483,15 +511,39 @@ impl Hijri<TabularAlgorithm> {
 ///
 /// Graduation tracking issue: [issue #6962](https://github.com/unicode-org/icu4x/issues/6962).
 /// </div>
-#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug)]
 pub struct HijriYear {
     packed: PackedHijriYearData,
     extended_year: i32,
 }
 
-impl ToExtendedYear for HijriYear {
-    fn to_extended_year(&self) -> i32 {
-        self.extended_year
+impl PartialEq for HijriYear {
+    fn eq(&self, other: &Self) -> bool {
+        self.extended_year == other.extended_year
+    }
+}
+impl Eq for HijriYear {}
+impl core::hash::Hash for HijriYear {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.extended_year.hash(state);
+    }
+}
+impl PartialOrd for HijriYear {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for HijriYear {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.extended_year.cmp(&other.extended_year)
+    }
+}
+
+impl core::ops::Sub<HijriYear> for HijriYear {
+    type Output = i32;
+    #[inline]
+    fn sub(self, rhs: HijriYear) -> Self::Output {
+        self.extended_year - rhs.extended_year
     }
 }
 
@@ -591,7 +643,8 @@ impl HijriYear {
 ///
 /// Graduation tracking issue: [issue #6962](https://github.com/unicode-org/icu4x/issues/6962).
 /// </div>
-#[derive(Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Copy, Clone, Hash, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 struct PackedHijriYearData(u16);
 
 impl PackedHijriYearData {
@@ -736,17 +789,11 @@ impl<A: AsCalendar<Calendar = Hijri<AstronomicalSimulation>>> Date<A> {
 
 #[test]
 fn computer_reference_years() {
-    let rules = UmmAlQura;
-
-    fn compute_hijri_reference_year<C>(
-        ordinal_month: u8,
-        day: u8,
-        cal: C,
-        year_info_from_extended: impl Fn(i32) -> C::YearInfo,
-    ) -> C::YearInfo
+    fn compute_hijri_reference_year<R>(ordinal_month: u8, day: u8, rules: R) -> Option<HijriYear>
     where
-        C: DateFieldsResolver + Copy,
+        R: Rules + Copy,
     {
+        let cal = Hijri(rules);
         let dec_31 = Date::from_rata_die(
             crate::cal::abstract_gregorian::LAST_DAY_OF_REFERENCE_YEAR,
             cal,
@@ -759,41 +806,68 @@ fn computer_reference_years() {
             } else {
                 (1388, 1389, 1390, 1391)
             };
-        let year_info = year_info_from_extended(y3);
-        if day <= C::days_in_provided_month(year_info, ordinal_month) {
-            return year_info;
+        let year_info = cal.0.year(y3);
+        if day <= Hijri::<R>::days_in_provided_month(year_info, ordinal_month) {
+            return Some(year_info);
         }
-        let year_info = year_info_from_extended(y2);
-        if day <= C::days_in_provided_month(year_info, ordinal_month) {
-            return year_info;
+        let year_info = cal.0.year(y2);
+        if day <= Hijri::<R>::days_in_provided_month(year_info, ordinal_month) {
+            return Some(year_info);
         }
-        let year_info = year_info_from_extended(y1);
-        if day <= C::days_in_provided_month(year_info, ordinal_month) {
-            return year_info;
+        let year_info = cal.0.year(y1);
+        if day <= Hijri::<R>::days_in_provided_month(year_info, ordinal_month) {
+            return Some(year_info);
         }
-        let year_info = year_info_from_extended(y0);
-        // This function might be called with out-of-range days that are handled later.
-        // Some calendars don't have day 30s in every month so we don't check those.
-        if day <= 29 {
-            debug_assert!(
-                day <= C::days_in_provided_month(year_info, ordinal_month),
-                "{ordinal_month}/{day}"
-            );
+        let year_info = cal.0.year(y0);
+        if day <= Hijri::<R>::days_in_provided_month(year_info, ordinal_month) {
+            return Some(year_info);
         }
-        year_info
+        None
     }
-    for month in 1..=12 {
-        for day in [30, 29] {
-            let y = compute_hijri_reference_year(month, day, Hijri(rules), |e| rules.year(e))
-                .extended_year;
 
-            if day == 30 {
-                println!("({month}, {day}) => {y},")
-            } else {
-                println!("({month}, _) => {y},")
+    fn compute_all_reference_years<R>(rules: R)
+    where
+        R: Rules + Copy + Debug,
+    {
+        println!("Reference years for {:?}", rules);
+        for month in 1..=12 {
+            let y_29 = compute_hijri_reference_year(month, 29, rules)
+                .expect("All Hijri calendars have d = 29")
+                .extended_year;
+            let y_30 = compute_hijri_reference_year(month, 30, rules).map(|y| y.extended_year);
+
+            if let Some(y_30) = y_30 {
+                if y_29 != y_30 {
+                    println!("({month}, 30..) => {y_30},")
+                }
             }
+            if month == 11 {
+                let y_1 = compute_hijri_reference_year(month, 1, rules)
+                    .expect("All Hijri calendars have d = 1")
+                    .extended_year;
+                for day in 1..29 {
+                    let y_n = compute_hijri_reference_year(month, day, rules)
+                        .expect("All Hijri calendars have d < 29")
+                        .extended_year;
+                    if y_n != y_1 {
+                        println!("({month}, ..{day}) => {y_1},");
+                        break;
+                    }
+                }
+            }
+            println!("({month}, _) => {y_29},");
         }
     }
+
+    compute_all_reference_years(UmmAlQura);
+    compute_all_reference_years(TabularAlgorithm {
+        leap_years: TabularAlgorithmLeapYears::TypeII,
+        epoch: TabularAlgorithmEpoch::Friday,
+    });
+    compute_all_reference_years(TabularAlgorithm {
+        leap_years: TabularAlgorithmLeapYears::TypeII,
+        epoch: TabularAlgorithmEpoch::Thursday,
+    });
 }
 
 #[allow(clippy::derived_hash_with_manual_eq)] // bounds
@@ -809,12 +883,12 @@ impl<R: Rules> PartialEq for HijriDateInner<R> {
 }
 impl<R: Rules> Eq for HijriDateInner<R> {}
 impl<R: Rules> PartialOrd for HijriDateInner<R> {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 impl<R: Rules> Ord for HijriDateInner<R> {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.0.cmp(&other.0)
     }
 }
@@ -827,23 +901,28 @@ impl<R: Rules> DateFieldsResolver for Hijri<R> {
     }
 
     #[inline]
-    fn year_info_from_era(
+    fn extended_year_from_era_year_unchecked(
         &self,
         era: &[u8],
         era_year: i32,
-    ) -> Result<Self::YearInfo, UnknownEraError> {
+    ) -> Result<i32, UnknownEraError> {
         let extended_year = match era {
             b"ah" => era_year,
             b"bh" => 1 - era_year,
             _ => return Err(UnknownEraError),
         };
-        Ok(self.year_info_from_extended(extended_year))
+        Ok(extended_year)
     }
 
     #[inline]
     fn year_info_from_extended(&self, extended_year: i32) -> Self::YearInfo {
-        debug_assert!(crate::calendar_arithmetic::VALID_YEAR_RANGE.contains(&extended_year));
+        debug_assert!(crate::calendar_arithmetic::SAFE_YEAR_RANGE.contains(&extended_year));
         self.0.year(extended_year)
+    }
+
+    #[inline]
+    fn extended_from_year_info(&self, year_info: Self::YearInfo) -> i32 {
+        year_info.extended_year
     }
 
     #[inline]
@@ -866,20 +945,17 @@ impl<R: Rules> crate::cal::scaffold::UnstableSealed for Hijri<R> {}
 impl<R: Rules> Calendar for Hijri<R> {
     type DateInner = HijriDateInner<R>;
     type Year = types::EraYear;
-    type DifferenceError = core::convert::Infallible;
+    type DateCompatibilityError = R::DateCompatibilityError;
 
-    fn from_codes(
+    fn new_date(
         &self,
-        era: Option<&str>,
-        year: i32,
-        month_code: types::MonthCode,
+        year: types::YearInput,
+        month: Month,
         day: u8,
-    ) -> Result<Self::DateInner, DateError> {
-        ArithmeticDate::from_era_year_month_code_day(era, year, month_code, day, self)
-            .map(HijriDateInner)
+    ) -> Result<Self::DateInner, DateNewError> {
+        ArithmeticDate::from_input_year_month_code_day(year, month, day, self).map(HijriDateInner)
     }
 
-    #[cfg(feature = "unstable")]
     fn from_fields(
         &self,
         fields: DateFields,
@@ -917,24 +993,26 @@ impl<R: Rules> Calendar for Hijri<R> {
         Self::days_in_provided_month(date.0.year(), date.0.month())
     }
 
-    #[cfg(feature = "unstable")]
     fn add(
         &self,
         date: &Self::DateInner,
         duration: types::DateDuration,
         options: DateAddOptions,
-    ) -> Result<Self::DateInner, DateError> {
+    ) -> Result<Self::DateInner, DateAddError> {
         date.0.added(duration, self, options).map(HijriDateInner)
     }
 
-    #[cfg(feature = "unstable")]
     fn until(
         &self,
         date1: &Self::DateInner,
         date2: &Self::DateInner,
         options: DateDifferenceOptions,
-    ) -> Result<types::DateDuration, Self::DifferenceError> {
-        Ok(date1.0.until(&date2.0, self, options))
+    ) -> types::DateDuration {
+        date1.0.until(&date2.0, self, options)
+    }
+
+    fn check_date_compatibility(&self, other: &Self) -> Result<(), Self::DateCompatibilityError> {
+        self.0.check_date_compatibility(&other.0)
     }
 
     fn debug_name(&self) -> &'static str {
@@ -989,13 +1067,13 @@ impl<A: AsCalendar<Calendar = Hijri<R>>, R: Rules> Date<A> {
     /// Construct new Hijri [`Date`].
     ///
     /// Years are arithmetic, meaning there is a year 0 preceded by negative years, with a
-    /// valid range of `-1,000,000..=1,000,000`.
+    /// valid range of `-9999..=9999`.
     ///
     /// ```rust
     /// use icu::calendar::cal::Hijri;
     /// use icu::calendar::Date;
     ///
-    /// let hijri = Hijri::new_simulated_mecca();
+    /// let hijri = Hijri::new_umm_al_qura();
     ///
     /// let date_hijri = Date::try_new_hijri_with_calendar(1392, 4, 25, hijri)
     ///     .expect("Failed to initialize Hijri Date instance.");
@@ -1018,7 +1096,7 @@ impl<A: AsCalendar<Calendar = Hijri<R>>, R: Rules> Date<A> {
 
 impl Date<Hijri<UmmAlQura>> {
     /// Deprecated
-    #[deprecated(since = "2.1.0", note = "use `Date::try_new_hijri_with_calendar")]
+    #[deprecated(since = "2.1.0", note = "use `Date::try_new_hijri_with_calendar`")]
     pub fn try_new_ummalqura(year: i32, month: u8, day: u8) -> Result<Self, RangeError> {
         Date::try_new_hijri_with_calendar(year, month, day, Hijri::new_umm_al_qura())
     }
@@ -1026,7 +1104,7 @@ impl Date<Hijri<UmmAlQura>> {
 
 impl<A: AsCalendar<Calendar = Hijri<TabularAlgorithm>>> Date<A> {
     /// Deprecated
-    #[deprecated(since = "2.1.0", note = "use `Date::try_new_hijri_with_calendar")]
+    #[deprecated(since = "2.1.0", note = "use `Date::try_new_hijri_with_calendar`")]
     pub fn try_new_hijri_tabular_with_calendar(
         year: i32,
         month: u8,
@@ -1673,7 +1751,7 @@ mod test {
     fn test_regression_4914() {
         // https://github.com/unicode-org/icu4x/issues/4914
         let dt = Hijri::new_umm_al_qura()
-            .from_codes(Some("bh"), 6824, Month::new(1).code(), 1)
+            .new_date(types::YearInput::EraYear("bh", 6824), Month::new(1), 1)
             .unwrap();
         assert_eq!(dt.0.day(), 1);
         assert_eq!(dt.0.month(), 1);
@@ -1687,9 +1765,10 @@ mod test {
             TabularAlgorithmLeapYears::TypeII,
             TabularAlgorithmEpoch::Friday,
         );
-        let _dt = Date::try_new_iso(-62971, 3, 19)
-            .unwrap()
-            .to_calendar(calendar);
+        let _dt = Date::from_rata_die(
+            calendrical_calculations::gregorian::fixed_from_gregorian(-62971, 3, 19),
+            calendar,
+        );
     }
 
     #[test]

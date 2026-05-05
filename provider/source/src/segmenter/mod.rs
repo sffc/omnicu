@@ -4,11 +4,13 @@
 
 //! This module contains provider implementations backed by built-in segmentation data.
 
-#![allow(dead_code)]
-#![allow(unused_imports)]
+#![cfg_attr(
+    not(any(feature = "use_wasm", feature = "use_icu4c")),
+    allow(dead_code, unused_imports)
+)]
 
+use crate::source::{include_files, SerdeCache, UnicodeCache};
 use crate::SourceDataProvider;
-use icu::collections::codepointtrie;
 use icu::properties::{
     props::{
         EastAsianWidth, GeneralCategory, GraphemeClusterBreak, IndicConjunctBreak, LineBreak,
@@ -19,15 +21,13 @@ use icu::properties::{
 use icu::segmenter::options::WordType;
 use icu::segmenter::provider::*;
 use icu_provider::prelude::*;
-use std::cmp;
 use std::collections::HashSet;
 use std::fmt::Debug;
-use std::ops::RangeInclusive;
 use std::sync::OnceLock;
-use zerovec::ZeroVec;
 
 mod dictionary;
 mod lstm;
+#[cfg(feature = "unstable")]
 mod unihan;
 
 // state machine name define by builtin name
@@ -93,67 +93,12 @@ fn generate_rule_break_data(
     provider: &SourceDataProvider,
     rules_file: &str,
     trie_type: crate::TrieType,
-) -> RuleBreakData<'static> {
+) -> Result<RuleBreakData<'static>, DataError> {
     use icu::properties::{props::ExtendedPictographic, PropertyParser};
     use icu_codepointtrie_builder::CodePointTrieBuilder;
 
-    let segmenter = provider
-        .icuexport()
-        .unwrap()
-        .read_and_parse_toml::<SegmenterRuleTable>(rules_file)
-        .expect("The data should be valid!");
-
-    let data = CodePointMapData::<WordBreak>::try_new_unstable(provider)
-        .expect("The data should be valid!");
-    let wb = data.as_borrowed();
-
-    let data = CodePointMapData::<GraphemeClusterBreak>::try_new_unstable(provider)
-        .expect("The data should be valid!");
-    let gb = data.as_borrowed();
-
-    let data = CodePointMapData::<SentenceBreak>::try_new_unstable(provider)
-        .expect("The data should be valid!");
-    let sb = data.as_borrowed();
-
-    let data = CodePointMapData::<LineBreak>::try_new_unstable(provider)
-        .expect("The data should be valid!");
-    let lb = data.as_borrowed();
-
-    let data = CodePointMapData::<EastAsianWidth>::try_new_unstable(provider)
-        .expect("The data should be valid!");
-    let eaw = data.as_borrowed();
-
-    let data = CodePointMapData::<GeneralCategory>::try_new_unstable(provider)
-        .expect("The data should be valid!");
-    let gc = data.as_borrowed();
-
-    let data =
-        CodePointMapData::<Script>::try_new_unstable(provider).expect("The data should be valid");
-    let script = data.as_borrowed();
-
-    let data = CodePointSetData::try_new_unstable::<ExtendedPictographic>(provider)
-        .expect("The data should be valid!");
-    let extended_pictographic = data.as_borrowed();
-
-    let data = CodePointMapData::<IndicConjunctBreak>::try_new_unstable(provider)
-        .expect("The data should be valid!");
-    let incb = data.as_borrowed();
-
-    let data = PropertyParser::<GraphemeClusterBreak>::try_new_unstable(provider)
-        .expect("The data should be valid!");
-    let gcb_name_to_enum = data.as_borrowed();
-
-    let data =
-        PropertyParser::<LineBreak>::try_new_unstable(provider).expect("The data should be valid!");
-    let lb_name_to_enum = data.as_borrowed();
-
-    let data = PropertyParser::<SentenceBreak>::try_new_unstable(provider)
-        .expect("The data should be valid!");
-    let sb_name_to_enum = data.as_borrowed();
-
-    let data =
-        PropertyParser::<WordBreak>::try_new_unstable(provider).expect("The data should be valid!");
-    let wb_name_to_enum = data.as_borrowed();
+    let segmenter =
+        toml::from_str::<SegmenterRuleTable>(rules_file).expect("The data should be valid!");
 
     fn set_break_state(
         break_state_table: &mut [Option<BreakState>],
@@ -196,39 +141,43 @@ fn generate_rule_break_data(
     // the default unassigned values, so it's ok to omit them in the table.
     const CODEPOINT_TABLE_LEN: usize = 0xE1000;
 
-    let mut properties_trie = CodePointTrieBuilder::new(
-        0u8,
-        0,
-        match trie_type {
-            crate::TrieType::Fast => codepointtrie::TrieType::Fast,
-            crate::TrieType::Small => codepointtrie::TrieType::Small,
-        },
-    );
+    let mut properties_trie = CodePointTrieBuilder::new(0u8, 0, trie_type.into());
     let mut properties_names = Vec::<String>::new();
     let mut simple_properties_count = 0;
 
     properties_names.push("Unknown".to_string());
     simple_properties_count += 1;
 
-    for p in &segmenter.tables {
-        let property_index = if !properties_names.contains(&p.name) {
-            properties_names.push(p.name.clone());
-            (properties_names.len() - 1).try_into().unwrap()
-        } else {
-            continue;
-        };
+    match &*segmenter.segmenter_type {
+        "word" => {
+            let wb = CodePointMapData::<WordBreak>::try_new_unstable(provider)?;
+            let wb = wb.as_borrowed();
+            let extended_pictographic =
+                CodePointSetData::try_new_unstable::<ExtendedPictographic>(provider)?;
+            let extended_pictographic = extended_pictographic.as_borrowed();
+            let script = CodePointMapData::<Script>::try_new_unstable(provider)?;
+            let script = script.as_borrowed();
+            let lb = CodePointMapData::<LineBreak>::try_new_unstable(provider)?;
+            let lb = lb.as_borrowed();
+            let wb_name_to_enum = PropertyParser::<WordBreak>::try_new_unstable(provider)?;
+            let wb_name_to_enum = wb_name_to_enum.as_borrowed();
 
-        if p.left.is_none() && p.right.is_none() {
-            // If any values aren't set, this is builtin type.
-            simple_properties_count += 1;
+            for p in &segmenter.tables {
+                let property_index = if !properties_names.contains(&p.name) {
+                    properties_names.push(p.name.clone());
+                    (properties_names.len() - 1).try_into().unwrap()
+                } else {
+                    continue;
+                };
 
-            if p.as_simple_property.is_some() {
-                // defined as simple property. It means that we move the marker to the next property.
-                continue;
-            }
+                if p.left.is_none() && p.right.is_none() {
+                    // If any values aren't set, this is builtin type.
+                    simple_properties_count += 1;
 
-            match &*segmenter.segmenter_type {
-                "word" => {
+                    if p.as_simple_property.is_some() {
+                        // defined as simple property. It means that we move the marker to the next property.
+                        continue;
+                    }
                     if p.name == "Extended_Pictographic" {
                         // :Word_Break=ALetter: includes Extended_Pictographic. So we want to
                         // exlude ALetter.
@@ -314,8 +263,37 @@ fn generate_rule_break_data(
 
                     continue;
                 }
+            }
+        }
 
-                "grapheme" => {
+        "grapheme" => {
+            let extended_pictographic =
+                CodePointSetData::try_new_unstable::<ExtendedPictographic>(provider)?;
+            let extended_pictographic = extended_pictographic.as_borrowed();
+            let incb = CodePointMapData::<IndicConjunctBreak>::try_new_unstable(provider)?;
+            let incb = incb.as_borrowed();
+            let gcb_name_to_enum =
+                PropertyParser::<GraphemeClusterBreak>::try_new_unstable(provider)?;
+            let gcb_name_to_enum = gcb_name_to_enum.as_borrowed();
+            let gb = CodePointMapData::<GraphemeClusterBreak>::try_new_unstable(provider)?;
+            let gb = gb.as_borrowed();
+
+            for p in &segmenter.tables {
+                let property_index = if !properties_names.contains(&p.name) {
+                    properties_names.push(p.name.clone());
+                    (properties_names.len() - 1).try_into().unwrap()
+                } else {
+                    continue;
+                };
+
+                if p.left.is_none() && p.right.is_none() {
+                    // If any values aren't set, this is builtin type.
+                    simple_properties_count += 1;
+
+                    if p.as_simple_property.is_some() {
+                        // defined as simple property. It means that we move the marker to the next property.
+                        continue;
+                    }
                     // Extended_Pictographic isn't a part of grapheme break property
                     if p.name == "Extended_Pictographic" {
                         for range in extended_pictographic.iter_ranges() {
@@ -355,8 +333,31 @@ fn generate_rule_break_data(
                     }
                     continue;
                 }
+            }
+        }
 
-                "sentence" => {
+        "sentence" => {
+            let sb = CodePointMapData::<SentenceBreak>::try_new_unstable(provider)?;
+            let sb = sb.as_borrowed();
+            let sb_name_to_enum = PropertyParser::<SentenceBreak>::try_new_unstable(provider)?;
+            let sb_name_to_enum = sb_name_to_enum.as_borrowed();
+
+            for p in &segmenter.tables {
+                let property_index = if !properties_names.contains(&p.name) {
+                    properties_names.push(p.name.clone());
+                    (properties_names.len() - 1).try_into().unwrap()
+                } else {
+                    continue;
+                };
+
+                if p.left.is_none() && p.right.is_none() {
+                    // If any values aren't set, this is builtin type.
+                    simple_properties_count += 1;
+
+                    if p.as_simple_property.is_some() {
+                        // defined as simple property. It means that we move the marker to the next property.
+                        continue;
+                    }
                     let prop = sb_name_to_enum
                         .get_loose(&p.name)
                         .expect("property name should be valid!");
@@ -365,8 +366,38 @@ fn generate_rule_break_data(
                     }
                     continue;
                 }
+            }
+        }
 
-                "line" => {
+        "line" => {
+            let lb = CodePointMapData::<LineBreak>::try_new_unstable(provider)?;
+            let lb = lb.as_borrowed();
+            let eaw = CodePointMapData::<EastAsianWidth>::try_new_unstable(provider)?;
+            let eaw = eaw.as_borrowed();
+            let gc = CodePointMapData::<GeneralCategory>::try_new_unstable(provider)?;
+            let gc = gc.as_borrowed();
+            let extended_pictographic =
+                CodePointSetData::try_new_unstable::<ExtendedPictographic>(provider)?;
+            let extended_pictographic = extended_pictographic.as_borrowed();
+            let lb_name_to_enum = PropertyParser::<LineBreak>::try_new_unstable(provider)?;
+            let lb_name_to_enum = lb_name_to_enum.as_borrowed();
+
+            for p in &segmenter.tables {
+                let property_index = if !properties_names.contains(&p.name) {
+                    properties_names.push(p.name.clone());
+                    (properties_names.len() - 1).try_into().unwrap()
+                } else {
+                    continue;
+                };
+
+                if p.left.is_none() && p.right.is_none() {
+                    // If any values aren't set, this is builtin type.
+                    simple_properties_count += 1;
+
+                    if p.as_simple_property.is_some() {
+                        // defined as simple property. It means that we move the marker to the next property.
+                        continue;
+                    }
                     if p.name == "CP_EA"
                         || p.name == "OP_OP30"
                         || p.name == "OP_EA"
@@ -379,35 +410,33 @@ fn generate_rule_break_data(
                     {
                         for cp in 0..(CODEPOINT_TABLE_LEN as u32) {
                             match lb.get32(cp) {
-                                LineBreak::OpenPunctuation => {
-                                    if (p.name == "OP_OP30"
+                                LineBreak::OpenPunctuation
+                                    if ((p.name == "OP_OP30"
                                         && (eaw.get32(cp) != EastAsianWidth::Fullwidth
                                             && eaw.get32(cp) != EastAsianWidth::Halfwidth
                                             && eaw.get32(cp) != EastAsianWidth::Wide))
                                         || (p.name == "OP_EA"
                                             && (eaw.get32(cp) == EastAsianWidth::Fullwidth
                                                 || eaw.get32(cp) == EastAsianWidth::Halfwidth
-                                                || eaw.get32(cp) == EastAsianWidth::Wide))
-                                    {
+                                                || eaw.get32(cp) == EastAsianWidth::Wide)))
+                                    => {
                                         properties_trie.set_value(cp, property_index);
                                     }
-                                }
 
-                                LineBreak::CloseParenthesis => {
+                                LineBreak::CloseParenthesis
                                     // CP_EA is unused on the latest spec.
                                     if p.name == "CP_EA"
                                         && (eaw.get32(cp) == EastAsianWidth::Fullwidth
                                             || eaw.get32(cp) == EastAsianWidth::Halfwidth
                                             || eaw.get32(cp) == EastAsianWidth::Wide)
-                                    {
+                                    => {
                                         properties_trie.set_value(cp, property_index);
                                     }
-                                }
 
-                                LineBreak::Ideographic => {
+                                LineBreak::Ideographic
                                     if p.name == "ID_CN"
                                         && gc.get32(cp) == GeneralCategory::Unassigned
-                                    {
+                                    => {
                                         if let Some(c) = char::from_u32(cp) {
                                             if extended_pictographic.contains(c) {
                                                 properties_trie.set_value(cp, property_index);
@@ -431,25 +460,21 @@ fn generate_rule_break_data(
                                             }
                                         }
                                     }
-                                }
 
-                                LineBreak::PostfixNumeric => {
-                                    if p.name == "PO_EAW" && is_cjk_fullwidth(eaw, cp) {
+                                LineBreak::PostfixNumeric
+                                    if p.name == "PO_EAW" && is_cjk_fullwidth(eaw, cp) => {
                                         properties_trie.set_value(cp, property_index);
                                     }
-                                }
 
-                                LineBreak::PrefixNumeric => {
-                                    if p.name == "PR_EAW" && is_cjk_fullwidth(eaw, cp) {
+                                LineBreak::PrefixNumeric
+                                    if p.name == "PR_EAW" && is_cjk_fullwidth(eaw, cp) => {
                                         properties_trie.set_value(cp, property_index);
                                     }
-                                }
 
-                                LineBreak::Alphabetic => {
-                                    if p.name == "AL_DOTTED_CIRCLE" && cp == 0x25CC {
+                                LineBreak::Alphabetic
+                                    if p.name == "AL_DOTTED_CIRCLE" && cp == 0x25CC => {
                                         properties_trie.set_value(cp, property_index);
                                     }
-                                }
 
                                 LineBreak::Quotation => {
                                     if p.name == "QU_PI"
@@ -489,11 +514,76 @@ fn generate_rule_break_data(
                     }
                     continue;
                 }
-
-                _ => {
-                    panic!("unknown built-in segmenter type");
-                }
             }
+
+            for (name, value) in [
+                ("AI", RuleBreakData::LINE_PROPERTY_AI),
+                ("AK", RuleBreakData::LINE_PROPERTY_AK),
+                (
+                    "AL_DOTTED_CIRCLE",
+                    RuleBreakData::LINE_PROPERTY_AL_DOTTED_CIRCLE,
+                ),
+                ("AL", RuleBreakData::LINE_PROPERTY_AL),
+                ("AP", RuleBreakData::LINE_PROPERTY_AP),
+                ("AS", RuleBreakData::LINE_PROPERTY_AS),
+                ("B2", RuleBreakData::LINE_PROPERTY_B2),
+                ("BA", RuleBreakData::LINE_PROPERTY_BA),
+                ("BB", RuleBreakData::LINE_PROPERTY_BB),
+                ("BK", RuleBreakData::LINE_PROPERTY_BK),
+                ("CB", RuleBreakData::LINE_PROPERTY_CB),
+                ("CJ", RuleBreakData::LINE_PROPERTY_CJ),
+                ("CL", RuleBreakData::LINE_PROPERTY_CL),
+                ("CM", RuleBreakData::LINE_PROPERTY_CM),
+                ("CP", RuleBreakData::LINE_PROPERTY_CP),
+                ("CR", RuleBreakData::LINE_PROPERTY_CR),
+                ("EB", RuleBreakData::LINE_PROPERTY_EB),
+                ("EM", RuleBreakData::LINE_PROPERTY_EM),
+                ("EX", RuleBreakData::LINE_PROPERTY_EX),
+                ("GL", RuleBreakData::LINE_PROPERTY_GL),
+                ("H2", RuleBreakData::LINE_PROPERTY_H2),
+                ("H3", RuleBreakData::LINE_PROPERTY_H3),
+                ("HL", RuleBreakData::LINE_PROPERTY_HL),
+                ("HY", RuleBreakData::LINE_PROPERTY_HY),
+                ("ID_CN", RuleBreakData::LINE_PROPERTY_ID_CN),
+                ("ID", RuleBreakData::LINE_PROPERTY_ID),
+                ("IN", RuleBreakData::LINE_PROPERTY_IN),
+                ("IS", RuleBreakData::LINE_PROPERTY_IS),
+                ("JL", RuleBreakData::LINE_PROPERTY_JL),
+                ("JT", RuleBreakData::LINE_PROPERTY_JT),
+                ("JV", RuleBreakData::LINE_PROPERTY_JV),
+                ("LF", RuleBreakData::LINE_PROPERTY_LF),
+                ("NL", RuleBreakData::LINE_PROPERTY_NL),
+                ("NS", RuleBreakData::LINE_PROPERTY_NS),
+                ("NU", RuleBreakData::LINE_PROPERTY_NU),
+                ("OP_EA", RuleBreakData::LINE_PROPERTY_OP_EA),
+                ("OP_OP30", RuleBreakData::LINE_PROPERTY_OP_OP30),
+                ("PO_EAW", RuleBreakData::LINE_PROPERTY_PO_EAW),
+                ("PO", RuleBreakData::LINE_PROPERTY_PO),
+                ("PR_EAW", RuleBreakData::LINE_PROPERTY_PR_EAW),
+                ("PR", RuleBreakData::LINE_PROPERTY_PR),
+                ("QU_PF", RuleBreakData::LINE_PROPERTY_QU_PF),
+                ("QU_PI", RuleBreakData::LINE_PROPERTY_QU_PI),
+                ("QU", RuleBreakData::LINE_PROPERTY_QU),
+                ("RI", RuleBreakData::LINE_PROPERTY_RI),
+                ("SP", RuleBreakData::LINE_PROPERTY_SP),
+                ("SY", RuleBreakData::LINE_PROPERTY_SY),
+                ("VF", RuleBreakData::LINE_PROPERTY_VF),
+                ("VI", RuleBreakData::LINE_PROPERTY_VI),
+                ("WJ", RuleBreakData::LINE_PROPERTY_WJ),
+                ("XX", RuleBreakData::LINE_PROPERTY_XX),
+                ("ZW", RuleBreakData::LINE_PROPERTY_ZW),
+                ("ZWJ", RuleBreakData::LINE_PROPERTY_ZWJ),
+            ] {
+                assert_eq!(
+                    get_index_from_name(&properties_names, name),
+                    Some(value as usize),
+                    "{name} {properties_names:?}"
+                );
+            }
+        }
+
+        _ => {
+            panic!("unknown built-in segmenter type");
         }
     }
 
@@ -604,7 +694,7 @@ fn generate_rule_break_data(
         }
     }
 
-    RuleBreakData {
+    Ok(RuleBreakData {
         property_table: properties_trie.build(),
         break_state_table: break_state_table
             .into_iter()
@@ -635,32 +725,21 @@ fn generate_rule_break_data(
             .unwrap_or(127)
             .try_into()
             .unwrap(),
-    }
+    })
 }
 
 #[cfg(any(feature = "use_wasm", feature = "use_icu4c"))]
 fn generate_rule_break_data_override(
-    provider: &SourceDataProvider,
+    _provider: &SourceDataProvider,
     rules_file: &str,
     trie_type: crate::TrieType,
 ) -> RuleBreakDataOverride<'static> {
     use icu_codepointtrie_builder::CodePointTrieBuilder;
 
-    let segmenter = provider
-        .icuexport()
-        .unwrap()
-        .read_and_parse_toml::<SegmenterRuleTable>(rules_file)
-        .expect("The data should be valid!");
+    let segmenter =
+        toml::from_str::<SegmenterRuleTable>(rules_file).expect("The data should be valid!");
 
-    const CODEPOINT_TABLE_LEN: usize = 0xE1000;
-    let mut properties_trie = CodePointTrieBuilder::new(
-        0u8,
-        0,
-        match trie_type {
-            crate::TrieType::Fast => codepointtrie::TrieType::Fast,
-            crate::TrieType::Small => codepointtrie::TrieType::Small,
-        },
-    );
+    let mut properties_trie = CodePointTrieBuilder::new(0u8, 0, trie_type.into());
     let mut properties_names = Vec::<String>::new();
 
     properties_names.push("Unknown".to_string());
@@ -676,27 +755,24 @@ fn generate_rule_break_data_override(
         if p.left.is_none() && p.right.is_none() {
             // If any values aren't set, this is builtin type.
             match &*segmenter.segmenter_type {
-                "word" => {
-                    // UAX29 defines the colon as MidLetter, but ICU4C's
-                    // English data doesn't.
-                    // See https://unicode-org.atlassian.net/browse/ICU-22112
-                    //
-                    // TODO: We have to consider this definition from CLDR instead.
-                    if p.name == "MidLetter" {
-                        properties_trie.set_value(0x003a, property_index);
-                        properties_trie.set_value(0xfe55, property_index);
-                        properties_trie.set_value(0xff1a, property_index);
-                    }
+                // UAX29 defines the colon as MidLetter, but ICU4C's
+                // English data doesn't.
+                // See https://unicode-org.atlassian.net/browse/ICU-22112
+                //
+                // TODO: We have to consider this definition from CLDR instead.
+                "word" if p.name == "MidLetter" => {
+                    properties_trie.set_value(0x003a, property_index);
+                    properties_trie.set_value(0xfe55, property_index);
+                    properties_trie.set_value(0xff1a, property_index);
                 }
-                "sentence" => {
-                    // UAX#29 doesn't define the 2 characters as STerm, but ICU4C's
-                    // Greek data does.
-                    //
-                    // TODO: We have to consider this definition from CLDR instead.
-                    if p.name == "STerm" {
-                        properties_trie.set_value(0x003b, property_index);
-                        properties_trie.set_value(0x037e, property_index);
-                    }
+
+                // UAX#29 doesn't define the 2 characters as STerm, but ICU4C's
+                // Greek data does.
+                //
+                // TODO: We have to consider this definition from CLDR instead.
+                "sentence" if p.name == "STerm" => {
+                    properties_trie.set_value(0x003b, property_index);
+                    properties_trie.set_value(0x037e, property_index);
                 }
                 _ => {}
             }
@@ -709,7 +785,7 @@ fn generate_rule_break_data_override(
 }
 
 macro_rules! implement {
-    ($marker:ident, $rules:literal) => {
+    ($marker:ident, $rules:literal, $provider:expr) => {
         impl DataProvider<$marker> for SourceDataProvider {
             fn load(&self, req: DataRequest) -> Result<DataResponse<$marker>, DataError> {
                 #[cfg(not(any(feature = "use_wasm", feature = "use_icu4c")))]
@@ -721,10 +797,10 @@ macro_rules! implement {
                 return {
                     self.check_req::<$marker>(req)?;
                     let data = generate_rule_break_data(
-                        &hardcoded_segmenter_provider(),
-                        $rules,
+                        ($provider)(self),
+                        include_str!(concat!("../../data/segmenter/", $rules)),
                         self.trie_type(),
-                    );
+                    )?;
 
                     Ok(DataResponse {
                         metadata: Default::default(),
@@ -755,8 +831,8 @@ macro_rules! implement_override {
                 return {
                     self.check_req::<$marker>(req)?;
                     let data = generate_rule_break_data_override(
-                        &hardcoded_segmenter_provider(),
-                        $rules,
+                        self,
+                        include_str!(concat!("../../data/segmenter/", $rules)),
                         self.trie_type(),
                     );
 
@@ -780,96 +856,38 @@ macro_rules! implement_override {
     }
 }
 
-fn hardcoded_segmenter_provider() -> SourceDataProvider {
-    use crate::{
-        source::{AbstractFs, SerdeCache},
-        SourceDataProvider,
-    };
+fn unicode_15_1() -> &'static SourceDataProvider {
     // Singleton so that all instantiations share the same cache.
     static SINGLETON: OnceLock<SourceDataProvider> = OnceLock::new();
-    SINGLETON
-        .get_or_init(|| {
-            let mut provider = SourceDataProvider::new_custom();
-            provider.icuexport_paths =
-                Some(std::sync::Arc::new(SerdeCache::new(AbstractFs::Memory(
-                    [
-                        (
-                            "uprops/small/ea.toml",
-                            include_bytes!("../../data/segmenter/uprops/small/ea.toml").as_slice(),
-                        ),
-                        (
-                            "uprops/small/ExtPict.toml",
-                            include_bytes!("../../data/segmenter/uprops/small/ExtPict.toml")
-                                .as_slice(),
-                        ),
-                        (
-                            "uprops/small/gc.toml",
-                            include_bytes!("../../data/segmenter/uprops/small/gc.toml").as_slice(),
-                        ),
-                        (
-                            "uprops/small/GCB.toml",
-                            include_bytes!("../../data/segmenter/uprops/small/GCB.toml").as_slice(),
-                        ),
-                        (
-                            "uprops/small/InCB.toml",
-                            include_bytes!("../../data/segmenter/uprops/small/InCB.toml")
-                                .as_slice(),
-                        ),
-                        (
-                            "uprops/small/lb.toml",
-                            include_bytes!("../../data/segmenter/uprops/small/lb.toml").as_slice(),
-                        ),
-                        (
-                            "uprops/small/SB.toml",
-                            include_bytes!("../../data/segmenter/uprops/small/SB.toml").as_slice(),
-                        ),
-                        (
-                            "uprops/small/sc.toml",
-                            include_bytes!("../../data/segmenter/uprops/small/sc.toml").as_slice(),
-                        ),
-                        (
-                            "uprops/small/WB.toml",
-                            include_bytes!("../../data/segmenter/uprops/small/WB.toml").as_slice(),
-                        ),
-                        (
-                            "segmenter/grapheme.toml",
-                            include_bytes!("../../data/segmenter/grapheme.toml").as_slice(),
-                        ),
-                        (
-                            "segmenter/line.toml",
-                            include_bytes!("../../data/segmenter/line.toml").as_slice(),
-                        ),
-                        (
-                            "segmenter/sentence.toml",
-                            include_bytes!("../../data/segmenter/sentence.toml").as_slice(),
-                        ),
-                        (
-                            "segmenter/word.toml",
-                            include_bytes!("../../data/segmenter/word.toml").as_slice(),
-                        ),
-                    ]
-                    .into_iter()
-                    .collect(),
-                ))));
-            provider
-        })
-        .clone()
+    SINGLETON.get_or_init(|| {
+        let mut provider = SourceDataProvider::new_custom();
+        provider.unicode_paths = Some(std::sync::Arc::new(UnicodeCache::new_local(
+            include_files!(
+                "../../data/segmenter/unicode15/";
+                "ucd/emoji/emoji-data.txt",
+                "ucd/extracted/DerivedEastAsianWidth.txt",
+                "ucd/extracted/DerivedGeneralCategory.txt",
+                "ucd/LineBreak.txt",
+                "ucd/PropertyAliases.txt",
+                "ucd/PropertyValueAliases.txt",
+            ),
+        )));
+        provider.icuexport_paths = Some(std::sync::Arc::new(SerdeCache::new(include_files!(
+            "../../data/segmenter/icuexportdata74/";
+            "uprops/small/ea.toml",
+            "uprops/small/gc.toml",
+            "uprops/small/lb.toml",
+        ))));
+        provider
+    })
 }
 
-implement!(SegmenterBreakLineV1, "segmenter/line.toml");
-implement!(SegmenterBreakGraphemeClusterV1, "segmenter/grapheme.toml");
-implement!(SegmenterBreakWordV1, "segmenter/word.toml");
-implement!(SegmenterBreakSentenceV1, "segmenter/sentence.toml");
-implement_override!(
-    SegmenterBreakWordOverrideV1,
-    "segmenter/word.toml",
-    ["fi", "sv"]
-);
-implement_override!(
-    SegmenterBreakSentenceOverrideV1,
-    "segmenter/sentence.toml",
-    ["el"]
-);
+implement!(SegmenterBreakLineV1, "line.toml", |_| unicode_15_1());
+implement!(SegmenterBreakGraphemeClusterV1, "grapheme.toml", |s| s);
+implement!(SegmenterBreakWordV1, "word.toml", |s| s);
+implement!(SegmenterBreakSentenceV1, "sentence.toml", |s| s);
+implement_override!(SegmenterBreakWordOverrideV1, "word.toml", ["fi", "sv"]);
+implement_override!(SegmenterBreakSentenceOverrideV1, "sentence.toml", ["el"]);
 
 #[cfg(test)]
 mod tests {

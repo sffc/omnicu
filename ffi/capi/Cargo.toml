@@ -5,6 +5,8 @@
 [package]
 name = "icu_capi"
 description = "C interface to ICU4X"
+categories = ["internationalization", "localization", "external-ffi-bindings", "no-std", "embedded"]
+keywords = ["ffi", "bindings", "c-api"]
 license = "Unicode-3.0"
 include = [
     "bindings/c/**/*",
@@ -16,10 +18,9 @@ include = [
     "LICENSE",
     "README.md"
 ]
-version = "2.1.2"
+version.workspace = true
 
 authors.workspace = true
-categories.workspace = true
 edition.workspace = true
 homepage.workspace = true
 repository.workspace = true
@@ -91,7 +92,7 @@ segmenter = ["dep:icu_segmenter"]
 timezone = ["calendar"]
 
 # Unstable features on individual components
-unstable = ["icu_calendar?/unstable", "icu_datetime?/unstable", "icu_plurals?/unstable"]
+unstable = ["icu_calendar?/unstable", "icu_datetime?/unstable", "icu_plurals?/unstable", "icu_time?/unstable"]
 
 compiled_data = [
     "icu_calendar?/compiled_data",

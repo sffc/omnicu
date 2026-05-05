@@ -5,6 +5,8 @@
 [package]
 name = "icu_provider_source"
 description = "A data provider based on CLDR and ICU data."
+categories.workspace = true
+keywords = []
 license = "Unicode-3.0"
 include = [
     "data/**/*",
@@ -17,10 +19,9 @@ include = [
     "LICENSE",
     "README.md",
 ]
-version = "2.1.2"
+version.workspace = true
 
 authors.workspace = true
-categories.workspace = true
 edition.workspace = true
 homepage.workspace = true
 repository.workspace = true
@@ -49,7 +50,6 @@ zerotrie = { workspace = true, features = ["alloc"] }
 zerovec = { workspace = true, features = ["serde", "yoke", "alloc"] }
 
 # External dependencies
-displaydoc = { workspace = true }
 elsa = { workspace = true }
 flate2 = { workspace = true }
 itertools = { workspace = true }
@@ -72,6 +72,7 @@ num-traits = { workspace = true, optional = true }
 
 [dev-dependencies]
 postcard = { workspace = true, features = ["alloc"] }
+icu_provider_adapters = { workspace = true }
 icu_provider_export = { workspace = true, features = ["fs_exporter", "baked_exporter", "rayon"] }
 icu_provider = { workspace = true, features = ["deserialize_postcard_1"] }
 icu_segmenter = { path = "../../components/segmenter", features = ["lstm"] }
@@ -79,6 +80,7 @@ simple_logger = { workspace = true }
 icu = { path = "../../components/icu", default-features = false, features = ["unstable"] }
 num-bigint = { workspace = true }
 num-rational = { workspace = true }
+crlify = { workspace = true }
 
 [features]
 default = ["use_wasm", "networking"]
@@ -101,6 +103,7 @@ icu_experimental = []
 [package.metadata.cargo-all-features]
 # We don't need working CPT builders for check
 skip_feature_sets = [["use_icu4c"], ["use_wasm"]]
+max_combination_size = 3
 
 [lints]
 workspace = true

@@ -173,15 +173,24 @@ struct Cli {
     icuexport_root: Option<PathBuf>,
 
     #[arg(long, value_name = "TAG", default_value = "17.0.0")]
-    #[arg(help = "Download versioned UCD from unicode.org.")]
+    #[arg(
+        help = "Download versioned UCD from unicode.org (`https://www.unicode.org/Public/{tag}/`). \
+                  Use 'latest' for the latest version verified to work with this version of the binary, \
+                  and 'latest-tag' for the literal tag 'latest' on unicode.org."
+    )]
     #[cfg_attr(not(feature = "networking"), arg(hide = true))]
     #[cfg(feature = "provider")]
     ucd_tag: String,
 
     #[arg(long, value_name = "PATH")]
-    #[arg(help = "Path to a local Unihan.zip file or directory.")]
+    #[arg(help = "[DEPRECATED] Path to a local Unihan.zip file or directory.")]
     #[cfg(feature = "provider")]
     unihan_root: Option<PathBuf>,
+
+    #[arg(long, value_name = "PATH")]
+    #[arg(help = "Path to a local UCD root directory containing security/IdentifierStatus.txt.")]
+    #[cfg(feature = "provider")]
+    ucd_root: Option<PathBuf>,
 
     #[arg(long, value_name = "TAG", default_value = "latest")]
     #[arg(
@@ -435,10 +444,8 @@ fn run(cli: Cli) -> eyre::Result<()> {
             );
         } else if SourceDataProvider::is_missing_segmenter_lstm_error(e) {
             eyre::bail!("Segmentation LSTM data is required for this invocation, set --segmenter-lstm-root or --segmenter-lstm-tag");
-        } else if SourceDataProvider::is_missing_unihan_error(e) {
-            eyre::bail!(
-                "Unihan data is required for this invocation, set --unihan-root or --ucd-tag"
-            );
+        } else if SourceDataProvider::is_missing_ucd_error(e) {
+            eyre::bail!("UCD data is required for this invocation, set --ucd-root or --ucd-tag");
         } else if SourceDataProvider::is_missing_tzdb_error(e) {
             eyre::bail!(
                 "Timezone data is required for this invocation, set --tzdb-root or --tzdb-tag"
@@ -518,14 +525,18 @@ fn run(cli: Cli) -> eyre::Result<()> {
                 (None, _) => p,
             };
 
-            p = match (cli.unihan_root, cli.ucd_tag.as_str()) {
-                (Some(path), _) => p.with_unihan(&path)?,
+            if cli.unihan_root.is_some() {
+                log::warn!("Ignoring --unihan-root, use --ucd-root instead")
+            }
+
+            p = match (cli.ucd_root, cli.ucd_tag.as_str()) {
+                (Some(path), _) => p.with_ucd(&path)?,
                 #[cfg(feature = "networking")]
-                (_, "latest") => {
-                    p.with_unihan_for_tag(SourceDataProvider::TESTED_UCD_TAG)
-                }
+                (_, "latest") => p.with_ucd_for_tag(SourceDataProvider::TESTED_UCD_TAG),
                 #[cfg(feature = "networking")]
-                (_, tag) => p.with_unihan_for_tag(tag),
+                (_, "latest-tag") => p.with_ucd_for_tag("latest"),
+                #[cfg(feature = "networking")]
+                (_, tag) => p.with_ucd_for_tag(tag),
                 #[cfg(not(feature = "networking"))]
                 (None, _) => p,
             };
@@ -564,7 +575,7 @@ fn run(cli: Cli) -> eyre::Result<()> {
                 .collect::<Option<Vec<_>>>()
             {
                 preprocessed_locales = Some(PreprocessedLocales::Locales(
-                    p.locales_for_coverage_levels(locale_subsets.into_iter())?
+                    p.locales_for_coverage_levels(locale_subsets)?
                         .into_iter()
                         .collect(),
                 ));

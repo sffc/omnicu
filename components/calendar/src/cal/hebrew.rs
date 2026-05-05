@@ -2,10 +2,10 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::calendar_arithmetic::{ArithmeticDate, DateFieldsResolver, PackWithMD, ToExtendedYear};
+use crate::calendar_arithmetic::{ArithmeticDate, DateFieldsResolver, PackWithMD};
 use crate::error::{
-    DateError, DateFromFieldsError, EcmaReferenceYearError, LunisolarRangeError, MonthCodeError,
-    UnknownEraError,
+    DateAddError, DateFromFieldsError, DateNewError, EcmaReferenceYearError, LunisolarDateError,
+    MonthError, UnknownEraError,
 };
 use crate::options::{DateAddOptions, DateDifferenceOptions};
 use crate::options::{DateFromFieldsOptions, Overflow};
@@ -15,6 +15,7 @@ use crate::{types, Calendar, Date};
 use ::tinystr::tinystr;
 use calendrical_calculations::hebrew_keviyah::{Keviyah, YearInfo};
 use calendrical_calculations::rata_die::RataDie;
+use core::cmp::Ordering;
 
 /// The [Hebrew Calendar](https://en.wikipedia.org/wiki/Hebrew_calendar)
 ///
@@ -45,8 +46,8 @@ use calendrical_calculations::rata_die::RataDie;
 /// Due to Rosh Hashanah postponement rules, Ḥešvan and Kislev vary in length.
 ///
 /// In leap years (years 3, 6, 8, 11, 17, 19 in a 19-year cycle), the leap month Adar I (`M05L`, 30 days)
-/// is inserted before Adar, and Adar is called Adar II (the `formatting_code` returned by [`MonthInfo`]
-/// will be `M06L` to mark this, while the `standard_code` remains `M06`).
+/// is inserted before Adar (`M06`), which is then called Adar II ([`MonthInfo::leap_status`] will be
+/// [`LeapStatus::Base`] to mark this).
 ///
 /// Standard years thus have 353-355 days, and leap years 383-385.
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord, Default)]
@@ -64,10 +65,41 @@ impl Hebrew {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug)]
 pub(crate) struct HebrewYear {
     keviyah: Keviyah,
+    /// The Hebrew extended year
     value: i32,
+}
+
+impl PartialEq for HebrewYear {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+impl Eq for HebrewYear {}
+impl core::hash::Hash for HebrewYear {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
+    }
+}
+impl PartialOrd for HebrewYear {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for HebrewYear {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.value.cmp(&other.value)
+    }
+}
+
+impl core::ops::Sub<HebrewYear> for HebrewYear {
+    type Output = i32;
+    #[inline]
+    fn sub(self, rhs: HebrewYear) -> Self::Output {
+        self.value - rhs.value
+    }
 }
 
 impl PackWithMD for HebrewYear {
@@ -92,12 +124,6 @@ impl PackWithMD for HebrewYear {
 
     fn unpack_day([_, b, c, d, e]: Self::Packed) -> u8 {
         i32::unpack_day([b, c, d, e])
-    }
-}
-
-impl ToExtendedYear for HebrewYear {
-    fn to_extended_year(&self) -> i32 {
-        self.value
     }
 }
 
@@ -135,19 +161,53 @@ impl DateFieldsResolver for Hebrew {
     }
 
     #[inline]
-    fn year_info_from_era(
+    fn min_months_from(_start: HebrewYear, years: i32) -> i32 {
+        // The Hebrew Metonic cycle is 7 leap years every 19 years,
+        // which comes out to 235 months per 19 years.
+        //
+        // We need to ensure that this is always *lower or equal to* the number of
+        // months in a given year span.
+        //
+        // Firstly, note that this math will produce exactly the number of months in any given period
+        // that spans a whole number of cycles. Note that we are only performing integer
+        // ops here, and our SAFE_YEAR_RANGE is well within the range of allowed values
+        // for multiplying by 235.
+        //
+        // So we only need to verify that this math produces the right results within a single cycle.
+        //
+        // The Hebrew Metonic cycle has leap years in year 3, 6, 8, 11, 14, 17, and 19 (starting counting at year 1),
+        // i.e., leap year gaps of +3, +3, +2, +3, +3, +3, +2.
+        //
+        // 235 / 19 is ≈12 7/19 months per year, which leads to one leap month every three years plus 2/19
+        // months left over. So this is correct as long as it does not predict a leap month in 2 years
+        // where the Hebrew calendar expects one in 3.
+        //
+        // The longest sequence of "three year leap months" in the Hebrew calendar
+        // is 4: year 8->11->14->17. In that time the error will accumulate to 6/19, which is not
+        // enough to create a "two year leap month" in our calculation. So this calculation cannot go past
+        // the actual cycle of the Hebrew calendar.
+        235 * years / 19
+    }
+
+    #[inline]
+    fn extended_year_from_era_year_unchecked(
         &self,
         era: &[u8],
         era_year: i32,
-    ) -> Result<Self::YearInfo, UnknownEraError> {
+    ) -> Result<i32, UnknownEraError> {
         match era {
-            b"am" => Ok(HebrewYear::compute(era_year)),
+            b"am" => Ok(era_year),
             _ => Err(UnknownEraError),
         }
     }
     #[inline]
     fn year_info_from_extended(&self, extended_year: i32) -> Self::YearInfo {
         HebrewYear::compute(extended_year)
+    }
+
+    #[inline]
+    fn extended_from_year_info(&self, year_info: Self::YearInfo) -> i32 {
+        year_info.value
     }
 
     fn reference_year_from_month_day(
@@ -178,7 +238,7 @@ impl DateFieldsResolver for Hebrew {
             // Neither 5731 nor 5732 is a leap year
             (5, true) => 5730,
             _ => {
-                return Err(EcmaReferenceYearError::MonthCodeNotInCalendar);
+                return Err(EcmaReferenceYearError::MonthNotInCalendar);
             }
         };
         Ok(HebrewYear::compute(hebrew_year))
@@ -188,22 +248,23 @@ impl DateFieldsResolver for Hebrew {
         &self,
         year: Self::YearInfo,
         month: Month,
-        options: DateFromFieldsOptions,
-    ) -> Result<u8, MonthCodeError> {
+        overflow: Overflow,
+    ) -> Result<u8, MonthError> {
         let is_leap_year = year.keviyah.is_leap();
         let ordinal_month = match (month.number(), month.is_leap()) {
             (n @ 1..=12, false) => n + (n >= 6 && is_leap_year) as u8,
             (5, true) => {
                 if is_leap_year {
                     6
-                } else if matches!(options.overflow, Some(Overflow::Constrain)) {
-                    // M05L maps to M06 in a common year
-                    6
                 } else {
-                    return Err(MonthCodeError::NotInYear);
+                    // Requesting Adar 1 in non-leap year, handle constrain/reject behavior
+                    match overflow {
+                        Overflow::Constrain => 6,
+                        Overflow::Reject => return Err(MonthError::NotInYear),
+                    }
                 }
             }
-            _ => return Err(MonthCodeError::NotInCalendar),
+            _ => return Err(MonthError::NotInCalendar),
         };
         Ok(ordinal_month)
     }
@@ -212,14 +273,7 @@ impl DateFieldsResolver for Hebrew {
         let is_leap = year.keviyah.is_leap();
         Month::new_unchecked(
             ordinal_month - (is_leap && ordinal_month >= 6) as u8,
-            if ordinal_month == 6 && is_leap {
-                LeapStatus::Leap
-            } else if ordinal_month == 7 && is_leap {
-                // Use the leap name for Adar in a leap year
-                LeapStatus::FormattingLeap
-            } else {
-                LeapStatus::Normal
-            },
+            ordinal_month == 6 && is_leap,
         )
     }
 
@@ -232,20 +286,17 @@ impl crate::cal::scaffold::UnstableSealed for Hebrew {}
 impl Calendar for Hebrew {
     type DateInner = HebrewDateInner;
     type Year = types::EraYear;
-    type DifferenceError = core::convert::Infallible;
+    type DateCompatibilityError = core::convert::Infallible;
 
-    fn from_codes(
+    fn new_date(
         &self,
-        era: Option<&str>,
-        year: i32,
-        month_code: types::MonthCode,
+        year: types::YearInput,
+        month: Month,
         day: u8,
-    ) -> Result<Self::DateInner, DateError> {
-        ArithmeticDate::from_era_year_month_code_day(era, year, month_code, day, self)
-            .map(HebrewDateInner)
+    ) -> Result<Self::DateInner, DateNewError> {
+        ArithmeticDate::from_input_year_month_code_day(year, month, day, self).map(HebrewDateInner)
     }
 
-    #[cfg(feature = "unstable")]
     fn from_fields(
         &self,
         fields: DateFields,
@@ -291,24 +342,26 @@ impl Calendar for Hebrew {
         Self::days_in_provided_month(date.0.year(), date.0.month())
     }
 
-    #[cfg(feature = "unstable")]
     fn add(
         &self,
         date: &Self::DateInner,
         duration: types::DateDuration,
         options: DateAddOptions,
-    ) -> Result<Self::DateInner, DateError> {
+    ) -> Result<Self::DateInner, DateAddError> {
         date.0.added(duration, self, options).map(HebrewDateInner)
     }
 
-    #[cfg(feature = "unstable")]
     fn until(
         &self,
         date1: &Self::DateInner,
         date2: &Self::DateInner,
         options: DateDifferenceOptions,
-    ) -> Result<types::DateDuration, Self::DifferenceError> {
-        Ok(date1.0.until(&date2.0, self, options))
+    ) -> types::DateDuration {
+        date1.0.until(&date2.0, self, options)
+    }
+
+    fn check_date_compatibility(&self, &Self: &Self) -> Result<(), Self::DateCompatibilityError> {
+        Ok(())
     }
 
     fn debug_name(&self) -> &'static str {
@@ -331,7 +384,20 @@ impl Calendar for Hebrew {
     }
 
     fn month(&self, date: &Self::DateInner) -> MonthInfo {
-        MonthInfo::new(self, date.0)
+        let mut m = MonthInfo::new(self, date.0);
+        // Even though the leap month is modeled as M05L,
+        // the actual leap base is M06.
+        if m.number() == 6 && m.ordinal == 7 {
+            m.leap_status = LeapStatus::Base;
+            #[allow(deprecated)]
+            {
+                // This is an ICU4X invention, it's not needed by
+                // formatting anymore, but we keep producing it
+                // for now.
+                m.formatting_code = Month::leap(6).code();
+            }
+        }
+        m
     }
 
     fn day_of_month(&self, date: &Self::DateInner) -> types::DayOfMonth {
@@ -351,26 +417,26 @@ impl Date<Hebrew> {
     /// Construct a new Hebrew [`Date`].
     ///
     /// Years are arithmetic, meaning there is a year 0 preceded by negative years, with a
-    /// valid range of `-1,000,000..=1,000,000`.
+    /// valid range of `-9999..=9999`.
     ///
     /// ```rust
-    /// use icu::calendar::Date;
     /// use icu::calendar::types::Month;
+    /// use icu::calendar::Date;
     ///
-    /// let date = Date::try_new_hebrew_v2(5782, Month::new(6), 7)
+    /// let date = Date::try_new_hebrew_v2(5782, Month::leap(5), 7)
     ///     .expect("Failed to initialize Date instance.");
     ///
     /// assert_eq!(date.era_year().year, 5782);
     /// // Adar I
-    /// assert_eq!(date.month().number(), 6);
-    /// assert_eq!(date.month().is_formatting_leap(), true);
+    /// assert_eq!(date.month().number(), 5);
+    /// assert!(date.month().to_input().is_leap());
     /// assert_eq!(date.day_of_month().0, 7);
     /// ```
     pub fn try_new_hebrew_v2(
         year: i32,
         month: Month,
         day: u8,
-    ) -> Result<Date<Hebrew>, LunisolarRangeError> {
+    ) -> Result<Date<Hebrew>, LunisolarDateError> {
         ArithmeticDate::try_from_ymd_lunisolar(year, month, day, &Hebrew)
             .map(HebrewDateInner)
             .map(|inner| Date::from_raw(inner, Hebrew))
@@ -491,10 +557,9 @@ mod tests {
             assert_eq!(date.day_of_month().0, d, "{date:?}");
 
             assert_eq!(
-                Date::try_new_from_codes(
-                    Some(&date.era_year().era),
-                    date.era_year().year,
-                    date.month().value.code(),
+                Date::try_new(
+                    types::YearInput::EraYear(&date.era_year().era, date.era_year().year),
+                    date.month().to_input(),
                     date.day_of_month().0,
                     Hebrew
                 ),
@@ -504,7 +569,7 @@ mod tests {
             assert_eq!(
                 Date::try_new_hebrew_v2(
                     date.era_year().year,
-                    date.month().value,
+                    date.month().to_input(),
                     date.day_of_month().0,
                 ),
                 Ok(date)

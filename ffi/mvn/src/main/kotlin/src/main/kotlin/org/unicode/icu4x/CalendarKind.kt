@@ -11,7 +11,7 @@ internal interface CalendarKindLib: Library {
 }
 /** The various calendar types currently supported by [Calendar]
 *
-*See the [Rust documentation for `AnyCalendarKind`](https://docs.rs/icu/2.1.1/icu/calendar/enum.AnyCalendarKind.html) for more information.
+*See the [Rust documentation for `AnyCalendarKind`](https://docs.rs/icu/2.2.0/icu/calendar/enum.AnyCalendarKind.html) for more information.
 */
 enum class CalendarKind(val inner: Int) {
     Iso(0),
@@ -30,6 +30,7 @@ enum class CalendarKind(val inner: Int) {
     HijriSimulatedMecca(18),
     HijriTabularTypeIIThursday(14),
     HijriUmmAlQura(15),
+    Julian(19),
     Persian(16),
     Roc(17);
 
@@ -59,6 +60,7 @@ enum class CalendarKind(val inner: Int) {
                 18 -> HijriSimulatedMecca
                 14 -> HijriTabularTypeIIThursday
                 15 -> HijriUmmAlQura
+                19 -> Julian
                 16 -> Persian
                 17 -> Roc
                 else -> throw RuntimeException("Failed to find variant ${native} of type CalendarKind")
@@ -72,7 +74,7 @@ enum class CalendarKind(val inner: Int) {
         
         /** Creates a new [CalendarKind] for the specified locale, using compiled data.
         *
-        *See the [Rust documentation for `new`](https://docs.rs/icu/2.1.1/icu/calendar/enum.AnyCalendarKind.html#method.new) for more information.
+        *See the [Rust documentation for `new`](https://docs.rs/icu/2.2.0/icu/calendar/enum.AnyCalendarKind.html#method.new) for more information.
         */
         fun create(locale: Locale): CalendarKind {
             

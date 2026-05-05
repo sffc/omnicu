@@ -4,7 +4,7 @@
 
 use super::time_zone::{FormatTimeZone, FormatTimeZoneError, Iso8601Format, TimeZoneFormatterUnit};
 use crate::error::ErrorField;
-use crate::format::DateTimeInputUnchecked;
+use crate::format::{numeric_override, DateTimeInputUnchecked};
 use crate::provider::fields::{self, FieldLength, FieldSymbol, Second, Year};
 use crate::provider::pattern::runtime::PatternMetadata;
 use crate::provider::pattern::PatternItem;
@@ -34,6 +34,7 @@ where
         w.with_part(part, |w| fdf.format(&num).write_to_parts(w))?;
         Ok(Ok(()))
     } else {
+        // Fallback behavior in the error case.
         w.with_part(part, |w| {
             w.with_part(Part::ERROR, |r| num.write_to_parts(r))
         })?;
@@ -60,6 +61,7 @@ where
         fdf.format(&num).write_to(w)?;
         Ok(Ok(()))
     } else {
+        // Fallback behavior in the error case.
         w.with_part(Part::ERROR, |r| num.write_to(r))?;
         Ok(Err(
             FormattedDateTimePatternError::DecimalFormatterNotLoaded,
@@ -165,12 +167,24 @@ where
         (FieldSymbol::Year(Year::Calendar), l) => {
             const PART: Part = parts::YEAR;
             input!(PART, Year, year = input.year);
-            let mut year = Decimal::from(year.era_year_or_related_iso());
-            if matches!(l, FieldLength::Two) {
-                // 'yy' and 'YY' truncate
-                year.set_max_position(2);
+
+            let year_val = year.era_year_or_related_iso();
+            match l {
+                // We only support overriding for positive numbers.
+                // For negative numbers RBNF coverage is spotty and often not actually
+                // what you want in years, so we fall back.
+                FieldLength::NumericOverride(o) if year_val >= 0 => {
+                    numeric_override::format(PART, w, year_val as u32, o)?
+                }
+                _ => {
+                    let mut year = Decimal::from(year.era_year_or_related_iso());
+                    if matches!(l, FieldLength::Two) {
+                        // 'yy' and 'YY' truncate
+                        year.set_max_position(2);
+                    }
+                    try_write_number(PART, w, decimal_formatter, year, l)?
+                }
             }
-            try_write_number(PART, w, decimal_formatter, year, l)?
         }
         (FieldSymbol::Year(Year::Cyclic), l) => {
             const PART: Part = parts::YEAR_NAME;
@@ -246,6 +260,11 @@ where
             input!(PART, Month, month = input.month);
             try_write_number(PART, w, decimal_formatter, month.number().into(), l)?
         }
+        (FieldSymbol::Month(_), FieldLength::NumericOverride(o)) => {
+            const PART: Part = parts::MONTH;
+            input!(PART, Month, month = input.month);
+            numeric_override::format(PART, w, u32::from(month.number()), o)?
+        }
         (FieldSymbol::Month(symbol), l) => {
             const PART: Part = parts::MONTH;
             input!(PART, Month, month = input.month);
@@ -284,17 +303,19 @@ where
                         Err(FormattedDateTimePatternError::DecimalFormatterNotLoaded)
                     }
                 }
+                Ok(MonthPlaceholderValue::StringPattern(string, substitution_pattern)) => {
+                    w.with_part(PART, |w| {
+                        substitution_pattern.interpolate([string]).write_to(w)
+                    })?;
+                    Ok(())
+                }
                 Err(e) => {
                     w.with_part(PART, |w| {
-                        w.with_part(Part::ERROR, |w| {
-                            w.write_str(&month.value.formatting_code().0)
-                        })
+                        w.with_part(Part::ERROR, |w| w.write_str(&month.to_input().code().0))
                     })?;
                     Err(match e {
                         GetNameForMonthError::InvalidMonthCode => {
-                            FormattedDateTimePatternError::InvalidMonthCode(
-                                month.value.formatting_code(),
-                            )
+                            FormattedDateTimePatternError::InvalidMonthCode(month.to_input().code())
                         }
                         GetNameForMonthError::InvalidFieldLength => {
                             FormattedDateTimePatternError::UnsupportedLength(ErrorField(field))
@@ -338,6 +359,11 @@ where
                 }
                 Ok(s) => Ok(w.with_part(PART, |w| w.write_str(s))?),
             }
+        }
+        (FieldSymbol::Day(fields::Day::DayOfMonth), FieldLength::NumericOverride(o)) => {
+            const PART: Part = parts::DAY;
+            input!(PART, DayOfMonth, day_of_month = input.day_of_month);
+            numeric_override::format(PART, w, u32::from(day_of_month.0), o)?
         }
         (FieldSymbol::Day(fields::Day::DayOfMonth), l) => {
             const PART: Part = parts::DAY;
@@ -671,10 +697,10 @@ mod tests {
 
     #[test]
     fn julian_day() {
-        let locale = icu::locale::locale!("en");
+        let locale = icu_locale::locale!("en");
         let parsed_pattern = DateTimePattern::try_from_pattern_str("g").unwrap();
         let mut names = FixedCalendarDateTimeNames::<
-            icu::calendar::cal::Gregorian,
+            icu_calendar::cal::Gregorian,
             crate::fieldsets::enums::DateFieldSet,
         >::try_new(locale.into())
         .unwrap();
@@ -687,16 +713,16 @@ mod tests {
 
     #[test]
     fn extended_year() {
-        let locale = icu::locale::locale!("en");
+        let locale = icu_locale::locale!("en");
         let parsed_pattern = DateTimePattern::try_from_pattern_str("u").unwrap();
         let mut names = FixedCalendarDateTimeNames::<
-            icu::calendar::cal::Ethiopian,
+            icu_calendar::cal::Ethiopian,
             crate::fieldsets::enums::DateFieldSet,
         >::try_new(locale.into())
         .unwrap();
         let formatted_datetime = names.include_for_pattern(&parsed_pattern).unwrap().format(
             &crate::input::Date::try_new_ethiopian(
-                icu::calendar::cal::EthiopianEraStyle::AmeteMihret,
+                icu_calendar::cal::EthiopianEraStyle::AmeteMihret,
                 10,
                 9,
                 2,

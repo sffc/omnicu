@@ -4,7 +4,7 @@
 
 use crate::{types::*, *};
 
-fn check_continuity<A: AsCalendar>(mut date: Date<A>, years_to_check: usize) {
+fn check_continuity<A: AsCalendar + Clone>(mut date: Date<A>, years_to_check: usize) {
     let duration = DateDuration::for_days(1);
 
     let mut rata_die = date.to_rata_die();
@@ -69,7 +69,7 @@ fn test_chinese_continuity() {
     check_continuity(date.unwrap(), 20);
     let date = Date::try_new_chinese_traditional(-300, Month::new(1), 1);
     check_every_250_days(date.unwrap(), 2000);
-    let date = Date::try_new_chinese_traditional(-10000, Month::new(1), 1);
+    let date = Date::try_new_chinese_traditional(-9999, Month::new(1), 1);
     check_every_250_days(date.unwrap(), 2000);
 
     let date = Date::try_new_chinese_traditional(1899, Month::new(1), 1);

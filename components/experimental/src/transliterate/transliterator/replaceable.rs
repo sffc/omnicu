@@ -28,8 +28,10 @@
 // quite closely coupled to Transform Rules is `RepMatcher` and its explicit `ante`, `post`, `key`
 // handling.
 
-// QUESTION: for this whole module, I don't know how panics work together with safety invariants. I'm fairly sure that unexpected panics
-//  could break some invariants.
+// NOTE: Panics (e.g., from CustomTransliterator impls) during transliteration could unwind through
+//  Drop impls (Insertable, InsertableGuard, etc.) that may not fully restore UTF-8 validity.
+//  As a mitigation, TransliteratorBuffer::into_string() uses checked UTF-8 conversion so that
+//  any such corruption results in a clean panic rather than undefined behavior.
 
 use super::Filter;
 use alloc::string::String;
@@ -50,10 +52,13 @@ impl TransliteratorBuffer {
         Self(s.into_bytes())
     }
 
+    #[allow(clippy::expect_used)] // panic is strictly better than UB from from_utf8_unchecked
     pub(crate) fn into_string(self) -> String {
-        debug_assert!(core::str::from_utf8(&self.0).is_ok());
-        // SAFETY: We have exclusive access, so the vec must contain valid UTF-8
-        unsafe { String::from_utf8_unchecked(self.0) }
+        // Using checked conversion: if a panic during transliteration unwinds through
+        // Drop impls that fail to fully restore UTF-8 validity, this will panic cleanly
+        // instead of producing undefined behavior.
+        String::from_utf8(self.0)
+            .expect("TransliteratorBuffer must contain valid UTF-8 after transliteration")
     }
 }
 
@@ -893,7 +898,7 @@ impl<'a, 'b> Insertable<'a, 'b> {
     /// ```
     pub(super) fn start_replaceable_adapter(
         &mut self,
-    ) -> InsertableToReplaceableAdapter<'a, '_, impl FnMut(usize) + '_> {
+    ) -> InsertableToReplaceableAdapter<'a, '_, impl FnMut(usize) + use<'_>> {
         let range_start = self.curr;
         let child_insertable = Insertable {
             _rep: self._rep,
@@ -949,7 +954,7 @@ where
 {
     /// Returns a type that allows getting a `Replaceable` from it. The replaceable will
     /// transliterate everything since `self` was created with [`Insertable::start_replaceable_adapter`].
-    pub(super) fn as_replaceable(&mut self) -> InsertableGuard<'_, impl FnMut(&[u8]) + '_> {
+    pub(super) fn as_replaceable(&mut self) -> InsertableGuard<'_, impl FnMut(&[u8]) + use<'_, F>> {
         // Thought: we don't need to make the Insertable contiguous because the visible length hides
         //  the invalid UTF-8 tail. However, we do not gain anything from that empty buffer at the
         //  moment, because the child Replaceable's Insertable will not know about it. can we
@@ -1054,4 +1059,20 @@ enum CursorOffset {
     CharsOffEnd(u16),
     /// A `char`-based offset for before the replacement string.
     CharsOffStart(u16),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic(expected = "valid UTF-8")]
+    fn test_into_string_rejects_invalid_utf8() {
+        // Simulate what would happen if a panic during transliteration
+        // left the buffer with invalid UTF-8.
+        let buffer = TransliteratorBuffer(vec![0xFF, 0xFE, 0xFD]);
+        // With checked conversion: panics cleanly.
+        // With unchecked conversion: silently produces an invalid String (UB).
+        let _ = buffer.into_string();
+    }
 }

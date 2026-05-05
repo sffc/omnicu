@@ -2,11 +2,10 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::calendar_arithmetic::{ArithmeticDate, ToExtendedYear};
-use crate::calendar_arithmetic::{DateFieldsResolver, PackWithMD};
+use crate::calendar_arithmetic::{ArithmeticDate, DateFieldsResolver, PackWithMD};
 use crate::error::{
-    DateError, DateFromFieldsError, EcmaReferenceYearError, LunisolarRangeError, MonthCodeError,
-    UnknownEraError,
+    DateAddError, DateError, DateFromFieldsError, DateNewError, EcmaReferenceYearError,
+    LunisolarDateError, MonthError, UnknownEraError,
 };
 use crate::options::{DateAddOptions, DateDifferenceOptions};
 use crate::options::{DateFromFieldsOptions, Overflow};
@@ -14,6 +13,7 @@ use crate::AsCalendar;
 use crate::{types, Calendar, Date};
 use calendrical_calculations::chinese_based;
 use calendrical_calculations::rata_die::RataDie;
+use core::cmp::Ordering;
 use icu_locale_core::preferences::extensions::unicode::keywords::CalendarAlgorithm;
 use icu_provider::prelude::*;
 
@@ -25,6 +25,77 @@ mod korea_data;
 mod qing_data;
 #[path = "east_asian_traditional/simple.rs"]
 mod simple;
+
+#[derive(PartialEq)]
+enum EastAsianCalendarKind {
+    Chinese,
+    Korean,
+}
+
+/// Implements <https://tc39.es/proposal-intl-era-monthcode/#chinese-dangi-iso-reference-years>
+///
+/// `generate_reference_years` is helpful for generating this data if the spec needs to be updated.
+///
+/// Note that the spec is written in terms of ISO years, and this code is in terms of extended years.
+/// This distinction only matters for month 11 and 12.
+fn ecma_reference_year_common(
+    month: types::Month,
+    day: u8,
+    cal: EastAsianCalendarKind,
+) -> Result<i32, EcmaReferenceYearError> {
+    let extended_year = match (month.number(), month.is_leap(), day > 29) {
+        (1, false, false) => 1972,
+        (1, false, true) => 1970,
+        (1, true, _) => return Err(EcmaReferenceYearError::UseRegularIfConstrain),
+        (2, false, _) => 1972,
+        (2, true, false) => 1947,
+        (2, true, true) => return Err(EcmaReferenceYearError::UseRegularIfConstrain),
+        (3, false, false) => 1972,
+        (3, false, true) if cal == EastAsianCalendarKind::Chinese => 1966,
+        (3, false, true) => 1968, // Korean
+        (3, true, false) => 1966,
+        (3, true, true) => 1955,
+        (4, false, false) => 1972,
+        (4, false, true) => 1970,
+        (4, true, false) => 1963,
+        (4, true, true) => 1944,
+        (5, false, _) => 1972,
+        (5, true, false) => 1971,
+        (5, true, true) => 1952,
+        (6, false, false) => 1972,
+        (6, false, true) => 1971,
+        (6, true, false) => 1960,
+        (6, true, true) => 1941,
+        (7, false, _) => 1972,
+        (7, true, false) => 1968,
+        (7, true, true) => 1938,
+        (8, false, false) => 1972,
+        (8, false, true) => 1971,
+        (8, true, false) => 1957,
+        (8, true, true) => return Err(EcmaReferenceYearError::UseRegularIfConstrain),
+        (9, false, _) => 1972,
+        (9, true, false) => 2014,
+        (9, true, true) => return Err(EcmaReferenceYearError::UseRegularIfConstrain),
+        (10, false, _) => 1972,
+        (10, true, false) => 1984,
+        (10, true, true) => return Err(EcmaReferenceYearError::UseRegularIfConstrain),
+        // Dec 31, 1972 is 1972-M11-26, dates after that
+        // are in the next year
+        (11, false, false) if day > 26 => 1971,
+        (11, false, false) => 1972,
+        (11, false, true) => 1969,
+        // Spec has two years that map to the same extended year
+        (11, true, false) => 2033,
+        (11, true, true) => return Err(EcmaReferenceYearError::UseRegularIfConstrain),
+        // Spec says 1972, but that is extended year 1971
+        (12, false, _) => 1971,
+        (12, true, _) => return Err(EcmaReferenceYearError::UseRegularIfConstrain),
+
+        (0 | 13.., _, _) => return Err(EcmaReferenceYearError::MonthNotInCalendar),
+    };
+
+    Ok(extended_year)
+}
 
 /// The traditional East-Asian lunisolar calendar.
 ///
@@ -83,6 +154,9 @@ pub struct EastAsianTraditional<R>(pub R);
 /// The rules for how to perform these calculations, as well as how local
 /// time is determined differ between countries and have changed over time.
 ///
+/// Implementations of this trait must produce calendars that have a leap month
+/// at least once every three years.
+///
 /// This crate currently provides [`Rules`] for [`China`] and [`Korea`].
 ///
 /// <div class="stab unstable">
@@ -110,7 +184,8 @@ pub trait Rules: Clone + core::fmt::Debug + crate::cal::scaffold::UnstableSealed
         year
     }
 
-    /// Returns an ECMA reference year that contains the given month-day combination.
+    /// Returns an ECMA reference year (represented as an extended year)
+    /// that contains the given month-day combination.
     ///
     /// If the day is out of range, it will return a year that contains the given month
     /// and the maximum day possible for that month. See [the spec][spec] for the
@@ -131,9 +206,18 @@ pub trait Rules: Clone + core::fmt::Debug + crate::cal::scaffold::UnstableSealed
         Err(EcmaReferenceYearError::Unimplemented)
     }
 
+    /// The error that is returned by [`Self::check_date_compatibility`].
+    ///
+    /// Set this to [`core::convert::Infallible`] if the type is a singleton or
+    /// the parameterization does not affect calendar semantics.
+    type DateCompatibilityError: core::fmt::Debug;
+
+    /// Checks whether two [`Rules`] values are equal for the purpose of [`Date`] interaction.
+    fn check_date_compatibility(&self, other: &Self) -> Result<(), Self::DateCompatibilityError>;
+
     /// The debug name for the calendar defined by these [`Rules`].
     fn debug_name(&self) -> &'static str {
-        "Chinese (custom)"
+        "EastAsianTraditional (custom)"
     }
 
     /// The BCP-47 [`CalendarAlgorithm`] for the calendar defined by these [`Rules`], if defined.
@@ -227,62 +311,13 @@ impl Rules for China {
         month: types::Month,
         day: u8,
     ) -> Result<i32, EcmaReferenceYearError> {
-        // Computed by `generate_reference_years`
-        let extended_year = match (month.number(), month.is_leap(), day > 29) {
-            (1, false, false) => 1972,
-            (1, false, true) => 1970,
-            (1, true, false) => 1898,
-            (1, true, true) => 1898,
-            (2, false, false) => 1972,
-            (2, false, true) => 1972,
-            (2, true, false) => 1947,
-            (2, true, true) => 1830,
-            (3, false, false) => 1972,
-            (3, false, true) => 1966,
-            (3, true, false) => 1966,
-            (3, true, true) => 1955,
-            (4, false, false) => 1972,
-            (4, false, true) => 1970,
-            (4, true, false) => 1963,
-            (4, true, true) => 1944,
-            (5, false, false) => 1972,
-            (5, false, true) => 1972,
-            (5, true, false) => 1971,
-            (5, true, true) => 1952,
-            (6, false, false) => 1972,
-            (6, false, true) => 1971,
-            (6, true, false) => 1960,
-            (6, true, true) => 1941,
-            (7, false, false) => 1972,
-            (7, false, true) => 1972,
-            (7, true, false) => 1968,
-            (7, true, true) => 1938,
-            (8, false, false) => 1972,
-            (8, false, true) => 1971,
-            (8, true, false) => 1957,
-            (8, true, true) => 1691,
-            (9, false, false) => 1972,
-            (9, false, true) => 1972,
-            (9, true, false) => 2014,
-            (9, true, true) => 1843,
-            (10, false, false) => 1972,
-            (10, false, true) => 1972,
-            (10, true, false) => 1984,
-            (10, true, true) => 1737,
-            // Dec 31, 1972 is 1972-M11-26, dates after that
-            // are in the next year
-            (11, false, false) if day > 26 => 1971,
-            (11, false, false) => 1972,
-            (11, false, true) => 1969,
-            (11, true, false) => 2033,
-            (11, true, true) => 1889,
-            (12, false, false) => 1971,
-            (12, false, true) => 1971,
-            (12, true, false) => 1878,
-            (12, true, true) => 1783,
-            _ => return Err(EcmaReferenceYearError::MonthCodeNotInCalendar),
-        };
-        Ok(extended_year)
+        ecma_reference_year_common(month, day, EastAsianCalendarKind::Chinese)
+    }
+
+    type DateCompatibilityError = core::convert::Infallible;
+
+    fn check_date_compatibility(&self, &Self: &Self) -> Result<(), Self::DateCompatibilityError> {
+        Ok(())
     }
 
     fn calendar_algorithm(&self) -> Option<CalendarAlgorithm> {
@@ -332,15 +367,19 @@ impl Rules for China {
 /// let korean_a = iso_a.to_calendar(KoreanTraditional::new());
 /// let chinese_a = iso_a.to_calendar(ChineseTraditional::new());
 ///
-/// assert_eq!((korean_a.month().number(), korean_a.month().is_leap()), (3, true));
-/// assert_eq!((chinese_a.month().number(), chinese_a.month().is_leap()), (4, false));
+/// assert_eq!(korean_a.month().number(), 3);
+/// assert_eq!(korean_a.month().to_input().is_leap(), true);
+/// assert_eq!(chinese_a.month().number(), 4);
+/// assert_eq!(chinese_a.month().to_input().is_leap(), false);
 ///
 /// let iso_b = Date::try_new_iso(2012, 5, 23).unwrap();
 /// let korean_b = iso_b.to_calendar(KoreanTraditional::new());
 /// let chinese_b = iso_b.to_calendar(ChineseTraditional::new());
 ///
-/// assert_eq!((korean_b.month().number(), korean_b.month().is_leap()), (4, false));
-/// assert_eq!((chinese_b.month().number(), chinese_b.month().is_leap()), (4, true));
+/// assert_eq!(korean_b.month().number(), 4);
+/// assert_eq!(korean_b.month().to_input().is_leap(), false);
+/// assert_eq!(chinese_b.month().number(), 4);
+/// assert_eq!(chinese_b.month().to_input().is_leap(), true);
 /// ```
 pub type KoreanTraditional = EastAsianTraditional<Korea>;
 
@@ -369,7 +408,7 @@ impl KoreanTraditional {
     /// Use [`Self::new`].
     #[cfg(feature = "serde")]
     #[doc = icu_provider::gen_buffer_unstable_docs!(BUFFER,Self::new)]
-    #[deprecated(since = "2.1.0", note = "use `Self::new()")]
+    #[deprecated(since = "2.1.0", note = "use `Self::new()`")]
     pub fn try_new_with_buffer_provider(
         _provider: &(impl BufferProvider + ?Sized),
     ) -> Result<Self, DataError> {
@@ -378,13 +417,13 @@ impl KoreanTraditional {
 
     /// Use [`Self::new`].
     #[doc = icu_provider::gen_buffer_unstable_docs!(UNSTABLE, Self::new)]
-    #[deprecated(since = "2.1.0", note = "use `Self::new()")]
+    #[deprecated(since = "2.1.0", note = "use `Self::new()`")]
     pub fn try_new_unstable<D: ?Sized>(_provider: &D) -> Result<Self, DataError> {
         Ok(Self::new())
     }
 
     /// Use [`Self::new`].
-    #[deprecated(since = "2.1.0", note = "use `Self::new()")]
+    #[deprecated(since = "2.1.0", note = "use `Self::new()`")]
     pub fn new_always_calculating() -> Self {
         Self::new()
     }
@@ -417,62 +456,13 @@ impl Rules for Korea {
         month: types::Month,
         day: u8,
     ) -> Result<i32, EcmaReferenceYearError> {
-        // Computed by `generate_reference_years`
-        let extended_year = match (month.number(), month.is_leap(), day > 29) {
-            (1, false, false) => 1972,
-            (1, false, true) => 1970,
-            (1, true, false) => 1898,
-            (1, true, true) => 1898,
-            (2, false, false) => 1972,
-            (2, false, true) => 1972,
-            (2, true, false) => 1947,
-            (2, true, true) => 1830,
-            (3, false, false) => 1972,
-            (3, false, true) => 1968,
-            (3, true, false) => 1966,
-            (3, true, true) => 1955,
-            (4, false, false) => 1972,
-            (4, false, true) => 1970,
-            (4, true, false) => 1963,
-            (4, true, true) => 1944,
-            (5, false, false) => 1972,
-            (5, false, true) => 1972,
-            (5, true, false) => 1971,
-            (5, true, true) => 1952,
-            (6, false, false) => 1972,
-            (6, false, true) => 1971,
-            (6, true, false) => 1960,
-            (6, true, true) => 1941,
-            (7, false, false) => 1972,
-            (7, false, true) => 1972,
-            (7, true, false) => 1968,
-            (7, true, true) => 1938,
-            (8, false, false) => 1972,
-            (8, false, true) => 1971,
-            (8, true, false) => 1957,
-            (8, true, true) => 1691,
-            (9, false, false) => 1972,
-            (9, false, true) => 1972,
-            (9, true, false) => 2014,
-            (9, true, true) => 1843,
-            (10, false, false) => 1972,
-            (10, false, true) => 1972,
-            (10, true, false) => 1984,
-            (10, true, true) => 1737,
-            // Dec 31, 1972 is 1972-M11-26, dates after that
-            // are in the next year
-            (11, false, false) if day > 26 => 1971,
-            (11, false, false) => 1972,
-            (11, false, true) => 1969,
-            (11, true, false) => 2033,
-            (11, true, true) => 1889,
-            (12, false, false) => 1971,
-            (12, false, true) => 1971,
-            (12, true, false) => 1878,
-            (12, true, true) => 1783,
-            _ => return Err(EcmaReferenceYearError::MonthCodeNotInCalendar),
-        };
-        Ok(extended_year)
+        ecma_reference_year_common(month, day, EastAsianCalendarKind::Korean)
+    }
+
+    type DateCompatibilityError = core::convert::Infallible;
+
+    fn check_date_compatibility(&self, &Self: &Self) -> Result<(), Self::DateCompatibilityError> {
+        Ok(())
     }
 
     fn calendar_algorithm(&self) -> Option<CalendarAlgorithm> {
@@ -487,24 +477,24 @@ impl Date<KoreanTraditional> {
     /// Construct a new traditional Korean [`Date`].
     ///
     /// Years are arithmetic, meaning there is a year 0 preceded by negative years, with a
-    /// valid range of `-1,000,000..=1,000,000`.
+    /// valid range of `-9999..=9999`.
     ///
     /// ```rust
-    /// use icu::calendar::Date;
     /// use icu::calendar::types::Month;
+    /// use icu::calendar::Date;
     ///
     /// let date = Date::try_new_korean_traditional(2025, Month::new(5), 25)
     ///     .expect("Failed to initialize Date instance.");
     ///
     /// assert_eq!(date.cyclic_year().related_iso, 2025);
-    /// assert_eq!(date.month().value, Month::new(5));
+    /// assert_eq!(date.month().to_input(), Month::new(5));
     /// assert_eq!(date.day_of_month().0, 25);
     /// ```
     pub fn try_new_korean_traditional(
         related_iso_year: i32,
         month: types::Month,
         day: u8,
-    ) -> Result<Date<KoreanTraditional>, LunisolarRangeError> {
+    ) -> Result<Date<KoreanTraditional>, LunisolarDateError> {
         let calendar = KoreanTraditional::new();
         ArithmeticDate::try_from_ymd_lunisolar(related_iso_year, month, day, &calendar)
             .map(ChineseDateInner)
@@ -547,13 +537,21 @@ impl<R: Rules> PartialEq for ChineseDateInner<R> {
 }
 impl<R: Rules> Eq for ChineseDateInner<R> {}
 impl<R: Rules> PartialOrd for ChineseDateInner<R> {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 impl<R: Rules> Ord for ChineseDateInner<R> {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.0.cmp(&other.0)
+    }
+}
+
+impl core::ops::Sub<EastAsianTraditionalYear> for EastAsianTraditionalYear {
+    type Output = i32;
+    #[inline]
+    fn sub(self, rhs: EastAsianTraditionalYear) -> Self::Output {
+        self.related_iso - rhs.related_iso
     }
 }
 
@@ -565,7 +563,7 @@ impl ChineseTraditional {
 
     #[cfg(feature = "serde")]
     #[doc = icu_provider::gen_buffer_unstable_docs!(BUFFER,Self::new)]
-    #[deprecated(since = "2.1.0", note = "use `Self::new()")]
+    #[deprecated(since = "2.1.0", note = "use `Self::new()`")]
     pub fn try_new_with_buffer_provider(
         _provider: &(impl BufferProvider + ?Sized),
     ) -> Result<Self, DataError> {
@@ -573,13 +571,13 @@ impl ChineseTraditional {
     }
 
     #[doc = icu_provider::gen_buffer_unstable_docs!(UNSTABLE, Self::new)]
-    #[deprecated(since = "2.1.0", note = "use `Self::new()")]
+    #[deprecated(since = "2.1.0", note = "use `Self::new()`")]
     pub fn try_new_unstable<D: ?Sized>(_provider: &D) -> Result<Self, DataError> {
         Ok(Self::new())
     }
 
     /// Use [`Self::new()`].
-    #[deprecated(since = "2.1.0", note = "use `Self::new()")]
+    #[deprecated(since = "2.1.0", note = "use `Self::new()`")]
     pub fn new_always_calculating() -> Self {
         Self::new()
     }
@@ -626,19 +624,30 @@ impl<R: Rules> DateFieldsResolver for EastAsianTraditional<R> {
     }
 
     #[inline]
-    fn year_info_from_era(
+    fn min_months_from(_start: Self::YearInfo, years: i32) -> i32 {
+        // By Rules invariant
+        12 * years + (years / 3)
+    }
+
+    #[inline]
+    fn extended_year_from_era_year_unchecked(
         &self,
         _era: &[u8],
         _era_year: i32,
-    ) -> Result<Self::YearInfo, UnknownEraError> {
+    ) -> Result<i32, UnknownEraError> {
         // This calendar has no era codes
         Err(UnknownEraError)
     }
 
     #[inline]
     fn year_info_from_extended(&self, extended_year: i32) -> Self::YearInfo {
-        debug_assert!(crate::calendar_arithmetic::VALID_YEAR_RANGE.contains(&extended_year));
+        debug_assert!(crate::calendar_arithmetic::SAFE_YEAR_RANGE.contains(&extended_year));
         self.0.year(extended_year)
+    }
+
+    #[inline]
+    fn extended_from_year_info(&self, year_info: Self::YearInfo) -> i32 {
+        year_info.related_iso
     }
 
     #[inline]
@@ -656,29 +665,33 @@ impl<R: Rules> DateFieldsResolver for EastAsianTraditional<R> {
         &self,
         year: Self::YearInfo,
         month: types::Month,
-        options: DateFromFieldsOptions,
-    ) -> Result<u8, MonthCodeError> {
+        overflow: Overflow,
+    ) -> Result<u8, MonthError> {
+        let (number @ 1..=12, leap) = (month.number(), month.is_leap()) else {
+            return Err(MonthError::NotInCalendar);
+        };
+
         // 14 is a sentinel value, greater than all other months, for the purpose of computation only;
         // it is impossible to actually have 14 months in a year.
-        let leap_month = year.packed.leap_month().unwrap_or(14);
+        let leap_month_sentinel = year.packed.leap_month().unwrap_or(14);
 
         // leap_month identifies the ordinal month number of the leap month,
         // so its month number will be leap_month - 1
-        if month == types::Month::leap(leap_month - 1) {
-            return Ok(leap_month);
+        if month == types::Month::leap(leap_month_sentinel - 1) {
+            return Ok(leap_month_sentinel);
         }
 
-        let (number @ 1..13, leap) = (month.number(), month.is_leap()) else {
-            return Err(MonthCodeError::NotInCalendar);
-        };
-
-        if leap && options.overflow != Some(Overflow::Constrain) {
-            // wrong leap month and not constraining
-            return Err(MonthCodeError::NotInYear);
+        if leap {
+            // This leap month doesn't exist in the year, reject if needed
+            match overflow {
+                Overflow::Reject => return Err(MonthError::NotInYear),
+                // Written as a match for exhaustiveness
+                Overflow::Constrain => (),
+            }
         }
 
         // add one if there was a leap month before
-        Ok(number + (number >= leap_month) as u8)
+        Ok(number + (number >= leap_month_sentinel) as u8)
     }
 
     fn month_from_ordinal(&self, year: Self::YearInfo, ordinal_month: u8) -> types::Month {
@@ -688,11 +701,7 @@ impl<R: Rules> DateFieldsResolver for EastAsianTraditional<R> {
         types::Month::new_unchecked(
             // subtract one if there was a leap month before
             ordinal_month - (ordinal_month >= leap_month) as u8,
-            if ordinal_month == leap_month {
-                types::LeapStatus::Leap
-            } else {
-                types::LeapStatus::Normal
-            },
+            ordinal_month == leap_month,
         )
     }
 
@@ -705,20 +714,17 @@ impl<R: Rules> crate::cal::scaffold::UnstableSealed for EastAsianTraditional<R> 
 impl<R: Rules> Calendar for EastAsianTraditional<R> {
     type DateInner = ChineseDateInner<R>;
     type Year = types::CyclicYear;
-    type DifferenceError = core::convert::Infallible;
+    type DateCompatibilityError = R::DateCompatibilityError;
 
-    fn from_codes(
+    fn new_date(
         &self,
-        era: Option<&str>,
-        year: i32,
-        month_code: types::MonthCode,
+        year: types::YearInput,
+        month: types::Month,
         day: u8,
-    ) -> Result<Self::DateInner, DateError> {
-        ArithmeticDate::from_era_year_month_code_day(era, year, month_code, day, self)
-            .map(ChineseDateInner)
+    ) -> Result<Self::DateInner, DateNewError> {
+        ArithmeticDate::from_input_year_month_code_day(year, month, day, self).map(ChineseDateInner)
     }
 
-    #[cfg(feature = "unstable")]
     fn from_fields(
         &self,
         fields: types::DateFields,
@@ -760,24 +766,26 @@ impl<R: Rules> Calendar for EastAsianTraditional<R> {
         Self::days_in_provided_month(date.0.year(), date.0.month())
     }
 
-    #[cfg(feature = "unstable")]
     fn add(
         &self,
         date: &Self::DateInner,
         duration: types::DateDuration,
         options: DateAddOptions,
-    ) -> Result<Self::DateInner, DateError> {
+    ) -> Result<Self::DateInner, DateAddError> {
         date.0.added(duration, self, options).map(ChineseDateInner)
     }
 
-    #[cfg(feature = "unstable")]
     fn until(
         &self,
         date1: &Self::DateInner,
         date2: &Self::DateInner,
         options: DateDifferenceOptions,
-    ) -> Result<types::DateDuration, Self::DifferenceError> {
-        Ok(date1.0.until(&date2.0, self, options))
+    ) -> types::DateDuration {
+        date1.0.until(&date2.0, self, options)
+    }
+
+    fn check_date_compatibility(&self, other: &Self) -> Result<(), Self::DateCompatibilityError> {
+        self.0.check_date_compatibility(&other.0)
     }
 
     /// Obtain a name for the calendar for debug printing
@@ -802,7 +810,11 @@ impl<R: Rules> Calendar for EastAsianTraditional<R> {
     /// leap months. For example, in a year where an intercalary month is added after the second
     /// month, the month codes for ordinal months 1, 2, 3, 4, 5 would be "M01", "M02", "M02L", "M03", "M04".
     fn month(&self, date: &Self::DateInner) -> types::MonthInfo {
-        types::MonthInfo::new(self, date.0)
+        let mut m = types::MonthInfo::new(self, date.0);
+        if date.0.year().packed.leap_month() == Some(m.ordinal + 1) {
+            m.leap_status = types::LeapStatus::Base;
+        }
+        m
     }
 
     /// The calendar-specific day-of-month represented by `date`
@@ -830,24 +842,24 @@ impl Date<ChineseTraditional> {
     /// Construct a new traditional Chinese [`Date`].
     ///
     /// Years are arithmetic, meaning there is a year 0 preceded by negative years, with a
-    /// valid range of `-1,000,000..=1,000,000`.
+    /// valid range of `-9999..=9999`.
     ///
     /// ```rust
-    /// use icu::calendar::Date;
     /// use icu::calendar::types::Month;
+    /// use icu::calendar::Date;
     ///
     /// let date = Date::try_new_chinese_traditional(2025, Month::new(5), 25)
     ///     .expect("Failed to initialize Date instance.");
     ///
     /// assert_eq!(date.cyclic_year().related_iso, 2025);
-    /// assert_eq!(date.month().value, Month::new(5));
+    /// assert_eq!(date.month().to_input(), Month::new(5));
     /// assert_eq!(date.day_of_month().0, 25);
     /// ```
     pub fn try_new_chinese_traditional(
         related_iso_year: i32,
         month: types::Month,
         day: u8,
-    ) -> Result<Date<ChineseTraditional>, LunisolarRangeError> {
+    ) -> Result<Date<ChineseTraditional>, LunisolarDateError> {
         let calendar = ChineseTraditional::new();
         ArithmeticDate::try_from_ymd_lunisolar(related_iso_year, month, day, &calendar)
             .map(ChineseDateInner)
@@ -879,7 +891,7 @@ impl<A: AsCalendar<Calendar = ChineseTraditional>> Date<A> {
 }
 
 /// Information about a [`EastAsianTraditional`] year.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug)]
 // TODO(#3933): potentially make this smaller
 pub struct EastAsianTraditionalYear {
     /// Contains:
@@ -890,9 +902,25 @@ pub struct EastAsianTraditionalYear {
     related_iso: i32,
 }
 
-impl ToExtendedYear for EastAsianTraditionalYear {
-    fn to_extended_year(&self) -> i32 {
-        self.related_iso
+impl PartialEq for EastAsianTraditionalYear {
+    fn eq(&self, other: &Self) -> bool {
+        self.related_iso == other.related_iso
+    }
+}
+impl Eq for EastAsianTraditionalYear {}
+impl core::hash::Hash for EastAsianTraditionalYear {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.related_iso.hash(state);
+    }
+}
+impl PartialOrd for EastAsianTraditionalYear {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for EastAsianTraditionalYear {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.related_iso.cmp(&other.related_iso)
     }
 }
 
@@ -936,6 +964,11 @@ impl EastAsianTraditionalYear {
             ),
             related_iso,
         })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn related_iso(self) -> i32 {
+        self.related_iso
     }
 
     fn lookup(
@@ -1020,7 +1053,8 @@ impl EastAsianTraditionalYear {
 /// including in SemVer minor releases. While the serde representation of data structs is guaranteed
 /// to be stable, their Rust representation might not be. Use with caution.
 /// </div>
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
 struct PackedEastAsianTraditionalYearData(u8, u8, u8);
 
 impl PackedEastAsianTraditionalYearData {
@@ -1130,33 +1164,58 @@ impl PackedEastAsianTraditionalYearData {
 // Precalculates Chinese years, significant performance improvement for big tests
 #[cfg(test)]
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct EastAsianTraditionalYears(&'static [EastAsianTraditionalYear], &'static str);
+pub(crate) struct EastAsianTraditionalYears<R: Rules>(&'static [EastAsianTraditionalYear], R);
 
 #[cfg(test)]
-impl EastAsianTraditionalYears {
+impl EastAsianTraditionalYears<China> {
     pub fn china() -> Self {
         static R: std::sync::LazyLock<Vec<EastAsianTraditionalYear>> =
             std::sync::LazyLock::new(|| (-1100000..=1100000).map(|i| China.year(i)).collect());
-        Self(&R, "Chinese (China)")
-    }
-
-    pub fn korea() -> Self {
-        static R: std::sync::LazyLock<Vec<EastAsianTraditionalYear>> =
-            std::sync::LazyLock::new(|| (-1100000..=1100000).map(|i| Korea.year(i)).collect());
-        Self(&R, "Chinese (Korea)")
+        Self(&R, China)
     }
 }
 
 #[cfg(test)]
-impl crate::cal::scaffold::UnstableSealed for EastAsianTraditionalYears {}
+impl EastAsianTraditionalYears<Korea> {
+    pub fn korea() -> Self {
+        static R: std::sync::LazyLock<Vec<EastAsianTraditionalYear>> =
+            std::sync::LazyLock::new(|| (-1100000..=1100000).map(|i| Korea.year(i)).collect());
+        Self(&R, Korea)
+    }
+}
+
 #[cfg(test)]
-impl Rules for EastAsianTraditionalYears {
+impl<R: Rules> crate::cal::scaffold::UnstableSealed for EastAsianTraditionalYears<R> {}
+#[cfg(test)]
+impl<R: Rules> Rules for EastAsianTraditionalYears<R> {
     fn year(&self, related_iso: i32) -> EastAsianTraditionalYear {
         self.0[(related_iso + 1100000) as usize]
     }
 
     fn debug_name(&self) -> &'static str {
-        self.1
+        self.1.debug_name()
+    }
+
+    fn calendar_algorithm(&self) -> Option<CalendarAlgorithm> {
+        self.1.calendar_algorithm()
+    }
+
+    fn ecma_reference_year(
+        &self,
+        month: types::Month,
+        day: u8,
+    ) -> Result<i32, EcmaReferenceYearError> {
+        self.1.ecma_reference_year(month, day)
+    }
+
+    fn year_containing_rd(&self, rd: RataDie) -> EastAsianTraditionalYear {
+        self.1.year_containing_rd(rd)
+    }
+
+    type DateCompatibilityError = R::DateCompatibilityError;
+
+    fn check_date_compatibility(&self, other: &Self) -> Result<(), Self::DateCompatibilityError> {
+        self.1.check_date_compatibility(&other.1)
     }
 }
 
@@ -1169,6 +1228,43 @@ mod test {
     use std::collections::BTreeMap;
     use types::DateFields;
     use types::Month;
+
+    #[test]
+    fn test_min_months_invariant() {
+        fn inner<R: Rules>(cal: R) {
+            let mut num_leap = 0;
+            let mut gap = 0;
+
+            let smallest =
+                cal.year_containing_rd(*crate::calendar_arithmetic::VALID_RD_RANGE.start());
+            let largest = cal.year_containing_rd(*crate::calendar_arithmetic::VALID_RD_RANGE.end());
+
+            for y in smallest.related_iso()..=largest.related_iso() {
+                if cal.year(y).packed.leap_month().is_none() {
+                    gap += 1;
+                } else {
+                    num_leap += 1;
+                    gap = 0;
+                }
+                if gap == 3 {
+                    panic!("{y}");
+                }
+            }
+
+            let total = (largest - smallest + 1) * 12 + num_leap;
+            let approximated =
+                EastAsianTraditional::<R>::min_months_from(smallest, (largest - smallest) + 1);
+
+            println!(
+                "absolute error {}: {}",
+                cal.debug_name(),
+                total - approximated
+            );
+        }
+
+        inner(EastAsianTraditionalYears::china());
+        inner(EastAsianTraditionalYears::korea());
+    }
 
     #[test]
     fn test_chinese_from_rd() {
@@ -1388,7 +1484,7 @@ mod test {
 
         assert_eq!(chinese.cyclic_year().related_iso, -2636);
         assert_eq!(chinese.month().ordinal, 1);
-        assert_eq!(chinese.month().value, Month::new(1));
+        assert_eq!(chinese.month().to_input(), Month::new(1));
         assert_eq!(chinese.day_of_month().0, 1);
         assert_eq!(chinese.cyclic_year().year, 1);
         assert_eq!(chinese.cyclic_year().related_iso, -2636);
@@ -1581,7 +1677,7 @@ mod test {
             let iso = Date::try_new_iso(case.iso_year, case.iso_month, case.iso_day).unwrap();
             let chinese = iso.to_calendar(ChineseTraditional::new());
             assert_eq!(
-                chinese.month().value,
+                chinese.month().to_input(),
                 case.month,
                 "Month codes did not match for test case: {case:?}"
             );
@@ -1591,10 +1687,6 @@ mod test {
     #[test]
     fn test_month_to_ordinal() {
         let cal = ChineseTraditional::new();
-        let reject = DateFromFieldsOptions {
-            overflow: Some(Overflow::Reject),
-            ..Default::default()
-        };
         let year = cal.year_info_from_extended(2023);
         for (ordinal, month) in [
             Month::new(1),
@@ -1616,7 +1708,7 @@ mod test {
         {
             let ordinal = ordinal as u8 + 1;
             assert_eq!(
-                cal.ordinal_from_month(year, month, reject),
+                cal.ordinal_from_month(year, month, Overflow::Reject),
                 Ok(ordinal),
                 "Code to ordinal failed for year: {}, code: {ordinal}",
                 year.related_iso
@@ -1627,18 +1719,14 @@ mod test {
     #[test]
     fn check_invalid_month_to_ordinal() {
         let cal = ChineseTraditional::new();
-        let reject = DateFromFieldsOptions {
-            overflow: Some(Overflow::Reject),
-            ..Default::default()
-        };
         for year in [4659, 4660] {
             let year = cal.year_info_from_extended(year);
             for (month, error) in [
-                (Month::leap(4), MonthCodeError::NotInYear),
-                (Month::new(13), MonthCodeError::NotInCalendar),
+                (Month::leap(4), MonthError::NotInYear),
+                (Month::new(13), MonthError::NotInCalendar),
             ] {
                 assert_eq!(
-                    cal.ordinal_from_month(year, month, reject),
+                    cal.ordinal_from_month(year, month, Overflow::Reject),
                     Err(error),
                     "Invalid month code failed for year: {}, code: {month:?}",
                     year.related_iso,
@@ -1744,7 +1832,7 @@ mod test {
         };
         let date = Date::try_from_fields(fields, options, cal).unwrap();
         assert_eq!(
-            date.month().value,
+            date.month().to_input(),
             Month::new(1),
             "Month was successfully constrained"
         );
@@ -1768,7 +1856,7 @@ mod test {
         let cal = ChineseTraditional::new();
         assert!(matches!(
             Date::try_from_fields(fields, options, cal).unwrap_err(),
-            DateFromFieldsError::Range { .. }
+            DateFromFieldsError::Overflow
         ));
     }
 
@@ -1832,7 +1920,7 @@ mod test {
                 };
 
                 let chinese =
-                    Date::try_new_korean_traditional(related_iso, lunar_month, lunar_day).unwrap();
+                    Date::try_new_chinese_traditional(related_iso, lunar_month, lunar_day).unwrap();
 
                 assert_eq!(
                     gregorian,

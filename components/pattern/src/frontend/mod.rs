@@ -10,7 +10,6 @@ pub(crate) mod serde;
 mod zerovec;
 
 use crate::common::*;
-#[cfg(feature = "alloc")]
 use crate::Error;
 #[cfg(feature = "alloc")]
 use crate::Parser;
@@ -144,15 +143,22 @@ where
 
 impl<B: PatternBackend> Pattern<B> {
     #[cfg(feature = "alloc")]
-    pub(crate) const fn from_boxed_store_unchecked(store: Box<B::Store>) -> Box<Self> {
-        // Safety: Pattern is repr(transparent) over B::Store
-        unsafe { core::mem::transmute(store) }
+    pub(crate) fn from_boxed_store_unchecked(store: Box<B::Store>) -> Box<Self> {
+        // Safety: Box::into_raw fulfils Box::from_raw's requirements, as Pattern<B> is
+        // repr(transparent) over B::Store, and does not have further validity constraints
+        unsafe { Box::from_raw(Box::into_raw(store) as *mut Self) }
     }
 
     #[doc(hidden)] // databake
     pub const fn from_ref_store_unchecked(store: &B::Store) -> &Self {
         // Safety: Pattern is repr(transparent) over B::Store
         unsafe { &*(store as *const B::Store as *const Self) }
+    }
+
+    #[doc(hidden)] // B::Store is doc(hidden)
+    pub fn from_ref_store(store: &B::Store) -> Result<&Self, Error> {
+        B::validate_store(store)?;
+        Ok(Self::from_ref_store_unchecked(store))
     }
 }
 

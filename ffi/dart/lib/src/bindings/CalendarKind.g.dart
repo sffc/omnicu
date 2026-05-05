@@ -5,7 +5,7 @@ part of 'lib.g.dart';
 
 /// The various calendar types currently supported by [Calendar]
 ///
-/// See the [Rust documentation for `AnyCalendarKind`](https://docs.rs/icu/2.1.1/icu/calendar/enum.AnyCalendarKind.html) for more information.
+/// See the [Rust documentation for `AnyCalendarKind`](https://docs.rs/icu/2.2.0/icu/calendar/enum.AnyCalendarKind.html) for more information.
 enum CalendarKind {
   /// The kind of an Iso calendar
   iso,
@@ -40,6 +40,8 @@ enum CalendarKind {
   hijriTabularTypeIiThursday,
   /// The kind of a Hijri Umm al-Qura calendar
   hijriUmmAlQura,
+  /// The kind of a Julian calendar,
+  julian,
   /// The kind of a Persian calendar
   persian,
   /// The kind of a Roc calendar
@@ -79,6 +81,8 @@ enum CalendarKind {
         return 14;
       case hijriUmmAlQura:
         return 15;
+      case julian:
+        return 19;
       case persian:
         return 16;
       case roc:
@@ -88,7 +92,7 @@ enum CalendarKind {
 
   /// Creates a new [CalendarKind] for the specified locale, using compiled data.
   ///
-  /// See the [Rust documentation for `new`](https://docs.rs/icu/2.1.1/icu/calendar/enum.AnyCalendarKind.html#method.new) for more information.
+  /// See the [Rust documentation for `new`](https://docs.rs/icu/2.2.0/icu/calendar/enum.AnyCalendarKind.html#method.new) for more information.
   static CalendarKind create(Locale locale) {
     final result = _icu4x_CalendarKind_create_mv1(locale._ffi);
     return CalendarKind.values.firstWhere((v) => v._ffi == result);

@@ -5,13 +5,14 @@
 [package]
 name = "resb"
 description = "Utilities for reading and writing ICU resource bundle files"
-version = "0.1.1"
+version = "0.1.2"
+categories.workspace = true
+keywords = ["binary-format", "localization"]
 
 authors.workspace = true
-categories.workspace = true
-edition.workspace = true
+edition = "2021"
 include.workspace = true
-license = { workspace = true }
+license.workspace = true
 repository.workspace = true
 rust-version = "1.82"
 

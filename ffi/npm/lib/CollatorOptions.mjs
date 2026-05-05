@@ -9,7 +9,7 @@ import * as diplomatRuntime from "./diplomat-runtime.mjs";
 
 
 /**
- * See the [Rust documentation for `CollatorOptions`](https://docs.rs/icu/2.1.1/icu/collator/options/struct.CollatorOptions.html) for more information.
+ * See the [Rust documentation for `CollatorOptions`](https://docs.rs/icu/2.2.0/icu/collator/options/struct.CollatorOptions.html) for more information.
  */
 export class CollatorOptions {
     #strength;
@@ -51,25 +51,25 @@ export class CollatorOptions {
         }
 
         if ("strength" in structObj) {
-            this.#strength = structObj.strength;
+            this.#strength = new CollatorStrength(structObj.strength);
         } else {
             this.#strength = null;
         }
 
         if ("alternateHandling" in structObj) {
-            this.#alternateHandling = structObj.alternateHandling;
+            this.#alternateHandling = new CollatorAlternateHandling(structObj.alternateHandling);
         } else {
             this.#alternateHandling = null;
         }
 
         if ("maxVariable" in structObj) {
-            this.#maxVariable = structObj.maxVariable;
+            this.#maxVariable = new CollatorMaxVariable(structObj.maxVariable);
         } else {
             this.#maxVariable = null;
         }
 
         if ("caseLevel" in structObj) {
-            this.#caseLevel = structObj.caseLevel;
+            this.#caseLevel = new CollatorCaseLevel(structObj.caseLevel);
         } else {
             this.#caseLevel = null;
         }

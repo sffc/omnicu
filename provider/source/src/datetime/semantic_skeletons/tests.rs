@@ -92,6 +92,51 @@ fn test_en_year_patterns() {
 }
 
 #[test]
+fn test_hebr_override() {
+    use icu::datetime::provider::fields::{FieldLength, FieldNumericOverrides, FieldSymbol};
+    use icu::datetime::provider::pattern::PatternItem;
+    use icu::locale::locale;
+
+    // This test verifies that the ja-u-ca-japanese has jpanyear overrides
+    // for the year field in datetime patterns, as specified in CLDR.
+    let provider = SourceDataProvider::new_testing();
+    let payload: DataPayload<DatetimePatternsDateJapaneseV1> = provider
+        .load(DataRequest {
+            id: DataIdentifierBorrowed::for_marker_attributes_and_locale(
+                DataMarkerAttributes::from_str_or_panic("ym0d"),
+                &locale!("ja").into(),
+            ),
+            metadata: Default::default(),
+        })
+        .unwrap()
+        .payload;
+
+    let elements = &payload.get().elements;
+    let mut found_jpan = false;
+
+    for element in elements.iter() {
+        let (_metadata, items) = element.get_default();
+        for item in items.iter() {
+            if let PatternItem::Field(field) = item {
+                if let FieldSymbol::Year(_) = field.symbol {
+                    if matches!(
+                        field.length,
+                        FieldLength::NumericOverride(FieldNumericOverrides::Jpnyear)
+                    ) {
+                        found_jpan = true;
+                    }
+                }
+            }
+        }
+    }
+
+    assert!(
+        found_jpan,
+        "Should have found year field with jpanyear override"
+    );
+}
+
+#[test]
 fn test_en_hour_patterns() {
     use icu::locale::locale;
 
@@ -228,7 +273,7 @@ mod date_skeleton_consistency_tests {
             match (item, strategy) {
                 (
                     PatternItem::Field(
-                        ref mut field @ Field {
+                        field @ Field {
                             symbol: FieldSymbol::Era,
                             length: FieldLength::Three,
                         },
@@ -241,7 +286,7 @@ mod date_skeleton_consistency_tests {
                 // Ignore differences between 'y' and 'yy'?
                 (
                     PatternItem::Field(
-                        ref mut field @ Field {
+                        field @ Field {
                             length: FieldLength::Two,
                             ..
                         },
@@ -254,7 +299,7 @@ mod date_skeleton_consistency_tests {
                 // TODO(#5892): For now, ignore differences between 'ccc', 'cccc', and 'EEE'
                 (
                     PatternItem::Field(
-                        ref mut field @ Field {
+                        field @ Field {
                             symbol: FieldSymbol::Weekday(fields::Weekday::StandAlone),
                             length: FieldLength::Four,
                         },
@@ -268,7 +313,7 @@ mod date_skeleton_consistency_tests {
                 // Ignore differences between 'MMM' and 'MMMM'?
                 (
                     PatternItem::Field(
-                        ref mut field @ Field {
+                        field @ Field {
                             length: FieldLength::Four,
                             ..
                         },
@@ -464,5 +509,37 @@ mod date_skeleton_consistency_tests {
         if num_problems != 0 {
             panic!("{num_problems} problems");
         }
+    }
+}
+
+/// Verify that `preferred_hour_cycle()` infers the correct `CoarseHourCycle`
+/// from CLDR time skeleton patterns.
+#[test]
+fn test_preferred_hour_cycle_by_locale() {
+    use icu::datetime::provider::pattern::CoarseHourCycle;
+
+    let provider = SourceDataProvider::new_testing();
+
+    // (locale, expected coarse hour cycle)
+    let cases = [
+        ("en", CoarseHourCycle::H11H12), // US English
+        ("fr", CoarseHourCycle::H23),    // French
+        // en-GB not in test data; en-ZA follows UK conventions (h23)
+        ("en-ZA", CoarseHourCycle::H23),
+        ("ja", CoarseHourCycle::H23), // Japanese
+    ];
+
+    for (locale_str, expected) in cases {
+        let locale = locale_str.parse::<DataLocale>().unwrap();
+        let data = provider
+            .get_dates_resource(&locale, Some(DatagenCalendar::Gregorian))
+            .expect("Failed to load dates resource");
+
+        let actual = preferred_hour_cycle(data, &locale);
+
+        assert_eq!(
+            actual, expected,
+            "Locale {locale_str}: expected {expected:?}, got {actual:?}"
+        );
     }
 }

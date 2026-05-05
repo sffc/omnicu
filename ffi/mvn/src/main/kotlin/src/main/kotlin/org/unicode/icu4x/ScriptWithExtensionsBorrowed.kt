@@ -14,7 +14,7 @@ internal interface ScriptWithExtensionsBorrowedLib: Library {
 }
 /** A slightly faster `ScriptWithExtensions` object
 *
-*See the [Rust documentation for `ScriptWithExtensionsBorrowed`](https://docs.rs/icu/2.1.1/icu/properties/script/struct.ScriptWithExtensionsBorrowed.html) for more information.
+*See the [Rust documentation for `ScriptWithExtensionsBorrowed`](https://docs.rs/icu/2.2.0/icu/properties/script/struct.ScriptWithExtensionsBorrowed.html) for more information.
 */
 class ScriptWithExtensionsBorrowed internal constructor (
     internal val handle: Pointer,
@@ -22,12 +22,22 @@ class ScriptWithExtensionsBorrowed internal constructor (
     // up by the garbage collector.
     internal val selfEdges: List<Any>,
     internal val aEdges: List<Any?>,
+    internal var owned: Boolean,
 )  {
 
-    internal class ScriptWithExtensionsBorrowedCleaner(val handle: Pointer, val lib: ScriptWithExtensionsBorrowedLib) : Runnable {
+    init {
+        if (this.owned) {
+            this.registerCleaner()
+        }
+    }
+
+    private class ScriptWithExtensionsBorrowedCleaner(val handle: Pointer, val lib: ScriptWithExtensionsBorrowedLib) : Runnable {
         override fun run() {
             lib.icu4x_ScriptWithExtensionsBorrowed_destroy_mv1(handle)
         }
+    }
+    private fun registerCleaner() {
+        CLEANER.register(this, ScriptWithExtensionsBorrowed.ScriptWithExtensionsBorrowedCleaner(handle, ScriptWithExtensionsBorrowed.lib));
     }
 
     companion object {
@@ -38,7 +48,7 @@ class ScriptWithExtensionsBorrowed internal constructor (
     /** Get the Script property value for a code point
     *Get the Script property value for a code point
     *
-    *See the [Rust documentation for `get_script_val`](https://docs.rs/icu/2.1.1/icu/properties/script/struct.ScriptWithExtensionsBorrowed.html#method.get_script_val) for more information.
+    *See the [Rust documentation for `get_script_val`](https://docs.rs/icu/2.2.0/icu/properties/script/struct.ScriptWithExtensionsBorrowed.html#method.get_script_val) for more information.
     */
     fun getScriptVal(ch: Int): UShort {
         
@@ -48,7 +58,7 @@ class ScriptWithExtensionsBorrowed internal constructor (
     
     /** Get the Script property value for a code point
     *
-    *See the [Rust documentation for `get_script_extensions_val`](https://docs.rs/icu/2.1.1/icu/properties/script/struct.ScriptWithExtensionsBorrowed.html#method.get_script_extensions_val) for more information.
+    *See the [Rust documentation for `get_script_extensions_val`](https://docs.rs/icu/2.2.0/icu/properties/script/struct.ScriptWithExtensionsBorrowed.html#method.get_script_extensions_val) for more information.
     */
     fun getScriptExtensionsVal(ch: Int): ScriptExtensionsSet {
         // This lifetime edge depends on lifetimes: 'a
@@ -57,14 +67,13 @@ class ScriptWithExtensionsBorrowed internal constructor (
         val returnVal = lib.icu4x_ScriptWithExtensionsBorrowed_get_script_extensions_val_mv1(handle, ch);
         val selfEdges: List<Any> = listOf()
         val handle = returnVal 
-        val returnOpaque = ScriptExtensionsSet(handle, selfEdges, aEdges)
-        CLEANER.register(returnOpaque, ScriptExtensionsSet.ScriptExtensionsSetCleaner(handle, ScriptExtensionsSet.lib));
+        val returnOpaque = ScriptExtensionsSet(handle, selfEdges, aEdges, true)
         return returnOpaque
     }
     
     /** Check if the `Script_Extensions` property of the given code point covers the given script
     *
-    *See the [Rust documentation for `has_script`](https://docs.rs/icu/2.1.1/icu/properties/script/struct.ScriptWithExtensionsBorrowed.html#method.has_script) for more information.
+    *See the [Rust documentation for `has_script`](https://docs.rs/icu/2.2.0/icu/properties/script/struct.ScriptWithExtensionsBorrowed.html#method.has_script) for more information.
     */
     fun hasScript(ch: Int, script: UShort): Boolean {
         
@@ -75,15 +84,14 @@ class ScriptWithExtensionsBorrowed internal constructor (
     /** Build the `CodePointSetData` corresponding to a codepoints matching a particular script
     *in their `Script_Extensions`
     *
-    *See the [Rust documentation for `get_script_extensions_set`](https://docs.rs/icu/2.1.1/icu/properties/script/struct.ScriptWithExtensionsBorrowed.html#method.get_script_extensions_set) for more information.
+    *See the [Rust documentation for `get_script_extensions_set`](https://docs.rs/icu/2.2.0/icu/properties/script/struct.ScriptWithExtensionsBorrowed.html#method.get_script_extensions_set) for more information.
     */
     fun getScriptExtensionsSet(script: UShort): CodePointSetData {
         
         val returnVal = lib.icu4x_ScriptWithExtensionsBorrowed_get_script_extensions_set_mv1(handle, FFIUint16(script));
         val selfEdges: List<Any> = listOf()
         val handle = returnVal 
-        val returnOpaque = CodePointSetData(handle, selfEdges)
-        CLEANER.register(returnOpaque, CodePointSetData.CodePointSetDataCleaner(handle, CodePointSetData.lib));
+        val returnOpaque = CodePointSetData(handle, selfEdges, true)
         return returnOpaque
     }
 

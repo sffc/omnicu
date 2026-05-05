@@ -8,7 +8,7 @@ use crate::cal::abstract_gregorian::{
 use crate::calendar_arithmetic::ArithmeticDate;
 use crate::error::UnknownEraError;
 use crate::preferences::CalendarAlgorithm;
-use crate::{types, Date, DateError, RangeError};
+use crate::{types, Date, RangeError};
 use tinystr::tinystr;
 
 impl_with_abstract_gregorian!(Gregorian, GregorianDateInner, CeBce, _x, CeBce);
@@ -123,7 +123,7 @@ impl Date<Gregorian> {
     /// Construct a new Gregorian [`Date`].
     ///
     /// Years are arithmetic, meaning there is a year 0 preceded by negative years, with a
-    /// valid range of `-1,000,000..=1,000,000`.
+    /// valid range of `-9999..=9999`.
     ///
     /// ```rust
     /// use icu::calendar::Date;

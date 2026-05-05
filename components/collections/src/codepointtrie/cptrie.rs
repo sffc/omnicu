@@ -412,12 +412,10 @@ impl<'trie, T: TrieValue> CodePointTrie<'trie, T> {
         // actual trie type agrees with the semantics of the typed wrapper.
         match self.header.trie_type {
             TrieType::Fast => Typed::Fast(unsafe {
-                core::mem::transmute::<&CodePointTrie<'trie, T>, &FastCodePointTrie<'trie, T>>(self)
+                &*(self as *const CodePointTrie<'trie, T> as *const FastCodePointTrie<'trie, T>)
             }),
             TrieType::Small => Typed::Small(unsafe {
-                core::mem::transmute::<&CodePointTrie<'trie, T>, &SmallCodePointTrie<'trie, T>>(
-                    self,
-                )
+                &*(self as *const CodePointTrie<'trie, T> as *const SmallCodePointTrie<'trie, T>)
             }),
         }
     }
@@ -1332,7 +1330,10 @@ impl<T: TrieValue + databake::Bake> databake::Bake for CodePointTrie<'_, T> {
         let index = self.index.bake(env);
         let data = self.data.bake(env);
         let error_value = self.error_value.bake(env);
-        databake::quote! { unsafe { icu_collections::codepointtrie::CodePointTrie::from_parts_unstable_unchecked_v1(#header, #index, #data, #error_value) } }
+        databake::quote! { unsafe {
+            #[allow(unused_unsafe)]
+            icu_collections::codepointtrie::CodePointTrie::from_parts_unstable_unchecked_v1(#header, #index, #data, #error_value)
+        }}
     }
 }
 
@@ -1872,12 +1873,12 @@ mod tests {
     }
 
     #[test]
-    #[allow(unused_unsafe)] // `unsafe` below is both necessary and unnecessary
     fn databake() {
         databake::test_bake!(
             CodePointTrie<'static, u32>,
             const,
             unsafe {
+                #[allow(unused_unsafe)]
                 crate::codepointtrie::CodePointTrie::from_parts_unstable_unchecked_v1(
                     crate::codepointtrie::CodePointTrieHeader {
                         high_start: 1u32,

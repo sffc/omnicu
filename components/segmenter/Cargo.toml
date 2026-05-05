@@ -5,10 +5,11 @@
 [package]
 name = "icu_segmenter"
 description = "Unicode line breaking and text segmentation algorithms for text boundaries analysis"
-version = "2.1.2"
+version.workspace = true
+categories.workspace = true
+keywords = ["unicode", "segmentation", "text-processing"]
 
 authors.workspace = true
-categories.workspace = true
 edition.workspace = true
 homepage.workspace = true
 include.workspace = true
@@ -18,6 +19,9 @@ rust-version.workspace = true
 
 [package.metadata.docs.rs]
 all-features = true
+
+[package.metadata.cargo-all-features]
+max_combination_size = 3
 
 [dependencies]
 icu_collections = { workspace = true }
@@ -52,6 +56,7 @@ default = ["compiled_data", "auto"]
 serde = ["dep:serde", "potential_utf/serde", "zerovec/serde", "icu_collections/serde", "icu_provider/serde"]
 datagen = ["serde", "dep:databake", "potential_utf/databake", "zerovec/databake", "icu_collections/databake", "icu_provider/export"]
 lstm = ["dep:core_maths"]
+unstable = []
 auto = ["lstm"] # Enables [try_]new_auto constructors
 compiled_data = ["dep:icu_segmenter_data", "dep:icu_locale", "icu_locale?/compiled_data", "icu_provider/baked"]
 

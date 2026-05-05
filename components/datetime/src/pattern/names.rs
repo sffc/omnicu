@@ -20,12 +20,13 @@ use crate::{external_loaders::*, DateTimeFormatterPreferences};
 use crate::{scaffold::*, DateTimeFormatter, DateTimeFormatterLoadError};
 use core::fmt;
 use core::marker::PhantomData;
-use icu_calendar::types::{EraYear, MonthInfo};
+use icu_calendar::types::{EraYear, LeapStatus, MonthInfo};
 use icu_calendar::AnyCalendar;
 use icu_decimal::options::DecimalFormatterOptions;
 use icu_decimal::options::GroupingStrategy;
 use icu_decimal::provider::{DecimalDigitsV1, DecimalSymbolsV1};
 use icu_decimal::DecimalFormatter;
+use icu_pattern::SinglePlaceholderPattern;
 use icu_provider::prelude::*;
 
 /// Choices for loading year names.
@@ -70,7 +71,9 @@ impl YearNameLength {
         // UTS 35 says that "G..GGG" and "U..UUU" are all Abbreviated
         let field_length = field_length.numeric_to_abbr();
         match field_length {
-            FieldLength::Three => Some(YearNameLength::Abbreviated),
+            FieldLength::Three | FieldLength::NumericOverride(_) => {
+                Some(YearNameLength::Abbreviated)
+            }
             FieldLength::Four => Some(YearNameLength::Wide),
             FieldLength::Five => Some(YearNameLength::Narrow),
             _ => None,
@@ -2753,7 +2756,9 @@ where
     ///
     /// ```
     /// use icu::calendar::Gregorian;
-    /// use icu::datetime::pattern::{DayPeriodNameLength, FixedCalendarDateTimeNames};
+    /// use icu::datetime::pattern::{
+    ///     DayPeriodNameLength, FixedCalendarDateTimeNames,
+    /// };
     /// use icu::locale::locale;
     ///
     /// let mut names =
@@ -2795,7 +2800,9 @@ where
     ///
     /// ```
     /// use icu::calendar::Gregorian;
-    /// use icu::datetime::pattern::{DayPeriodNameLength, FixedCalendarDateTimeNames};
+    /// use icu::datetime::pattern::{
+    ///     DayPeriodNameLength, FixedCalendarDateTimeNames,
+    /// };
     /// use icu::locale::locale;
     ///
     /// let mut names =
@@ -3705,6 +3712,9 @@ impl<FSet: DateTimeNamesMarker> RawDateTimeNames<FSet> {
 
                 ///// Numeric symbols /////
 
+                // Don't need data for numeric overrides
+                (_, NumericOverride(_)) => (),
+
                 // y+
                 (FS::Year(Year::Calendar), _) => numeric_field = Some(field),
                 // u+
@@ -3771,37 +3781,66 @@ impl RawDateTimeNamesBorrowed<'_> {
             .get_with_variables(month_name_length)
             .ok_or(GetNameForMonthError::NotLoaded)?;
         let month_index = usize::from(month.number() - 1);
-        let name = match month_names {
+        match month_names {
             MonthNames::Linear(linear) => {
-                if month.is_formatting_leap() {
+                if month.leap_status() != LeapStatus::Normal {
                     None
                 } else {
-                    linear.get(month_index)
+                    linear
+                        .get(month_index)
+                        .map(MonthPlaceholderValue::PlainString)
                 }
             }
+            #[cfg(feature = "serde")]
             MonthNames::LeapLinear(leap_linear) => {
                 let num_months = leap_linear.len() / 2;
-                if month.is_formatting_leap() {
+                if month.leap_status() == LeapStatus::Leap {
+                    leap_linear.get(month_index + num_months)
+                } else if month.leap_status() == LeapStatus::Base && month.number() < month.ordinal
+                {
+                    // Detects Hebrew (base after leap) vs Chinese (base before leap).
+                    // In Hebrew, we use leap names for LeapBase months.
                     leap_linear.get(month_index + num_months)
                 } else if month_index < num_months {
                     leap_linear.get(month_index)
                 } else {
                     None
                 }
-                .filter(|s| !s.is_empty())
+                .map(MonthPlaceholderValue::PlainString)
             }
             MonthNames::LeapNumeric(leap_numeric) => {
-                if month.is_formatting_leap() {
-                    return Ok(MonthPlaceholderValue::NumericPattern(leap_numeric));
+                if month.leap_status() != LeapStatus::Normal {
+                    Some(MonthPlaceholderValue::NumericPattern(leap_numeric))
                 } else {
-                    return Ok(MonthPlaceholderValue::Numeric);
+                    Some(MonthPlaceholderValue::Numeric)
                 }
             }
-        };
+            MonthNames::LeapPattern(data) => if month_index < data.len() - 2 {
+                data.get(month_index)
+            } else {
+                None
+            }
+            .and_then(|normal_name| {
+                Some(match month.leap_status() {
+                    LeapStatus::Normal => MonthPlaceholderValue::PlainString(normal_name),
+                    LeapStatus::Leap => MonthPlaceholderValue::StringPattern(
+                        normal_name,
+                        SinglePlaceholderPattern::from_ref_store(&data[data.len() - 2]).ok()?,
+                    ),
+                    LeapStatus::Base => MonthPlaceholderValue::StringPattern(
+                        normal_name,
+                        SinglePlaceholderPattern::from_ref_store(&data[data.len() - 1]).ok()?,
+                    ),
+                    _ => {
+                        debug_assert!(false, "unhandled LeapStatus");
+                        MonthPlaceholderValue::PlainString(normal_name)
+                    }
+                })
+            }),
+        }
         // Note: Always return `false` for the second argument since neo MonthNames
         // knows how to handle leap months and we don't need the fallback logic
-        name.map(MonthPlaceholderValue::PlainString)
-            .ok_or(GetNameForMonthError::InvalidMonthCode)
+        .ok_or(GetNameForMonthError::InvalidMonthCode)
     }
 
     pub(crate) fn get_name_for_weekday(
@@ -3840,6 +3879,7 @@ impl RawDateTimeNamesBorrowed<'_> {
             .ok_or(GetNameForEraError::NotLoaded)?;
 
         match year_names {
+            #[cfg(feature = "serde")]
             YearNames::VariableEras(era_names) => {
                 get_year_name_from_map(era_names, era_year.era.as_str().into())
                     .ok_or(GetNameForEraError::InvalidEraCode)

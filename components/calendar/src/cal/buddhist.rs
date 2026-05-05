@@ -8,7 +8,7 @@ use crate::preferences::CalendarAlgorithm;
 use crate::{
     cal::abstract_gregorian::{impl_with_abstract_gregorian, GregorianYears},
     calendar_arithmetic::ArithmeticDate,
-    types, Date, DateError, RangeError,
+    types, Date, RangeError,
 };
 use tinystr::tinystr;
 
@@ -72,7 +72,7 @@ impl Date<Buddhist> {
     /// Construct a new Buddhist [`Date`].
     ///
     /// Years are arithmetic, meaning there is a year 0 preceded by negative years, with a
-    /// valid range of `-1,000,000..=1,000,000`.
+    /// valid range of `-9999..=9999`.
     ///
     /// ```rust
     /// use icu::calendar::Date;

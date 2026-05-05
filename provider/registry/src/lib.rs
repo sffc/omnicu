@@ -303,6 +303,15 @@ macro_rules! registry(
             icu::experimental::displaynames::provider::LocaleDisplayNamesV1: LocaleDisplayNamesV1,
             icu::experimental::displaynames::provider::ScriptDisplayNamesV1: ScriptDisplayNamesV1,
             icu::experimental::displaynames::provider::VariantDisplayNamesV1: VariantDisplayNamesV1,
+            icu::experimental::displaynames::provider::LocaleNamesRegionLongV1: LocaleNamesRegionLongV1,
+            icu::experimental::displaynames::provider::LocaleNamesRegionShortV1: LocaleNamesRegionShortV1,
+            icu::experimental::displaynames::provider::LocaleNamesLanguageLongV1: LocaleNamesLanguageLongV1,
+            icu::experimental::displaynames::provider::LocaleNamesLanguageShortV1: LocaleNamesLanguageShortV1,
+            icu::experimental::displaynames::provider::LocaleNamesLanguageMenuLongV1: LocaleNamesLanguageMenuLongV1,
+            icu::experimental::displaynames::provider::LocaleNamesScriptLongV1: LocaleNamesScriptLongV1,
+            icu::experimental::displaynames::provider::LocaleNamesScriptShortV1: LocaleNamesScriptShortV1,
+            icu::experimental::displaynames::provider::LocaleNamesVariantLongV1: LocaleNamesVariantLongV1,
+            icu::experimental::displaynames::provider::LocaleNamesVariantShortV1: LocaleNamesVariantShortV1,
             icu::experimental::measure::provider::UnitIdsV1: UnitIdsV1,
             icu::experimental::relativetime::provider::LongSecondRelativeV1: LongSecondRelativeV1,
             icu::experimental::relativetime::provider::ShortSecondRelativeV1: ShortSecondRelativeV1,
@@ -332,6 +341,7 @@ macro_rules! registry(
             icu::experimental::transliterate::provider::TransliteratorRulesV1: TransliteratorRulesV1,
             icu::experimental::units::provider::UnitsInfoV1: UnitsInfoV1,
             icu::plurals::provider::PluralsRangesV1: PluralsRangesV1,
+            icu::segmenter::provider::radical::SegmenterUnihanRadicalV1: SegmenterUnihanRadicalV1,
         );
     }
 );

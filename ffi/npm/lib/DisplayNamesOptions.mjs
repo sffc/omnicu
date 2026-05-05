@@ -10,7 +10,7 @@ import * as diplomatRuntime from "./diplomat-runtime.mjs";
 /**
  * 🚧 This API is unstable and may experience breaking changes outside major releases.
  *
- * See the [Rust documentation for `DisplayNamesOptions`](https://docs.rs/icu/2.1.1/icu/experimental/displaynames/struct.DisplayNamesOptions.html) for more information.
+ * See the [Rust documentation for `DisplayNamesOptions`](https://docs.rs/icu/2.2.0/icu/experimental/displaynames/struct.DisplayNamesOptions.html) for more information.
  */
 export class DisplayNamesOptions {
     #style;
@@ -45,19 +45,19 @@ export class DisplayNamesOptions {
         }
 
         if ("style" in structObj) {
-            this.#style = structObj.style;
+            this.#style = new DisplayNamesStyle(structObj.style);
         } else {
             this.#style = null;
         }
 
         if ("fallback" in structObj) {
-            this.#fallback = structObj.fallback;
+            this.#fallback = new DisplayNamesFallback(structObj.fallback);
         } else {
             this.#fallback = null;
         }
 
         if ("languageDisplay" in structObj) {
-            this.#languageDisplay = structObj.languageDisplay;
+            this.#languageDisplay = new LanguageDisplay(structObj.languageDisplay);
         } else {
             this.#languageDisplay = null;
         }

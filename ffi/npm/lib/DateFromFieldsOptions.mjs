@@ -7,9 +7,7 @@ import * as diplomatRuntime from "./diplomat-runtime.mjs";
 
 
 /**
- * 🚧 This API is unstable and may experience breaking changes outside major releases.
- *
- * See the [Rust documentation for `DateFromFieldsOptions`](https://docs.rs/icu/2.1.1/icu/calendar/options/struct.DateFromFieldsOptions.html) for more information.
+ * See the [Rust documentation for `DateFromFieldsOptions`](https://docs.rs/icu/2.2.0/icu/calendar/options/struct.DateFromFieldsOptions.html) for more information.
  */
 export class DateFromFieldsOptions {
     #overflow;
@@ -37,13 +35,13 @@ export class DateFromFieldsOptions {
         }
 
         if ("overflow" in structObj) {
-            this.#overflow = structObj.overflow;
+            this.#overflow = new DateOverflow(structObj.overflow);
         } else {
             this.#overflow = null;
         }
 
         if ("missingFieldsStrategy" in structObj) {
-            this.#missingFieldsStrategy = structObj.missingFieldsStrategy;
+            this.#missingFieldsStrategy = new DateMissingFieldsStrategy(structObj.missingFieldsStrategy);
         } else {
             this.#missingFieldsStrategy = null;
         }

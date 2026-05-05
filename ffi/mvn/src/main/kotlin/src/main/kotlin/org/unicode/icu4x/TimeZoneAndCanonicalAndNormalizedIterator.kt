@@ -10,7 +10,7 @@ internal interface TimeZoneAndCanonicalAndNormalizedIteratorLib: Library {
     fun icu4x_TimeZoneAndCanonicalAndNormalizedIterator_next_mv1(handle: Pointer): OptionTimeZoneAndCanonicalAndNormalizedNative
 }
 typealias TimeZoneAndCanonicalAndNormalizedIteratorIteratorItem = TimeZoneAndCanonicalAndNormalized
-/** See the [Rust documentation for `TimeZoneAndCanonicalAndNormalizedIter`](https://docs.rs/icu/2.1.1/icu/time/zone/iana/struct.TimeZoneAndCanonicalAndNormalizedIter.html) for more information.
+/** See the [Rust documentation for `TimeZoneAndCanonicalAndNormalizedIter`](https://docs.rs/icu/2.2.0/icu/time/zone/iana/struct.TimeZoneAndCanonicalAndNormalizedIter.html) for more information.
 */
 class TimeZoneAndCanonicalAndNormalizedIterator internal constructor (
     internal val handle: Pointer,
@@ -18,12 +18,22 @@ class TimeZoneAndCanonicalAndNormalizedIterator internal constructor (
     // up by the garbage collector.
     internal val selfEdges: List<Any>,
     internal val aEdges: List<Any?>,
+    internal var owned: Boolean,
 ): Iterator<TimeZoneAndCanonicalAndNormalized> {
 
-    internal class TimeZoneAndCanonicalAndNormalizedIteratorCleaner(val handle: Pointer, val lib: TimeZoneAndCanonicalAndNormalizedIteratorLib) : Runnable {
+    init {
+        if (this.owned) {
+            this.registerCleaner()
+        }
+    }
+
+    private class TimeZoneAndCanonicalAndNormalizedIteratorCleaner(val handle: Pointer, val lib: TimeZoneAndCanonicalAndNormalizedIteratorLib) : Runnable {
         override fun run() {
             lib.icu4x_TimeZoneAndCanonicalAndNormalizedIterator_destroy_mv1(handle)
         }
+    }
+    private fun registerCleaner() {
+        CLEANER.register(this, TimeZoneAndCanonicalAndNormalizedIterator.TimeZoneAndCanonicalAndNormalizedIteratorCleaner(handle, TimeZoneAndCanonicalAndNormalizedIterator.lib));
     }
 
     companion object {
@@ -31,7 +41,7 @@ class TimeZoneAndCanonicalAndNormalizedIterator internal constructor (
         internal val lib: TimeZoneAndCanonicalAndNormalizedIteratorLib = Native.load("icu4x", libClass)
     }
     
-    /** See the [Rust documentation for `next`](https://docs.rs/icu/2.1.1/icu/time/zone/iana/struct.TimeZoneAndCanonicalAndNormalizedIter.html#method.next) for more information.
+    /** See the [Rust documentation for `next`](https://docs.rs/icu/2.2.0/icu/time/zone/iana/struct.TimeZoneAndCanonicalAndNormalizedIter.html#method.next) for more information.
     */
     internal fun nextInternal(): TimeZoneAndCanonicalAndNormalized? {
         // This lifetime edge depends on lifetimes: 'a

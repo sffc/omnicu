@@ -6,7 +6,7 @@ import * as diplomatRuntime from "./diplomat-runtime.mjs";
 
 
 /**
- * See the [Rust documentation for `BidiMirroringGlyph`](https://docs.rs/icu/2.1.1/icu/properties/props/struct.BidiMirroringGlyph.html) for more information.
+ * See the [Rust documentation for `BidiMirroringGlyph`](https://docs.rs/icu/2.2.0/icu/properties/props/struct.BidiMirroringGlyph.html) for more information.
  */
 export class BidiMirroringGlyph {
     #mirroringGlyph;
@@ -53,7 +53,7 @@ export class BidiMirroringGlyph {
         }
 
         if ("pairedBracketType" in structObj) {
-            this.#pairedBracketType = structObj.pairedBracketType;
+            this.#pairedBracketType = new BidiPairedBracketType(structObj.pairedBracketType);
         } else {
             throw new Error("Missing required field pairedBracketType.");
         }
@@ -128,7 +128,7 @@ export class BidiMirroringGlyph {
 
 
     /**
-     * See the [Rust documentation for `for_char`](https://docs.rs/icu/2.1.1/icu/properties/props/trait.EnumeratedProperty.html#tymethod.for_char) for more information.
+     * See the [Rust documentation for `for_char`](https://docs.rs/icu/2.2.0/icu/properties/props/trait.EnumeratedProperty.html#tymethod.for_char) for more information.
      */
     static forChar(ch) {
         const diplomatReceive = new diplomatRuntime.DiplomatReceiveBuf(wasm, 16, 4, false);

@@ -177,17 +177,94 @@ fn overlap_patterns() {
 
 #[test]
 fn hebrew_months() {
-    let datetime = DateTime {
-        date: Date::try_new_iso(2011, 4, 3).unwrap().to_calendar(Hebrew),
-        time: Time::try_new(14, 15, 7, 0).unwrap(),
-    };
     let formatter =
         FixedCalendarDateTimeFormatter::try_new(locale!("en").into(), fieldsets::YMD::medium())
             .unwrap();
 
-    let formatted_datetime = formatter.format(&datetime);
+    let formatted_datetime =
+        formatter.format(&Date::try_new_iso(2011, 3, 4).unwrap().to_calendar(Hebrew));
+
+    assert_writeable_eq!(formatted_datetime, "28 Adar I 5771");
+
+    let formatted_datetime =
+        formatter.format(&Date::try_new_iso(2011, 4, 3).unwrap().to_calendar(Hebrew));
 
     assert_writeable_eq!(formatted_datetime, "28 Adar II 5771");
+}
+
+#[test]
+fn hebrew_numbering() {
+    let formatter =
+        FixedCalendarDateTimeFormatter::try_new(locale!("he").into(), fieldsets::YMD::long())
+            .unwrap();
+
+    let formatted_datetime = formatter.format(
+        &Date::try_new_hebrew_v2(5771, 3.into(), 17)
+            .unwrap()
+            .to_calendar(Hebrew),
+    );
+
+    assert_writeable_eq!(formatted_datetime, "י״ז בכסלו ה׳תשע״א");
+}
+
+/// Pattern numeric overrides should be preferred over user numeric overrides
+#[test]
+fn hebrew_thai_numbering() {
+    let formatter = FixedCalendarDateTimeFormatter::try_new(
+        "he-u-ca-hebrew-nu-thai".parse::<Locale>().unwrap().into(),
+        fieldsets::YMD::long(),
+    )
+    .unwrap();
+
+    let formatted_datetime = formatter.format(
+        &Date::try_new_hebrew_v2(5771, 3.into(), 17)
+            .unwrap()
+            .to_calendar(Hebrew),
+    );
+
+    assert_writeable_eq!(formatted_datetime, "י״ז בכסלו ה׳תשע״א");
+}
+
+#[test]
+fn hanidec_numbering() {
+    let formatter =
+        FixedCalendarDateTimeFormatter::try_new(locale!("ja").into(), fieldsets::YMD::long())
+            .unwrap();
+
+    let formatted_datetime =
+        formatter.format(&Date::try_new_chinese_traditional(2011, 3.into(), 29).unwrap());
+
+    // Unfortunately the only patterns that currently use hanidec use cyclic years,
+    // so we can't see this in action on the years field, but the day here is hanidays.
+    assert_writeable_eq!(formatted_datetime, "辛卯年三月二九日");
+}
+
+#[test]
+fn hanidays_numbering() {
+    let formatter =
+        FixedCalendarDateTimeFormatter::try_new(locale!("zh").into(), fieldsets::YMD::long())
+            .unwrap();
+
+    let formatted_datetime =
+        formatter.format(&Date::try_new_chinese_traditional(2011, 12.into(), 29).unwrap());
+
+    assert_writeable_eq!(formatted_datetime, "2011年腊月廿九");
+}
+
+#[test]
+fn hanidec_ja_chinese_numbering() {
+    use icu_calendar::cal::ChineseTraditional;
+    let formatter =
+        FixedCalendarDateTimeFormatter::try_new(locale!("ja").into(), fieldsets::YMD::long())
+            .unwrap();
+
+    let formatted_datetime = formatter.format(
+        &Date::try_new_iso(2011, 3, 4)
+            .unwrap()
+            .to_calendar(ChineseTraditional::new()),
+    );
+
+    assert_writeable_eq!(formatted_datetime, "辛卯年正月三〇日");
 }
 
 #[test]
@@ -216,4 +293,46 @@ fn test_5387() {
     assert_writeable_eq!(formatter_auto.format(&datetime), "Fri 2:15:16\u{202f}PM");
     assert_writeable_eq!(formatter_h12.format(&datetime), "Fri, 2:15:16\u{202f}PM");
     assert_writeable_eq!(formatter_h24.format(&datetime), "Fri, 14:15:16");
+}
+
+#[test]
+fn test_vancouver_2026() {
+    use icu_datetime::{fieldsets, DateTimeFormatter};
+    use icu_time::zone::{TimeZone, UtcOffset};
+    use icu_time::ZonedDateTime;
+
+    let date = Date::try_new_gregorian(2026, 12, 1).unwrap();
+    let time = Time::try_new(12, 0, 0, 0).unwrap();
+
+    let fmt = DateTimeFormatter::try_new(
+        locale!("en-US").into(),
+        fieldsets::YMD::long()
+            .with_time_hm()
+            .with_zone(fieldsets::zone::SpecificShort),
+    )
+    .unwrap();
+
+    // Vancouver is in PST (UTC-8) normally.
+    {
+        let offset = UtcOffset::from_seconds_unchecked(-8 * 3600);
+        let zone = TimeZone::from_iana_id("America/Vancouver")
+            .with_offset(Some(offset))
+            .at_date_time(DateTime { date, time });
+
+        let zdt = ZonedDateTime { date, time, zone };
+
+        assert_writeable_eq!(fmt.format(&zdt), "December 1, 2026 at 12:00\u{202f}PM PST");
+    }
+
+    // Vancouver might change to permanent DST (UTC-7).
+    {
+        let offset = UtcOffset::from_seconds_unchecked(-7 * 3600);
+        let zone = TimeZone::from_iana_id("America/Vancouver")
+            .with_offset(Some(offset))
+            .at_date_time(DateTime { date, time });
+
+        let zdt = ZonedDateTime { date, time, zone };
+
+        assert_writeable_eq!(fmt.format(&zdt), "December 1, 2026 at 12:00\u{202f}PM PDT");
+    }
 }

@@ -192,8 +192,8 @@ impl SourceDataProvider {
         }
 
         let [long, medium, short] = [Length::Long, Length::Medium, Length::Short]
-            .map(|length| to_components_bag(length, attributes, data))
-            .map(|components| {
+            .map(|length| {
+                let components = to_components_bag(length, attributes, data);
                 let preferred_hour_cycle = preferred_hour_cycle(data, locale);
                 // TODO: Use a Skeleton here in order to retain 'E' vs 'c'
                 let pattern = select_pattern(
@@ -202,7 +202,8 @@ impl SourceDataProvider {
                     preferred_hour_cycle,
                     &length_combinations_v1,
                 );
-                match components {
+
+                let mut variant_patterns = match components {
                     components::Bag {
                         era: None,
                         year: Some(_),
@@ -258,7 +259,24 @@ impl SourceDataProvider {
                         variant0: None,
                         variant1: None,
                     },
+                };
+
+                // Because we infer the field lengths from the stock date format
+                // skeletons, we will inherit the numbering system override from
+                // the stock patterns. This is non-standard behavior! See:
+                // <https://unicode-org.atlassian.net/browse/CLDR-19423>
+                let lp = match length {
+                    Length::Long => &data.date_formats.long,
+                    Length::Medium => &data.date_formats.medium,
+                    Length::Short => &data.date_formats.short,
+                    _ => unreachable!(),
+                };
+                for variant in variant_patterns.iter_in_quality_order_mut() {
+                    variant.inner.for_each_mut(|p| {
+                        crate::datetime::names::apply_numeric_overrides(lp, p);
+                    });
                 }
+                variant_patterns
             })
             .map(|mut trio| {
                 enforce_consistent_field_lengths(&mut trio, |previous_field, field, distance| {
@@ -276,6 +294,7 @@ impl SourceDataProvider {
                 });
                 trio
             });
+
         let builder = PackedPatternsBuilder {
             standard: LengthPluralElements {
                 long: long.standard.inner().as_ref().map(runtime::Pattern::as_ref),
@@ -488,15 +507,14 @@ fn gen_date_components(
 ) -> components::Bag {
     // Pull the field lengths from the date length patterns, and then use
     // those lengths for classical skeleton datetime pattern generation.
-    //
-    // TODO(#308): Utilize the numbering system pattern variations.
-    let date_pattern: reference::Pattern = match length {
+    let date_pattern: runtime::Pattern = match length {
         Length::Long => data.date_skeletons.long.get_pattern().parse().unwrap(),
         Length::Medium => data.date_skeletons.medium.get_pattern().parse().unwrap(),
         Length::Short => data.date_skeletons.short.get_pattern().parse().unwrap(),
         _ => unreachable!(),
     };
-    let date_bag = components::Bag::from(&date_pattern);
+    let date_pattern_ref: reference::Pattern = (&date_pattern).into();
+    let date_bag = components::Bag::from(&date_pattern_ref);
     let mut filtered_components = components::Bag::empty();
     if check_for_field(attributes, "y") {
         filtered_components.era = date_bag.era;
