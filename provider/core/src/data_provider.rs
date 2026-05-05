@@ -473,16 +473,18 @@ pub struct BindLocaleResponse<T> {
 }
 
 /// A data provider that can be bound to a particular marker and locale.
-/// 
+///
 /// See [`BoundLocaleDataProvider`].
 pub trait BindLocaleDataProvider<M>
 where
     M: DynamicDataMarker,
 {
     /// Type of the [`BoundLocaleDataProvider`].
-    type BoundLocaleDataProvider<'data>: BoundLocaleDataProvider<M> + 'data where Self: 'data;
+    type BoundLocaleDataProvider<'data>: BoundLocaleDataProvider<M> + 'data
+    where
+        Self: 'data;
     /// Bind this provider to the given marker and locale.
-    /// 
+    ///
     /// This performs a data load for the marker and locale, but not attributes.
     fn bind_locale<'data>(
         &'data self,

@@ -7,7 +7,7 @@
 #![allow(clippy::exhaustive_structs)] // data struct module
 
 use crate as icu_provider;
-use crate::buf::{DeserializingOwnedBufferProvider};
+use crate::buf::DeserializingOwnedBufferProvider;
 use crate::request::DataAttributesRequest;
 use crate::unstable::{BindLocaleDataProvider, BoundLocaleDataProvider};
 #[cfg(feature = "deserialize_json")]
