@@ -8,9 +8,7 @@ use criterion::{criterion_group, criterion_main};
 use icu_experimental::displaynames::provider::{LocaleNamesRegionLongV1, RegionDisplayNamesV1};
 use icu_experimental::provider::Baked;
 use icu_locale::{locale, DataLocale};
-use icu_provider::buf::{
-    AsDeserializingBufferProvider, DeserializingBufferProvider, DeserializingOwnedBufferProvider,
-};
+use icu_provider::buf::{AsDeserializingBufferProvider, DeserializingOwnedBufferProvider};
 use icu_provider::unstable::{
     BindLocaleDataProvider, BoundLocaleDataProvider, DataAttributesRequest,
 };
@@ -534,7 +532,7 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                         ),
                     };
                     sum += DataProvider::<LocaleNamesRegionLongV1>::load(&Baked, req)
-                        .map(|resp| resp.payload.get().name.len())
+                        .map(|resp| resp.payload.get().len())
                         .unwrap_or_default();
                 }
             }
@@ -566,7 +564,7 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                         ),
                     };
                     sum += DataProvider::<LocaleNamesRegionLongV1>::load(&Baked, req)
-                        .map(|resp| resp.payload.get().name.len())
+                        .map(|resp| resp.payload.get().len())
                         .unwrap_or_default();
                 }
             }
@@ -588,8 +586,12 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                 };
                 let payload = payload.payload.get();
                 for attributes in black_box(attributeses) {
-                    let id_for_lookup = UnvalidatedTinyAsciiStr::try_from_utf8(attributes.as_bytes()).unwrap_or(UnvalidatedTinyAsciiStr::DEFAULT);
-                    sum += payload.names.get(&id_for_lookup)
+                    let id_for_lookup =
+                        UnvalidatedTinyAsciiStr::try_from_utf8(attributes.as_bytes())
+                            .unwrap_or(UnvalidatedTinyAsciiStr::DEFAULT);
+                    sum += payload
+                        .names
+                        .get(&id_for_lookup)
                         .map(|s| s.len())
                         .unwrap_or_default();
                 }
@@ -622,8 +624,12 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                     if j % 10 != 0 {
                         continue;
                     }
-                    let id_for_lookup = UnvalidatedTinyAsciiStr::try_from_utf8(attributes.as_bytes()).unwrap_or(UnvalidatedTinyAsciiStr::DEFAULT);
-                    sum += payload.names.get(&id_for_lookup)
+                    let id_for_lookup =
+                        UnvalidatedTinyAsciiStr::try_from_utf8(attributes.as_bytes())
+                            .unwrap_or(UnvalidatedTinyAsciiStr::DEFAULT);
+                    sum += payload
+                        .names
+                        .get(&id_for_lookup)
                         .map(|s| s.len())
                         .unwrap_or_default();
                 }
@@ -650,7 +656,7 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                             ),
                         };
                         sum += DataProvider::<LocaleNamesRegionLongV1>::load(&provider, req)
-                            .map(|resp| resp.payload.get().name.len())
+                            .map(|resp| resp.payload.get().len())
                             .unwrap_or_default();
                     }
                 }
@@ -687,7 +693,7 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                             ),
                         };
                         sum += DataProvider::<LocaleNamesRegionLongV1>::load(&provider, req)
-                            .map(|resp| resp.payload.get().name.len())
+                            .map(|resp| resp.payload.get().len())
                             .unwrap_or_default();
                     }
                 }
@@ -710,7 +716,7 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                     };
                     let Ok(provider) = provider.bind_locale(LocaleNamesRegionLongV1::INFO, req)
                     else {
-                        continue
+                        continue;
                     };
                     let provider = DeserializingOwnedBufferProvider::new(provider.bound_provider);
                     for attributes in black_box(attributeses) {
@@ -721,7 +727,7 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                                 marker_attributes: *attributes,
                             },
                         )
-                        .map(|resp| resp.payload.name.len())
+                        .map(|resp| resp.payload.len())
                         .unwrap_or_default();
                     }
                 }
@@ -749,7 +755,7 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                     };
                     let Ok(provider) = provider.bind_locale(LocaleNamesRegionLongV1::INFO, req)
                     else {
-                        continue
+                        continue;
                     };
                     let provider = DeserializingOwnedBufferProvider::new(provider.bound_provider);
                     let mut j = 0;
@@ -765,7 +771,7 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                                 marker_attributes: *attributes,
                             },
                         )
-                        .map(|resp| resp.payload.name.len())
+                        .map(|resp| resp.payload.len())
                         .unwrap_or_default();
                     }
                 }
