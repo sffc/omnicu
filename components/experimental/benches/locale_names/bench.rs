@@ -664,9 +664,7 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                 sum
             });
         });
-    }
 
-    if let Ok(path) = std::env::var("ICU4X_REGION_POSTCARD_PATH") {
         group.bench_function("region/postcard/10x10pct/1by1", |bencher| {
             let postcard = std::fs::read(&path).unwrap().into_boxed_slice();
             let provider = BlobDataProvider::try_new_from_blob(postcard).unwrap();
@@ -701,10 +699,8 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                 sum
             });
         });
-    }
 
-    if let Ok(path) = std::env::var("ICU4X_REGION_POSTCARD_PATH") {
-        group.bench_function("region/postcard/all/boundlocale", |bencher| {
+        group.bench_function("region/postcard/all/boundlocale/typed", |bencher| {
             let postcard = std::fs::read(&path).unwrap().into_boxed_slice();
             let provider = BlobDataProvider::try_new_from_blob(postcard).unwrap();
             bencher.iter(|| {
@@ -735,10 +731,8 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                 sum
             });
         });
-    }
 
-    if let Ok(path) = std::env::var("ICU4X_REGION_POSTCARD_PATH") {
-        group.bench_function("region/postcard/10x10pct/boundlocale", |bencher| {
+        group.bench_function("region/postcard/10x10pct/boundlocale/typed", |bencher| {
             let postcard = std::fs::read(&path).unwrap().into_boxed_slice();
             let provider = BlobDataProvider::try_new_from_blob(postcard).unwrap();
             bencher.iter(|| {
@@ -779,7 +773,84 @@ pub fn criterion_benchmark(criterion: &mut Criterion) {
                 sum
             });
         });
-    }
+
+        group.bench_function("region/postcard/all/boundlocale/boxdyn", |bencher| {
+            let postcard = std::fs::read(&path).unwrap().into_boxed_slice();
+            let provider = BlobDataProvider::try_new_from_blob(postcard).unwrap();
+            bencher.iter(|| {
+                let mut sum = 0;
+                for locale in black_box(locales) {
+                    let req = DataRequest {
+                        metadata: Default::default(),
+                        id: DataIdentifierBorrowed::for_locale(locale),
+                    };
+                    let Ok(provider) = provider.bind_locale(LocaleNamesRegionLongV1::INFO, req)
+                    else {
+                        continue;
+                    };
+                    let provider = DeserializingOwnedBufferProvider::new(provider.bound_provider);
+                    let provider: Box<dyn BoundLocaleDataProvider<LocaleNamesRegionLongV1>> = Box::new(black_box(provider));
+                    for attributes in black_box(attributeses) {
+                        sum += BoundLocaleDataProvider::<LocaleNamesRegionLongV1>::load_bound(
+                            &*provider,
+                            DataAttributesRequest {
+                                metadata: Default::default(),
+                                marker_attributes: *attributes,
+                            },
+                        )
+                        .map(|resp| resp.payload.len())
+                        .unwrap_or_default();
+                    }
+                }
+                assert_eq!(sum, 801535);
+                sum
+            });
+        });
+
+        group.bench_function("region/postcard/10x10pct/boundlocale/boxdyn", |bencher| {
+            let postcard = std::fs::read(&path).unwrap().into_boxed_slice();
+            let provider = BlobDataProvider::try_new_from_blob(postcard).unwrap();
+            bencher.iter(|| {
+                let mut sum = 0;
+                let mut i = 0;
+                for locale in black_box(locales) {
+                    i += 1;
+                    if i % 10 != 0 {
+                        continue;
+                    }
+                    let req = DataRequest {
+                        metadata: Default::default(),
+                        id: DataIdentifierBorrowed::for_locale(locale),
+                    };
+                    let Ok(provider) = provider.bind_locale(LocaleNamesRegionLongV1::INFO, req)
+                    else {
+                        continue;
+                    };
+                    let provider = DeserializingOwnedBufferProvider::new(provider.bound_provider);
+                    let provider: Box<dyn BoundLocaleDataProvider<LocaleNamesRegionLongV1>> = Box::new(black_box(provider));
+                    let mut j = 0;
+                    for attributes in black_box(attributeses) {
+                        j += 1;
+                        if j % 10 != 0 {
+                            continue;
+                        }
+                        sum += BoundLocaleDataProvider::<LocaleNamesRegionLongV1>::load_bound(
+                            &*provider,
+                            DataAttributesRequest {
+                                metadata: Default::default(),
+                                marker_attributes: *attributes,
+                            },
+                        )
+                        .map(|resp| resp.payload.len())
+                        .unwrap_or_default();
+                    }
+                }
+                assert_eq!(sum, 6965);
+                sum
+            });
+        });
+
+    } // if let Ok(path) = std::env::var("ICU4X_REGION_POSTCARD_PATH")
 
     group.finish();
 }
