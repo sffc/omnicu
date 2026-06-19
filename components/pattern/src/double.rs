@@ -7,8 +7,8 @@
 use core::convert::Infallible;
 use core::{cmp::Ordering, str::FromStr};
 use either::Either;
-use writeable::Writeable;
 use writeable::adapters::WriteableAsTryWriteableInfallible;
+use writeable::{TryWriteable, Writeable};
 
 use crate::Error;
 use crate::common::*;
@@ -69,7 +69,10 @@ impl FromStr for DoublePlaceholderKey {
     }
 }
 
-impl<W0, W1> PlaceholderValueProvider<DoublePlaceholderKey> for (W0, W1)
+#[derive(Debug)]
+pub struct DoublePlaceholderValueProviderInfallible<W0, W1>(pub W0, pub W1);
+
+impl<W0, W1> PlaceholderValueProvider<DoublePlaceholderKey> for DoublePlaceholderValueProviderInfallible<W0, W1>
 where
     W0: Writeable,
     W1: Writeable,
@@ -88,11 +91,10 @@ where
 
     #[inline]
     fn value_for(&self, key: DoublePlaceholderKey) -> Self::W<'_> {
-        let writeable = match key {
+        WriteableAsTryWriteableInfallible(match key {
             DoublePlaceholderKey::Place0 => Either::Left(&self.0),
             DoublePlaceholderKey::Place1 => Either::Right(&self.1),
-        };
-        WriteableAsTryWriteableInfallible(writeable)
+        })
     }
     #[inline]
     fn map_literal<'a, 'l>(&'a self, literal: &'l str) -> Self::L<'a, 'l> {
@@ -100,14 +102,57 @@ where
     }
 }
 
-impl<W> PlaceholderValueProvider<DoublePlaceholderKey> for [W; 2]
+impl<W0, W1> PlaceholderValueProvider<DoublePlaceholderKey> for (W0, W1)
 where
-    W: Writeable,
+    W0: TryWriteable,
+    W1: TryWriteable,
 {
-    type Error = Infallible;
+    type Error = Either<W0::Error, W1::Error>;
 
     type W<'a>
-        = WriteableAsTryWriteableInfallible<&'a W>
+        = Either<&'a W0, &'a W1>
+    where
+        Self: 'a;
+
+    type L<'a, 'l>
+        = &'l str
+    where
+        Self: 'a;
+
+    #[inline]
+    fn value_for(&self, key: DoublePlaceholderKey) -> Self::W<'_> {
+        match key {
+            DoublePlaceholderKey::Place0 => Either::Left(&self.0),
+            DoublePlaceholderKey::Place1 => Either::Right(&self.1),
+        }
+    }
+    #[inline]
+    fn map_literal<'a, 'l>(&'a self, literal: &'l str) -> Self::L<'a, 'l> {
+        literal
+    }
+}
+
+impl<W0, W1> IntoPlaceholderValueProvider for (W0, W1)
+where
+    W0: Writeable,
+    W1: Writeable,
+{
+    type Target = DoublePlaceholderValueProviderInfallible<W0, W1>;
+
+    #[inline]
+    fn into_placeholder_value_provider(self) -> Self::Target {
+        DoublePlaceholderValueProviderInfallible(self.0, self.1)
+    }
+}
+
+impl<W> PlaceholderValueProvider<DoublePlaceholderKey> for [W; 2]
+where
+    W: TryWriteable,
+{
+    type Error = W::Error;
+
+    type W<'a>
+        = &'a W
     where
         Self: 'a;
 
@@ -119,15 +164,30 @@ where
     #[inline]
     fn value_for(&self, key: DoublePlaceholderKey) -> Self::W<'_> {
         let [item0, item1] = self;
-        let writeable = match key {
+        match key {
             DoublePlaceholderKey::Place0 => item0,
             DoublePlaceholderKey::Place1 => item1,
-        };
-        WriteableAsTryWriteableInfallible(writeable)
+        }
     }
     #[inline]
     fn map_literal<'a, 'l>(&'a self, literal: &'l str) -> Self::L<'a, 'l> {
         literal
+    }
+}
+
+impl<W> IntoPlaceholderValueProvider for [W; 2]
+where
+    W: Writeable,
+{
+    type Target = [WriteableAsTryWriteableInfallible<W>; 2];
+
+    #[inline]
+    fn into_placeholder_value_provider(self) -> Self::Target {
+        let [item0, item1] = self;
+        [
+            WriteableAsTryWriteableInfallible(item0),
+            WriteableAsTryWriteableInfallible(item1),
+        ]
     }
 }
 

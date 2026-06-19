@@ -90,6 +90,12 @@ mod private {
     pub trait Sealed {}
 }
 
+pub mod scaffold {
+    // There should be more in here, but the scaffold mod came later
+    pub use super::common::IntoPlaceholderValueProvider;
+    pub use super::double::DoublePlaceholderValueProviderInfallible;
+}
+
 /// # Examples
 ///
 /// ```

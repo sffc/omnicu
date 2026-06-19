@@ -264,3 +264,9 @@ where
         (*self).map_literal(literal)
     }
 }
+
+/// A convenience trait that powers Pattern::interpolate.
+pub trait IntoPlaceholderValueProvider {
+    type Target;
+    fn into_placeholder_value_provider(self) -> Self::Target;
+}

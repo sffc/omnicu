@@ -296,11 +296,12 @@ where
     /// into this pattern string.
     pub fn interpolate<'a, P>(&'a self, value_provider: P) -> impl Writeable + fmt::Display + 'a
     where
-        P: PlaceholderValueProvider<B::PlaceholderKey<'a>, Error = B::Error<'a>> + 'a,
+        P: IntoPlaceholderValueProvider + 'a,
+        P::Target: PlaceholderValueProvider<B::PlaceholderKey<'a>, Error = Infallible>,
     {
-        TryWriteableInfallibleAsWriteable(WriteablePattern::<B, P> {
+        TryWriteableInfallibleAsWriteable(WriteablePattern::<B, P::Target> {
             store: &self.store,
-            value_provider,
+            value_provider: value_provider.into_placeholder_value_provider(),
         })
     }
 
@@ -310,7 +311,8 @@ where
     /// ✨ *Enabled with the `alloc` Cargo feature.*
     pub fn interpolate_to_string<'a, P>(&'a self, value_provider: P) -> String
     where
-        P: PlaceholderValueProvider<B::PlaceholderKey<'a>, Error = B::Error<'a>> + 'a,
+        P: IntoPlaceholderValueProvider + 'a,
+        P::Target: PlaceholderValueProvider<B::PlaceholderKey<'a>, Error = Infallible>,
     {
         self.interpolate(value_provider)
             .write_to_string()

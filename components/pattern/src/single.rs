@@ -6,7 +6,7 @@
 
 use core::convert::Infallible;
 use core::{cmp::Ordering, str::FromStr};
-use writeable::Writeable;
+use writeable::{TryWriteable, Writeable};
 use writeable::adapters::WriteableAsTryWriteableInfallible;
 
 use crate::Error;
@@ -62,12 +62,12 @@ impl FromStr for SinglePlaceholderKey {
 
 impl<W> PlaceholderValueProvider<SinglePlaceholderKey> for (W,)
 where
-    W: Writeable,
+    W: TryWriteable,
 {
-    type Error = Infallible;
+    type Error = W::Error;
 
     type W<'a>
-        = WriteableAsTryWriteableInfallible<&'a W>
+        = &'a W
     where
         Self: 'a;
 
@@ -77,7 +77,7 @@ where
         Self: 'a;
 
     fn value_for(&self, _key: SinglePlaceholderKey) -> Self::W<'_> {
-        WriteableAsTryWriteableInfallible(&self.0)
+        &self.0
     }
     #[inline]
     fn map_literal<'a, 'l>(&'a self, literal: &'l str) -> Self::L<'a, 'l> {
@@ -85,14 +85,26 @@ where
     }
 }
 
-impl<W> PlaceholderValueProvider<SinglePlaceholderKey> for [W; 1]
+impl<W> IntoPlaceholderValueProvider for (W,)
 where
     W: Writeable,
 {
-    type Error = Infallible;
+    type Target = (WriteableAsTryWriteableInfallible<W>,);
+
+    #[inline]
+    fn into_placeholder_value_provider(self) -> Self::Target {
+        (WriteableAsTryWriteableInfallible(self.0),)
+    }
+}
+
+impl<W> PlaceholderValueProvider<SinglePlaceholderKey> for [W; 1]
+where
+    W: TryWriteable,
+{
+    type Error = W::Error;
 
     type W<'a>
-        = WriteableAsTryWriteableInfallible<&'a W>
+        = &'a W
     where
         Self: 'a;
 
@@ -103,11 +115,24 @@ where
 
     fn value_for(&self, _key: SinglePlaceholderKey) -> Self::W<'_> {
         let [value] = self;
-        WriteableAsTryWriteableInfallible(value)
+        value
     }
     #[inline]
     fn map_literal<'a, 'l>(&'a self, literal: &'l str) -> Self::L<'a, 'l> {
         literal
+    }
+}
+
+impl<W> IntoPlaceholderValueProvider for [W; 1]
+where
+    W: Writeable,
+{
+    type Target = [WriteableAsTryWriteableInfallible<W>; 1];
+
+    #[inline]
+    fn into_placeholder_value_provider(self) -> Self::Target {
+        let [value] = self;
+        [WriteableAsTryWriteableInfallible(value)]
     }
 }
 
