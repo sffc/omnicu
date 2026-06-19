@@ -137,7 +137,7 @@ pub trait PatternBackend: crate::private::Sealed + 'static + core::fmt::Debug {
 /// use icu_pattern::PlaceholderValueProvider;
 /// use writeable::adapters::WithPart;
 /// use writeable::adapters::WriteableAsTryWriteableInfallible;
-/// use writeable::assert_writeable_parts_eq;
+/// use writeable::assert_try_writeable_parts_eq;
 /// use writeable::Part;
 /// use writeable::Writeable;
 ///
@@ -197,8 +197,8 @@ pub trait PatternBackend: crate::private::Sealed + 'static + core::fmt::Debug {
 ///     }
 /// }
 ///
-/// assert_writeable_parts_eq!(
-///     pattern.interpolate(ValuesWithParts("Alice", "Bob")),
+/// assert_try_writeable_parts_eq!(
+///     pattern.try_interpolate(ValuesWithParts("Alice", "Bob")),
 ///     "Hello, Alice and Bob!",
 ///     [
 ///         (0, 7, PART_LITERAL),
