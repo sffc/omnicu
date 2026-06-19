@@ -7,8 +7,8 @@
 use core::convert::Infallible;
 use core::{cmp::Ordering, str::FromStr};
 use either::Either;
-use writeable::Writeable;
 use writeable::adapters::WriteableAsTryWriteableInfallible;
+use writeable::{TryWriteable, Writeable};
 
 use crate::Error;
 use crate::common::*;
@@ -124,6 +124,39 @@ where
             DoublePlaceholderKey::Place1 => item1,
         };
         WriteableAsTryWriteableInfallible(writeable)
+    }
+    #[inline]
+    fn map_literal<'a, 'l>(&'a self, literal: &'l str) -> Self::L<'a, 'l> {
+        literal
+    }
+}
+
+pub struct DoublePlaceholderTryWriteableValues<W0, W1>(W0, W1);
+
+impl<W0, W1> PlaceholderValueProvider<DoublePlaceholderKey>
+    for DoublePlaceholderTryWriteableValues<W0, W1>
+where
+    W0: TryWriteable,
+    W1: TryWriteable,
+{
+    type Error = Infallible;
+
+    type W<'a>
+        = Either<&'a W0, &'a W1>
+    where
+        Self: 'a;
+
+    type L<'a, 'l>
+        = &'l str
+    where
+        Self: 'a;
+
+    #[inline]
+    fn value_for(&self, key: DoublePlaceholderKey) -> Self::W<'_> {
+        match key {
+            DoublePlaceholderKey::Place0 => Either::Left(&self.0),
+            DoublePlaceholderKey::Place1 => Either::Right(&self.1),
+        }
     }
     #[inline]
     fn map_literal<'a, 'l>(&'a self, literal: &'l str) -> Self::L<'a, 'l> {
