@@ -12,6 +12,32 @@ use icu_pattern::DoublePlaceholderPattern;
 use icu_provider::DataPayloadOr;
 use icu_provider::prelude::*;
 use tinystr::TinyAsciiStr;
+use writeable::TryWriteable;
+
+/// A bitpacked 3-way enum: a display name payload, a fallback TinyAsciiStr, or None (not present)
+///
+/// This is a type alias because implementing traits like Debug is annoying
+type NameOrFallbackOwned<M> = DataPayloadOr<M, Option<TinyAsciiStr<8>>>;
+
+/// Borrowed version of [`NameOrFallbackOwned`]
+type NameOrFallbackBorrowed<'a> = Option<Result<&'a str, &'a str>>;
+
+fn name_or_fallback_as_borrowed<M>(input: &NameOrFallbackOwned<M>) -> NameOrFallbackBorrowed<'_>
+where
+    M: DynamicDataMarker,
+    for<'a> M::DataStruct: yoke::Yokeable<'a, Output = zerovec::VarZeroCow<'a, str>>,
+{
+    match input.get() {
+        Ok(s) => Some(Ok(s)),
+        Err(Some(fallback)) => Some(Err(&fallback)),
+        Err(None) => None,
+    }
+}
+
+/// A subtag is being displayed as its raw BCP-47 string instead of a localized string.
+#[allow(clippy::exhaustive_structs)] // marker
+#[derive(Debug)]
+pub struct LocaleNameFallbackError;
 
 /// A localized display name for a language, owned version.
 ///
@@ -42,7 +68,7 @@ pub struct LanguageIdentifierDisplayNameOwned {
     options: DisplayNamesOptions,
     language_payload: DataPayload<LocaleNamesLanguageMediumV1>,
     script_payload: DataPayloadOr<LocaleNamesScriptMediumV1, ()>,
-    region_payload: DataPayloadOr<LocaleNamesRegionMediumV1, ()>,
+    region_payload: NameOrFallbackOwned<LocaleNamesRegionMediumV1>,
     variant_payloads:
         DataPayloadOr<LocaleNamesVariantMediumV1, Vec<DataPayload<LocaleNamesVariantMediumV1>>>,
     essentials_payload: DataPayload<LocaleNamesEssentialsV1>,
@@ -175,13 +201,14 @@ impl LanguageIdentifierDisplayNameOwned {
         };
 
         // Step 3: Load region name (if present in subject)
-        // TODO(#8100): Fall back to the code instead of failing with DataError if the region name is not found
         let region_payload = if let Some(region) = subject.region {
-            DataPayloadOr::from_payload(
-                RegionDisplayNameOwned::try_new_unstable(provider, prefs, region)?.payload,
-            )
+            match RegionDisplayNameOwned::try_new_unstable(provider, prefs, region) {
+                Ok(response) => DataPayloadOr::from_payload(response.payload),
+                // Fall back to the region subtag string
+                Err(_) => DataPayloadOr::from_other(Some(region.to_tinystr().resize())),
+            }
         } else {
-            DataPayloadOr::none()
+            DataPayloadOr::from_other(None)
         };
 
         // Step 4: Load variant names (if present in subject)
@@ -238,7 +265,7 @@ impl LanguageIdentifierDisplayNameOwned {
         LanguageIdentifierDisplayName {
             base_name: self.language_payload.get(),
             script_name: self.script_payload.get_option().map(|p| &**p),
-            region_name: self.region_payload.get_option().map(|p| &**p),
+            region_name: name_or_fallback_as_borrowed(&self.region_payload),
             variants,
             locale_pattern: &self.essentials_payload.get().locale_pattern,
             locale_separator: &self.essentials_payload.get().locale_separator,
@@ -282,7 +309,7 @@ impl BorrowedVariants<'_> {
 pub struct LanguageIdentifierDisplayName<'a> {
     base_name: &'a str,
     script_name: Option<&'a str>,
-    region_name: Option<&'a str>,
+    region_name: NameOrFallbackBorrowed<'a>,
     variants: BorrowedVariants<'a>,
     locale_pattern: &'a DoublePlaceholderPattern,
     locale_separator: &'a DoublePlaceholderPattern,
@@ -290,13 +317,18 @@ pub struct LanguageIdentifierDisplayName<'a> {
 
 struct QualifiersWriteable<'a> {
     script: Option<&'a str>,
-    region: Option<&'a str>,
+    region: NameOrFallbackBorrowed<'a>,
     variants: BorrowedVariants<'a>,
     separator: &'a DoublePlaceholderPattern,
 }
 
-impl<'a> writeable::Writeable for QualifiersWriteable<'a> {
-    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+impl<'a> TryWriteable for QualifiersWriteable<'a> {
+    type Error = LocaleNameFallbackError;
+
+    fn try_write_to_parts<S: writeable::PartsWrite + ?Sized>(
+        &self,
+        sink: &mut S,
+    ) -> Result<Result<(), Self::Error>, core::fmt::Error> {
         let mut first = true;
 
         // TODO: See whether we can share this code with the list component.
@@ -308,43 +340,56 @@ impl<'a> writeable::Writeable for QualifiersWriteable<'a> {
             }
         }
 
-        let mut write_item = |sink: &mut W, item: &str| -> core::fmt::Result {
-            if !first {
-                sink.write_str(separator_str)?;
-            }
-            sink.write_str(item)?;
-            first = false;
-            Ok(())
-        };
+        let mut write_item =
+            |sink: &mut S,
+             item: Result<&str, &str>|
+             -> Result<Result<(), LocaleNameFallbackError>, core::fmt::Error> {
+                if !first {
+                    sink.write_str(separator_str)?;
+                }
+                first = false;
+                // Note: this uses impl TryWriteable for Result
+                item.try_write_to_parts(sink)
+                    .map(|r| r.map_err(|_| LocaleNameFallbackError))
+            };
 
         if let Some(script) = self.script {
-            write_item(sink, script)?;
+            // TODO(#8100): use graceful fallback
+            write_item(sink, Ok(script))?;
         }
         if let Some(region) = self.region {
             write_item(sink, region)?;
         }
         match self.variants {
             BorrowedVariants::One(v) => {
-                write_item(sink, v)?;
+                // TODO(#8100): use graceful fallback
+                write_item(sink, Ok(v))?;
             }
             BorrowedVariants::Slice(slice) => {
                 for variant in slice.iter() {
-                    write_item(sink, variant.get())?;
+                    // TODO(#8100): use graceful fallback
+                    write_item(sink, Ok(variant.get()))?;
                 }
             }
         }
-        Ok(())
+        Ok(Ok(()))
     }
 }
 
-impl<'a> writeable::Writeable for LanguageIdentifierDisplayName<'a> {
-    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+impl<'a> TryWriteable for LanguageIdentifierDisplayName<'a> {
+    type Error = LocaleNameFallbackError;
+
+    fn try_write_to_parts<S: writeable::PartsWrite + ?Sized>(
+        &self,
+        sink: &mut S,
+    ) -> Result<Result<(), Self::Error>, core::fmt::Error> {
         let has_variants = !self.variants.is_empty();
         let has_qualifiers =
             self.script_name.is_some() || self.region_name.is_some() || has_variants;
 
         if !has_qualifiers {
-            sink.write_str(self.base_name)
+            sink.write_str(self.base_name)?;
+            Ok(Ok(()))
         } else {
             let qualifiers = QualifiersWriteable {
                 script: self.script_name,
@@ -353,8 +398,8 @@ impl<'a> writeable::Writeable for LanguageIdentifierDisplayName<'a> {
                 separator: self.locale_separator,
             };
             self.locale_pattern
-                .interpolate((self.base_name, qualifiers))
-                .write_to(sink)
+                .try_interpolate((Ok(self.base_name), qualifiers))
+                .try_write_to(sink)?
         }
     }
 }
