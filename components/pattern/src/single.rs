@@ -97,42 +97,16 @@ where
     }
 }
 
-impl<W> PlaceholderValueProvider<SinglePlaceholderKey> for [W; 1]
-where
-    W: TryWriteable,
-{
-    type Error = W::Error;
-
-    type W<'a>
-        = &'a W
-    where
-        Self: 'a;
-
-    type L<'a, 'l>
-        = &'l str
-    where
-        Self: 'a;
-
-    fn value_for(&self, _key: SinglePlaceholderKey) -> Self::W<'_> {
-        let [value] = self;
-        value
-    }
-    #[inline]
-    fn map_literal<'a, 'l>(&'a self, literal: &'l str) -> Self::L<'a, 'l> {
-        literal
-    }
-}
-
 impl<W> IntoPlaceholderValueProvider for [W; 1]
 where
     W: Writeable,
 {
-    type Target = [WriteableAsTryWriteableInfallible<W>; 1];
+    type Target = (WriteableAsTryWriteableInfallible<W>,);
 
     #[inline]
     fn into_placeholder_value_provider(self) -> Self::Target {
         let [value] = self;
-        [WriteableAsTryWriteableInfallible(value)]
+        (WriteableAsTryWriteableInfallible(value),)
     }
 }
 
