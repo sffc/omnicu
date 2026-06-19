@@ -6,8 +6,8 @@
 
 use core::convert::Infallible;
 use core::{cmp::Ordering, str::FromStr};
-use writeable::{TryWriteable, Writeable};
 use writeable::adapters::WriteableAsTryWriteableInfallible;
+use writeable::{TryWriteable, Writeable};
 
 use crate::Error;
 use crate::common::*;
