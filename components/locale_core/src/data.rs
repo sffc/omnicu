@@ -2,6 +2,8 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use writeable::{Writeable, impl_display_with_writeable};
+
 use crate::ParseError;
 use crate::extensions::unicode as unicode_ext;
 use crate::parser::{
@@ -137,7 +139,64 @@ impl fmt::Debug for DataLocale {
     }
 }
 
-impl_writeable_for_each_subtag_str_no_test!(DataLocale, selff, selff.script.is_none() && selff.region.is_none() && selff.variant.is_none() && selff.subdivision.is_none() => Some(selff.language.as_str()));
+impl Writeable for DataLocale {
+    #[inline]
+    fn write_to<W: fmt::Write + ?Sized>(&self, sink: &mut W) -> fmt::Result {
+        self.language.write_to(sink)?;
+        if let Some(script) = self.script {
+            sink.write_char('-')?;
+            script.write_to(sink)?;
+        }
+        if let Some(region) = self.region {
+            sink.write_char('-')?;
+            region.write_to(sink)?;
+        }
+        if let Some(variant) = self.variant {
+            sink.write_char('-')?;
+            variant.write_to(sink)?;
+        }
+        if let Some(subdivision) = self.region_and_subdivision() {
+            if !subdivision.suffix.is_unknown() {
+                sink.write_str("-u-sd-")?;
+                subdivision.write_to(sink)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn writeable_length_hint(&self) -> writeable::LengthHint {
+        let mut length_hint = self.language.writeable_length_hint();
+        if let Some(script) = self.script {
+            length_hint += 1;
+            length_hint += script.writeable_length_hint();
+        }
+        if let Some(region) = self.region {
+            length_hint += 1;
+            length_hint += region.writeable_length_hint();
+        }
+        if let Some(variant) = self.variant {
+            length_hint += 1;
+            length_hint += variant.writeable_length_hint();
+        }
+        if let Some(subdivision) = self.region_and_subdivision() {
+            if !subdivision.suffix.is_unknown() {
+                length_hint += 6;
+                length_hint += subdivision.writeable_length_hint();
+            }
+        }
+        length_hint
+    }
+
+    fn writeable_borrow(&self) -> Option<&str> {
+        if self.script.is_none() && self.region.is_none() && self.variant.is_none() && self.subdivision.is_none() {
+            Some(self.language.as_str())
+        } else {
+            None
+        }
+    }
+}
+
+impl_display_with_writeable!(DataLocale);
 
 impl From<LanguageIdentifier> for DataLocale {
     fn from(langid: LanguageIdentifier) -> Self {
@@ -238,26 +297,6 @@ impl DataLocale {
         };
 
         Ok(Self::from_parts(language, script, subdivision, variant))
-    }
-
-    pub(crate) fn for_each_subtag_str<E, F>(&self, f: &mut F) -> Result<(), E>
-    where
-        F: FnMut(&str) -> Result<(), E>,
-    {
-        f(self.language.as_str())?;
-        if let Some(ref script) = self.script {
-            f(script.as_str())?;
-        }
-        if let Some(ref region) = self.region {
-            f(region.as_str())?;
-        }
-        if let Some(ref single_variant) = self.variant {
-            f(single_variant.as_str())?;
-        }
-        if let Some(extensions) = self.extensions() {
-            extensions.for_each_subtag_str(f)?;
-        }
-        Ok(())
     }
 
     fn region_and_subdivision(&self) -> Option<unicode_ext::SubdivisionId> {
