@@ -18,8 +18,13 @@
 )]
 #![warn(missing_docs)]
 
+use core::slice;
+
 use crate::provider::*;
-use icu_locale_core::subtags::{Language, Region, Script, Subtag, Variant, region, script};
+use icu_locale_core::{
+    data_locale,
+    subtags::{Language, Region, Script, Subtag, Variant, region, script},
+};
 use icu_provider::prelude::*;
 
 #[doc(inline)]
@@ -120,6 +125,7 @@ struct LocaleFallbackIteratorInner<'a> {
     backup_variant: Option<Variant>,
     backup_region: Option<Region>,
     max_script: Option<Script>,
+    precomputed: Option<slice::Iter<'static, DataLocale>>,
 }
 
 /// Iteration type for locale fallback operations.
@@ -253,6 +259,9 @@ impl<'a> LocaleFallbackerWithConfig<'a> {
     ///
     /// [`Locale`]: icu_locale_core::Locale
     pub fn fallback_for(&self, mut locale: DataLocale) -> LocaleFallbackIterator<'a> {
+        if let Some(retval) = self.get_precomputed(locale) {
+            return retval;
+        }
         let mut default_script = None;
         self.normalize(&mut locale, &mut default_script);
         let max_script = locale.script.or(default_script);
@@ -266,7 +275,47 @@ impl<'a> LocaleFallbackerWithConfig<'a> {
                 backup_variant: None,
                 backup_region: None,
                 max_script,
+                precomputed: None,
             },
+        }
+    }
+
+    fn get_precomputed(&self, locale: DataLocale) -> Option<LocaleFallbackIterator<'a>> {
+        let static_slice = if locale == data_locale!("en")
+            && self.config.priority == LocaleFallbackPriority::Region
+        {
+            Some(&[data_locale!("en-US"), data_locale!("und-US")][..])
+        } else if locale == data_locale!("fa")
+            && self.config.priority == LocaleFallbackPriority::Region
+        {
+            Some(&[data_locale!("fa-IR"), data_locale!("und-IR")][..])
+        } else if locale == data_locale!("ar-EG")
+            && self.config.priority == LocaleFallbackPriority::Region
+        {
+            Some(&[data_locale!("und-EG")][..])
+        } else if locale == data_locale!("es-AR")
+            && self.config.priority == LocaleFallbackPriority::Language
+        {
+            Some(&[data_locale!("es-419"), data_locale!("es")][..])
+        } else {
+            None
+        };
+        if let Some(static_slice) = static_slice {
+            Some(LocaleFallbackIterator {
+                current: locale,
+                inner: LocaleFallbackIteratorInner {
+                    likely_subtags: self.likely_subtags,
+                    parents: self.parents,
+                    config: self.config,
+                    backup_subdivision: None,
+                    backup_variant: None,
+                    backup_region: None,
+                    max_script: None,
+                    precomputed: Some(static_slice.iter()),
+                },
+            })
+        } else {
+            None
         }
     }
 
@@ -291,7 +340,11 @@ impl LocaleFallbackIterator<'_> {
     ///
     /// The fallback is completed once the inner [`DataLocale`] becomes [`DataLocale::default()`].
     pub fn step(&mut self) -> &mut Self {
-        self.inner.step(&mut self.current);
+        if let Some(iter) = self.inner.precomputed.as_mut() {
+            self.current = *iter.next().unwrap_or(&DataLocale::default());
+        } else {
+            self.inner.step(&mut self.current);
+        }
         self
     }
 }
